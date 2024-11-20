@@ -1,0 +1,493 @@
+{
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "diffEditor.ignoreTrimWhitespace": false,
+    "editor.autoClosingBrackets": "never",
+  },
+  "[csharp]": {
+    "editor.defaultFormatter": "csharpier.csharpier-vscode"
+  },
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+  },
+  "[shellscript]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  "editor.fontFamily": "Liga ComicShannsMono Nerd Font, Monaspace Argon Var, Menlo",
+  "errorLens.fontFamily": "Arial",
+  "errorLens.fontSize": "14",
+  "errorLens.messageTemplate": "[$source]($code) $message (+$count)",
+  "errorLens.gutterIconsEnabled": true,
+  "gitlens.codeLens.enabled": false,
+  "gitlens.blame.ignoreWhitespace": true,
+  "gitlens.blame.fontFamily": "Arial",
+  "gitlens.currentLine.fontFamily": "Arial",
+  "gitlens.currentLine.fontSize": 14,
+  "terminal.integrated.fontSize": 18,
+  "terminal.integrated.fontFamily": "TamzenForPowerline, Cascadia Code, Liga ComicShannsMono Nerd Font, Monaspace Argon Var, Menlo",
+  "editor.fontLigatures": "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09'",
+  "editor.fontSize": 16,
+  "markdown.preview.fontSize": 16,
+  "[javascript][typescript][javascriptreact][typescriptreact]": {
+    "editor.fontFamily": "Hack Nerd Font, 'Courier New', monospace",
+  },
+  "[json][jsonc][jsonl]": {
+    "editor.fontFamily": "Cascadia Code, Menlo"
+  },
+  "editor.inlineSuggest.fontFamily": "Cascadia Code, Menlo",
+  "omnisharp.enableEditorConfigSupport": true,
+  "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution",
+  "editor.codeActionsOnSave": [
+    "source.addMissingImports", // This is dangerous because you might accidentally import from the wrong library
+    "source.organizeImports",
+    "source.fixAll",
+    "source.sortMembers" // TODO: what does this do?
+  ],
+  "editor.formatOnType": true,
+  "editor.unicodeHighlight.includeStrings": false,
+  "eslint.codeAction.disableRuleComment": {
+    "enable": false
+  },
+  "eslint.codeAction.showDocumentation": {
+    "enable": false
+  },
+  "eslint.format.enable": true,
+  "eslint.lintTask.enable": true,
+  "eslint.onIgnoredFiles": "warn",
+  "eslint.useESLintClass": true,
+  "explorer.confirmDelete": false,
+  "explorer.confirmDragAndDrop": false,
+  "files.autoSave": "afterDelay",
+  "files.insertFinalNewline": false,
+  "files.trimFinalNewlines": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  "githubPullRequests.pullBranch": "never",
+  "javascript.autoClosingTags": false,
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "jestrunner.preserveEditorFocus": true,
+  "jestTestExplorer.debugOutput": "externalTerminal",
+  "python.analysis.autoImportCompletions": true,
+  // "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.inlayHints.functionReturnTypes": true,
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "security.workspace.trust.untrustedFiles": "open",
+  "python.analysis.addImport.exactMatchOnly": true,
+  "fixAllJson.enableFixes": {
+    "fixDoubleQuotes": false
+  },
+  "diffEditor.codeLens": true,
+  "githubPullRequests.createOnPublishBranch": "ask",
+  "code-runner.saveFileBeforeRun": true,
+  "abracadabra.changeSignature.showInQuickFix": false,
+  "abracadabra.toggleBraces.showInQuickFix": false,
+  "task.allowAutomaticTasks": "on",
+  "window.closeWhenEmpty": true,
+  "window.title": "${dirty}[VS CODE] ${rootName}${separator}${profileName}${separator}${activeEditorShort}",
+  "stylelint.reportDescriptionlessDisables": true,
+  "stylelint.reportInvalidScopeDisables": true,
+  "stylelint.reportNeedlessDisables": true,
+  "stylelint.validate": [
+    "css",
+    "scss"
+  ],
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "python.analysis.autoFormatStrings": true,
+  "cSpell.validateDirectives": true,
+  "window.nativeTabs": true,
+  "testExplorer.useNativeTesting": true,
+  "editor.gotoLocation.alternativeDeclarationCommand": "editor.action.referenceSearch.trigger",
+  "editor.gotoLocation.alternativeDefinitionCommand": "editor.action.referenceSearch.trigger",
+  "editor.gotoLocation.alternativeTypeDefinitionCommand": "editor.action.referenceSearch.trigger",
+  "editor.gotoLocation.multipleDefinitions": "goto",
+  "material-icon-theme.activeIconPack": "react_redux",
+  "editor.semanticHighlighting.enabled": true,
+  "editor.tokenColorCustomizations": {
+    "[Quiet Light]": {
+      "comments": "#229977"
+    },
+  },
+  "vscodeReactRefactor.babelPlugins": "objectRestSpread, classProperties, typescript, jsx, tsx",
+  "githubPullRequests.pushBranch": "always",
+  "editor.guides.bracketPairs": "active",
+  "python.analysis.inlayHints.pytestParameters": true,
+  "editor.inlayHints.padding": true,
+  "ruff.codeAction.disableRuleComment": {
+    "enable": false
+  },
+  "git.openRepositoryInParentFolders": "never",
+  "redhat.telemetry.enabled": false,
+  // "peacock.surpriseMeOnStartup": true, // This only sets it once per workspace.
+  "yaml.schemas": {
+    "https://docs.sourcery.ai/resources/sourcery_yaml_schema.json": ".sourcery.yaml"
+  },
+  "terminal.integrated.scrollback": 100000,
+  "window.autoDetectColorScheme": true,
+  "settingsSync.ignoredSettings": [
+    "workbench.colorTheme"
+  ],
+  "workbench.preferredLightColorTheme": "Quiet Light",
+  "python.analysis.fixAll": [
+    "source.convertImportFormat"
+  ],
+  "cSpell.autoFormatConfigFile": true,
+  "debug.console.acceptSuggestionOnEnter": "on",
+  "files.autoSaveDelay": 500,
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestArgs": [],
+  "git.autoStash": true,
+  "git.closeDiffOnOperation": true,
+  "git.timeline.showUncommitted": true,
+  "git.showPushSuccessNotification": true,
+  "git.pullBeforeCheckout": true,
+  "git.mergeEditor": true,
+  "git.fetchOnPull": true,
+  "git.autofetch": "all",
+  "tabnine.experimentalAutoImports": true,
+  "svelte.enable-ts-plugin": true,
+  "discord.detailsEditing": "Editing a {LANG} file",
+  "discord.detailsDebugging": "Debugging a {LANG} file",
+  "discord.lowerDetailsEditing": "Ln {current_line}/{total_lines}, Col {current_column}",
+  "discord.removeRemoteRepository": true,
+  "discord.lowerDetailsNoWorkspaceFound": "Ln {current_line}/{total_lines}, Col {current_column}",
+  "discord.lowerDetailsDebugging": "Ln {current_line}/{total_lines}, Col {current_column}",
+  "files.hotExit": "onExitAndWindowClose",
+  "sql-formatter.dialect": "postgresql",
+  "sql-formatter.uppercase": true,
+  "[sql]": {
+    "editor.defaultFormatter": "lea21st.vscode-sql-formatter"
+  },
+  "git.alwaysSignOff": true,
+  "diffEditor.experimental.showMoves": true,
+  "rust-analyzer.semanticHighlighting.operator.specialization.enable": true,
+  "rust-analyzer.semanticHighlighting.punctuation.specialization.enable": true,
+  "rust-analyzer.inlayHints.typeHints.hideClosureInitialization": true,
+  "rust-analyzer.inlayHints.typeHints.hideNamedConstructor": true,
+  "rust-analyzer.inlayHints.typeHints.enable": false,
+  // "rust-analyzer.check.overrideCommand": [
+  //   "cargo",
+  //   "clippy",
+  //   "--fix",
+  //   "--workspace",
+  //   "--message-format=json",
+  //   "--all-targets",
+  //   "--allow-dirty"
+  // ],
+  "cSpell.ignorePaths": [
+    "package-lock.json",
+    "node_modules",
+    "vscode-extension",
+    ".git/objects",
+    ".vscode",
+    ".vscode-insiders",
+    "package.json"
+  ],
+  "sourcery.codeLens": false,
+  "vim.startInInsertMode": true,
+  "editor.quickSuggestionsDelay": 0,
+  "vim.overrideCopy": false,
+  "html.autoClosingTags": false,
+  "svelte.plugin.html.tagComplete.enable": false,
+  "editor.inlineSuggest.suppressSuggestions": true,
+  "datadog.telemetry.setup.enableTelemetry": "disabled",
+  "datadog.codeInsights.codeInsight.view.group": "kind",
+  "datadog.codeInsights.activeCodeInsight.view.group": "kind",
+  "datadog.connection.oauth.setup.domain": "condor.datadoghq.com",
+  "datadog.information.extensionStatus.hideFocusedEnvironment": true,
+  "datadog.information.extensionStatus.hideTimeRange": true,
+  "editor.suggestSelection": "recentlyUsedByPrefix",
+  "editor.suggest.shareSuggestSelections": true,
+  "editor.suggest.localityBonus": true,
+  "terminal.integrated.env.osx": {
+    "CW_NEW_SESSION": "1",
+    "Q_NEW_SESSION": "1"
+  },
+  "js/ts.implicitProjectConfig.target": "ESNext",
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "js/ts.implicitProjectConfig.checkJs": true,
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "*.ts": "${capture}.test.ts, ${capture}.shared.test.ts",
+    "*.tsx": "${capture}.test.tsx, ${capture}.shared.test.ts"
+  },
+  "explorer.incrementalNaming": "smart",
+  "editor.minimap.enabled": false,
+  "editor.linkedEditing": true,
+  "editor.acceptSuggestionOnCommitCharacter": false,
+  "datadog.staticAnalysis.setup.onboarding.excludedLanguages": [
+    "PYTHON",
+    "TYPESCRIPT",
+    "DOCKERFILE",
+    "JAVASCRIPT"
+  ],
+  "vim.statusBarColorControl": true,
+  "githubPullRequests.focusedMode": "multiDiff",
+  "editor.cursorSurroundingLines": 17,
+  "terminal.integrated.cursorBlinking": true,
+  "files.exclude": {
+    "**/node_modules": true
+  },
+  "aws.telemetry": false,
+  "aws.codeWhisperer.shareCodeWhispererContentWithAWS": false,
+  "vim.leader": "<space>",
+  "indenticator.showCurrentDepthInStatusBar": false,
+  "datadog.information.extensionStatus.hideOrganizationName": true,
+  "advancedNewFile.convenienceOptions": [
+    "current",
+    "last",
+    "root"
+  ],
+  "reactSnippets.settings.importReactOnTop": false,
+  "terminal.integrated.enableMultiLinePasteWarning": "never",
+  "zenMode.hideLineNumbers": false,
+  "dance.modes": {
+    "": {
+      "hiddenSelectionsIndicatorsDecoration": {
+        "after": {
+          "color": "$list.warningForeground"
+        },
+        "backgroundColor": "$inputValidation.warningBackground",
+        "borderColor": "$inputValidation.warningBorder",
+        "borderStyle": "solid",
+        "borderWidth": "1px",
+        "isWholeLine": true
+      }
+    },
+    "input": {
+      "cursorStyle": "underline-thin"
+    },
+    "insert": {
+      "onLeaveMode": [
+        [
+          ".selections.save",
+          {
+            "register": " insert"
+          }
+        ]
+      ],
+      "onEnterMode": [
+        [
+          ".run",
+          {
+            "input": "vscode.workspace.getConfiguration('workbench').update('colorCustomizations', { ...vscode.workspace.getConfiguration('workbench').inspect('colorCustomizations').globalValue, 'statusBar.background': '#5f0000' }, true, true)"
+          }
+        ]
+      ]
+    },
+    "select": {
+      // "cursorStyle": "block-outline",
+      // "selectionBehavior": "character",
+      "onEnterMode": [
+        [
+          ".run",
+          {
+            "input": "vscode.workspace.getConfiguration('workbench').update('colorCustomizations', { ...vscode.workspace.getConfiguration('workbench').inspect('colorCustomizations').globalValue, 'statusBar.background': '#5f00af' }, true, true)"
+          }
+        ]
+      ]
+    },
+    "normal": {
+      // "cursorStyle": "block",
+      // "selectionBehavior": "character",
+      "lineNumbers": "relative",
+      "decorations": {
+        "applyTo": "main",
+        "backgroundColor": "$editor.hoverHighlightBackground",
+        "isWholeLine": true
+      },
+      "onEnterMode": [
+        [
+          ".selections.restore",
+          {
+            "register": " ^",
+            "try": true
+          }
+        ],
+        [
+          ".run",
+          {
+            "input": "vscode.workspace.getConfiguration('workbench').update('colorCustomizations', { ...vscode.workspace.getConfiguration('workbench').inspect('colorCustomizations').globalValue, 'statusBar.background': '#005f5f' }, true, true)"
+          }
+        ]
+      ],
+      "onLeaveMode": [
+        [
+          ".selections.save",
+          {
+            "register": " ^",
+            "style": {
+              "borderColor": "$editor.selectionBackground",
+              "borderStyle": "solid",
+              "borderWidth": "2px",
+              "borderRadius": "1px"
+            },
+            "until": [
+              [
+                "mode-did-change",
+                {
+                  "include": "normal"
+                }
+              ],
+              [
+                "selections-did-change"
+              ]
+            ]
+          }
+        ]
+      ]
+    }
+  },
+  "workbench.colorCustomizations": {
+    "statusBar.background": "#005f5f",
+    "tab.activeBorder": "#ff00ff"
+  },
+  "window.customTitleBarVisibility": "windowed",
+  "workbench.activityBar.location": "top",
+  "cmake.showOptionsMovedNotification": false,
+  "editor.scrollbar.verticalScrollbarSize": 5,
+  "editor.scrollbar.horizontalScrollbarSize": 8,
+  "githubPullRequests.defaultMergeMethod": "squash",
+  "editor.renderLineHighlight": "all",
+  "scm.diffDecorationsIgnoreTrimWhitespace": "inherit",
+  "scm.showHistoryGraph": false,
+  "debug.showBreakpointsInOverviewRuler": true,
+  "debug.javascript.breakOnConditionalError": true,
+  "window.density.editorTabHeight": "compact",
+  "workbench.editor.pinnedTabSizing": "shrink",
+  "workbench.editor.tabActionCloseVisibility": false,
+  "workbench.editor.tabSizing": "shrink",
+  "evenBetterToml.semanticTokens": true,
+  "terminal.integrated.smoothScrolling": true,
+  "editor.suggestOnTriggerCharacters": false,
+  "editor.quickSuggestions": {
+    "other": "inline"
+  },
+  "editor.suggest.snippetsPreventQuickSuggestions": true,
+  "workbench.panel.defaultLocation": "right",
+  "eslint.probe": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "html",
+    "vue",
+    "markdown",
+    "svelte"
+  ],
+  "cSpell.userWords": [
+    "Bidusha"
+  ],
+  "accessibility.dimUnfocused.enabled": true,
+  "search.showLineNumbers": true,
+  "editor.showFoldingControls": "never",
+  // "editor.glyphMargin": false, // Don't enable this because I like seeing Error Lens icons in the margin. It's not just for debug breakpoints.
+  "editor.lineDecorationsWidth": 3, // undocumented
+  "workbench.editor.tabCloseButton": "off", // undocumented
+  "vsicons.dontShowNewVersionMessage": true,
+  // "workbench.editor.revealIfOpen": true,  // This gets in the way during two-player split-screen
+  "editor.cursorSurroundingLinesStyle": "all",
+  "rust-analyzer.diagnostics.styleLints.enable": true,
+  "rust-analyzer.check.command": "clippy",
+  "cSpell.spellCheckOnlyWorkspaceFiles": true,
+  "debug.console.closeOnEnd": true,
+  "breadcrumbs.symbolPath": "off",
+  "editor.stickyTabStops": true,
+  "indentRainbow.ignoreErrorLanguages": [
+    "markdown"
+  ],
+  "indentRainbow.colorOnWhiteSpaceOnly": true,
+  "discord.suppressNotifications": true,
+  "editor.inlineSuggest.showToolbar": "never",
+  "window.restoreFullscreen": true,
+  "window.restoreWindows": "preserve",
+  "window.newWindowDimensions": "fullscreen",
+  "terminal.integrated.persistentSessionReviveProcess": "onExitAndWindowClose",
+  "typescript.experimental.updateImportsOnPaste": true,
+  "typescript.autoClosingTags": false,
+  "typescript.preferGoToSourceDefinition": true,
+  "window.openFoldersInNewWindow": "on",
+  "sourcery.token": "user_gSH3RdUyWQod99kH8vGSoBdoTpWWAik_8cSe73IBejmc4_zbgjO_FtU0VQE",
+  "dependi.npm.enabled": false,
+  "editor.defaultFormatter": "biomejs.biome",
+  "github.copilot.editor.enableCodeActions": false,
+  "workbench.iconTheme": "vscode-icons",
+  "supermaven.enableFixWithSupermaven": false,
+  "python.analysis.logLevel": "Warning",
+  "editor.autoClosingDelete": "always",
+  "editor.autoClosingQuotes": "beforeWhitespace",
+  "rust-analyzer.check.extraArgs": [
+    "--",
+    "--force-warn",
+    "clippy::pedantic",
+    // TODO: Figure out proper syntax for this // "-Dclippy::pedantic::cast_sign_loss",
+    "-Dwarnings"
+  ],
+  "typescript.referencesCodeLens.enabled": true,
+  "javascript.referencesCodeLens.enabled": true,
+  "debug.console.fontSize": 14,
+  "template-string-converter.autoRemoveTemplateString": true,
+  "template-string-converter.convertWithinTemplateString": false,
+  "template-string-converter.addBracketsToProps": true,
+  "workbench.sideBar.location": "right",
+  "editor.accessibilitySupport": "off",
+  "editor.formatOnSave": true,
+  "diffEditor.ignoreTrimWhitespace": true,
+  "editor.parameterHints.cycle": false,
+  "editor.parameterHints.enabled": false,
+  "Mathpad.enabled": false,
+  "evenBetterToml.formatter.reorderArrays": true,
+  "evenBetterToml.formatter.reorderKeys": true,
+  "evenBetterToml.formatter.allowedBlankLines": 1,
+  "terminal.integrated.tabs.title": "${task}${separator}${local}${separator}${cwdFolder}",
+  "terminal.integrated.tabs.description": "",
+  "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "window.confirmBeforeClose": "keyboardOnly",
+  "terminal.integrated.confirmOnExit": "hasChildProcesses",
+  "workbench.editor.closeOnFileDelete": true,
+  "terminal.integrated.confirmOnKill": "always",
+  "editor.lightbulb.enabled": "off",
+  "rust-analyzer.lens.references.adt.enable": true,
+  "rust-analyzer.lens.references.enumVariant.enable": true,
+  "rust-analyzer.lens.references.method.enable": true,
+  "rust-analyzer.lens.references.trait.enable": true,
+  "chat.editor.fontSize": 11,
+  "markdown-preview-enhanced.previewColorScheme": "editorColorScheme",
+  "markdown-preview-enhanced.useGitHubStylePipedLink": true,
+  "diffEditor.experimental.useTrueInlineView": true,
+  "editor.rulers": [
+    80
+  ],
+  "rust-analyzer.diagnostics.useRustcErrorCode": true,
+  "tsEssentialPlugins.suggestions.localityBonus": true,
+  "tsEssentialPlugins.suggestions.localityBonusMode": "nearest-to-position",
+  "tsEssentialPlugins.tupleHelpSignature": true,
+  "pylint.enabled": false,
+  "editor.inlineSuggest.syntaxHighlightingEnabled": true,
+  "editor.inlineSuggest.enabled": false,
+  "editor.occurrencesHighlight": "off",
+  "better-comments.highlightPlainText": true,
+  "markdown.occurrencesHighlight.enabled": true,
+  "tsEssentialPlugins.disableUselessHighlighting": "inAllStrings",
+  "tsEssentialPlugins.fixSuggestionsSorting": true,
+  "editor.hover.enabled": false,
+  "editor.cursorSmoothCaretAnimation": "on",
+  "telemetry.telemetryLevel": "off",
+  "gitlens.telemetry.enabled": false,
+  "postman.telemetry.enabled": false,
+  "terminal.integrated.copyOnSelection": true,
+  "javascript.experimental.updateImportsOnPaste": true,
+  "editor.find.addExtraSpaceOnTop": false,
+  "editor.overviewRulerBorder": false,
+  "workbench.tree.renderIndentGuides": "none",
+  "editor.wordWrap": "on",
+  "workbench.settings.applyToAllProfiles": [
+    "workbench.colorCustomizations"
+  ],
+  "editor.smoothScrolling": true,
+  "workbench.list.smoothScrolling": true,
+  "window.titleBarStyle": "custom",
+}
