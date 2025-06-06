@@ -1,29 +1,34 @@
 {
   "[python]": {
-    "editor.defaultFormatter": "charliersh.ruff",
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "diffEditor.ignoreTrimWhitespace": false,
     // "editor.autoClosingBrackets": "never",
-    // "editor.fontFamily": "Liga ComicShannsMono Nerd Font"
+    "editor.fontFamily": "Liga ComicShannsMono Nerd Font"
   },
   "[csharp]": {
     "editor.defaultFormatter": "csharpier.csharpier-vscode"
   },
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.fontFamily": "Liga Comic Mono",
+  },
+  "[javascript][typescript][javascriptreact][typescriptreact][json][jsonc][css]": {
+    "editor.defaultFormatter": "biomejs.biome",
   },
   "[javascript][typescript][javascriptreact][typescriptreact]": {
-    // "editor.fontFamily": "Liga Hack, 'Courier New', monospace",
+    "editor.fontFamily": "Victor Mono",
   },
-  "[json][jsonc][jsonl]": {
-    "editor.fontFamily": "OpenDyslexic Nerd Font, Cascadia Code, Menlo"
+  "[json][jsonc][jsonl][scss][css]": {
+    "editor.fontFamily": "OpenDyslexic Nerd Font, Cascadia Code, Menlo",
+    "breadcrumbs.showArrays": true
   },
   "[shellscript]": {
     "editor.defaultFormatter": "foxundermoon.shell-format"
   },
   "[toml]": {
-    "editor.defaultFormatter": "tamasfe.even-better-toml"
+    "editor.defaultFormatter": "tamasfe.even-better-toml",
   },
-  "editor.fontFamily": "Victor Mono, LigaSrc Pro, Monaspace Argon Var, Menlo",
+  "editor.fontFamily": "Ubuntu Mono Ligaturized, Victor Mono, LigaSrc Pro, Monaspace Argon Var, Menlo",
   // "editor.fontLigatures": "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09'",
   // I only want some stylistics for Victor Mono
   "editor.fontLigatures": "'calt', 'liga', 'ss01', 'ss07', 'ss08'",
@@ -49,7 +54,6 @@
     "source.fixAll",
     "source.sortMembers" // TODO: what does this do?
   ],
-  "editor.formatOnType": true,
   "editor.unicodeHighlight.includeStrings": false,
   "eslint.codeAction.disableRuleComment": {
     "enable": false
@@ -75,7 +79,6 @@
   "jestrunner.preserveEditorFocus": true,
   "jestTestExplorer.debugOutput": "externalTerminal",
   "python.analysis.autoImportCompletions": true,
-  // "python.analysis.diagnosticMode": "workspace",
   "python.analysis.inlayHints.functionReturnTypes": true,
   "python.terminal.activateEnvInCurrentTerminal": true,
   "security.workspace.trust.untrustedFiles": "open",
@@ -98,7 +101,6 @@
     "css",
     "scss"
   ],
-  "typescript.enablePromptUseWorkspaceTsdk": true,
   "python.analysis.autoFormatStrings": true,
   "cSpell.validateDirectives": true,
   "window.nativeTabs": true,
@@ -110,9 +112,28 @@
   "material-icon-theme.activeIconPack": "react_redux",
   "editor.semanticHighlighting.enabled": true,
   "editor.tokenColorCustomizations": {
-    "[Quiet Light]": {
-      "comments": "#229977"
+    "[*Light*]": {
+      "textMateRules": [
+        {
+          "scope": "ref.matchtext",
+          "settings": {
+            "foreground": "#000"
+          }
+        }
+      ]
     },
+    "[*Dark*]": {
+      "textMateRules": [
+        {
+          "scope": "ref.matchtext",
+          "settings": {
+            "foreground": "#fff"
+          }
+        }
+      ]
+    },
+    "[Quiet Light]": {},
+    "textMateRules": []
   },
   "vscodeReactRefactor.babelPlugins": "objectRestSpread, classProperties, typescript, jsx, tsx",
   "githubPullRequests.pushBranch": "always",
@@ -214,6 +235,7 @@
   "vim.statusBarColorControl": true,
   "githubPullRequests.focusedMode": "multiDiff",
   "editor.cursorSurroundingLines": 17,
+  "workbench.colorTheme": "Quiet Light",
   "terminal.integrated.cursorBlinking": true,
   "files.exclude": {
     "**/node_modules": true
@@ -243,16 +265,13 @@
   "scm.showHistoryGraph": false,
   "debug.showBreakpointsInOverviewRuler": true,
   "debug.javascript.breakOnConditionalError": true,
-  "window.density.editorTabHeight": "compact",
   "workbench.editor.pinnedTabSizing": "shrink",
   "workbench.editor.tabActionCloseVisibility": false,
   "workbench.editor.tabSizing": "shrink",
   "evenBetterToml.semanticTokens": true,
   "terminal.integrated.smoothScrolling": true,
   "editor.suggestOnTriggerCharacters": false,
-  "editor.quickSuggestions": {
-    "other": "inline"
-  },
+  "editor.quickSuggestions": { "other": "off" },
   "editor.suggest.snippetsPreventQuickSuggestions": true,
   "workbench.panel.defaultLocation": "right",
   "eslint.probe": [
@@ -297,7 +316,7 @@
   "window.openFoldersInNewWindow": "on",
   "sourcery.token": "user_gSH3RdUyWQod99kH8vGSoBdoTpWWAik_8cSe73IBejmc4_zbgjO_FtU0VQE",
   "dependi.npm.enabled": false,
-  "editor.defaultFormatter": "biomejs.biome",
+  "snyk.advanced.cliPath": "/Users/tyler/Library/Application Support/snyk-ls/snyk-macos-arm64",
   "github.copilot.editor.enableCodeActions": false,
   "workbench.iconTheme": "vscode-icons",
   "supermaven.enableFixWithSupermaven": false,
@@ -355,7 +374,6 @@
   "tsEssentialPlugins.suggestions.localityBonusMode": "nearest-to-position",
   "tsEssentialPlugins.tupleHelpSignature": true,
   "pylint.enabled": false,
-  "editor.inlineSuggest.syntaxHighlightingEnabled": true,
   "editor.inlineSuggest.enabled": false,
   "editor.occurrencesHighlight": "off",
   "better-comments.highlightPlainText": true,
@@ -386,10 +404,6 @@
   "git.blame.editorDecoration.enabled": false, // Conflicts with GitLens. Switch to this once I can change the font.
   "terminal.integrated.env.osx": {
     "Q_NEW_SESSION": "1"
-  },
-  "[jsonc]": {
-    "editor.defaultFormatter": "vscode.json-language-features",
-    "breadcrumbs.showArrays": true
   },
   "gitlens.advanced.messages": {
     "suppressIntegrationDisconnectedTooManyFailedRequestsWarning": true,
@@ -455,10 +469,100 @@
     "editor.wordWrap": "on",
     "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
   },
-  "github.copilot.chat.edits.codesearch.enabled": true,
+  "github.copilot.chat.codesearch.enabled": true,
   "github.copilot.chat.editor.temporalContext.enabled": true,
   "github.copilot.chat.edits.temporalContext.enabled": true,
   "github.copilot.nextEditSuggestions.enabled": true,
   "github.copilot.chat.languageContext.typescript.enabled": true,
-  "github.copilot.chat.search.semanticTextResults": true
+  "diffEditor.wordWrap": "on",
+  "python.analysis.typeEvaluation.enableReachabilityAnalysis": true,
+  "sourcery.suggestFixes": false,
+  "python.analysis.diagnosticMode": "workspace",
+  "terminal.integrated.suggest.enabled": true,
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "python.analysis.showOnlyDirectDependenciesInAutoImport": true,
+  "editor.snippetSuggestions": "bottom",
+  "emmet.showSuggestionsAsSnippets": true,
+  "tsEssentialPlugins.jsxImproveElementsSuggestions.filterNamespaces": true,
+  "editor.suggest.matchOnWordStartOnly": false,
+  "files.associations": {
+    ".env*": "dotenv"
+  },
+  "dance.modes": {
+    "": {
+      "hiddenSelectionsIndicatorsDecoration": {
+        "after": {
+          "color": "$list.warningForeground"
+        },
+        "backgroundColor": "$inputValidation.warningBackground",
+        "borderColor": "$inputValidation.warningBorder",
+        "borderStyle": "solid",
+        "borderWidth": "1px",
+        "isWholeLine": true
+      }
+    },
+    "input": {
+      "cursorStyle": "underline-thin"
+    },
+    "insert": {
+      "cursorStyle": "line-thin",
+      "onLeaveMode": [
+        [
+          ".selections.save",
+          {
+            "register": " insert"
+          }
+        ]
+      ]
+    },
+    "select": {},
+    "normal": {
+      "lineNumbers": "relative",
+      "decorations": {
+        "applyTo": "main",
+        "backgroundColor": "$editor.hoverHighlightBackground",
+        "isWholeLine": true
+      },
+      "onEnterMode": [
+        [
+          ".selections.restore",
+          {
+            "register": " ^",
+            "try": true
+          }
+        ]
+      ],
+      "onLeaveMode": [
+        [
+          ".selections.save",
+          {
+            "register": " ^",
+            "style": {
+              "borderColor": "$editor.selectionBackground",
+              "borderStyle": "solid",
+              "borderWidth": "2px",
+              "borderRadius": "1px"
+            },
+            "until": [
+              [
+                "mode-did-change",
+                {
+                  "include": "normal"
+                }
+              ],
+              [
+                "selections-did-change"
+              ]
+            ]
+          }
+        ]
+      ]
+    }
+  },
+  "dotenv.enableAutocloaking": false,
+  "window.density.editorTabHeight": "compact",
+  "chat.agent.enabled": true,
+  "github.copilot.chat.agent.thinkingTool": true,
+  "biome.requireConfigFile": true,
+  "workbench.startupEditor": "welcomePageInEmptyWorkbench",
 }
