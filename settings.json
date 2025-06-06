@@ -10,7 +10,7 @@
   },
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
-    "editor.fontFamily": "Liga Comic Mono",
+    // "editor.fontFamily": "Monaspace Argon Var",
   },
   "[javascript][typescript][javascriptreact][typescriptreact][json][jsonc][css]": {
     "editor.defaultFormatter": "biomejs.biome",
@@ -235,7 +235,6 @@
   "vim.statusBarColorControl": true,
   "githubPullRequests.focusedMode": "multiDiff",
   "editor.cursorSurroundingLines": 17,
-  "workbench.colorTheme": "Quiet Light",
   "terminal.integrated.cursorBlinking": true,
   "files.exclude": {
     "**/node_modules": true
@@ -251,6 +250,8 @@
   "reactSnippets.settings.importReactOnTop": false,
   "terminal.integrated.enableMultiLinePasteWarning": "never",
   "zenMode.hideLineNumbers": false,
+  "zenMode.centerLayout": false,
+  "zenMode.showTabs": "none",
   "workbench.colorCustomizations": {
     "tab.activeBorder": "#ff00ff",
   },
@@ -290,6 +291,7 @@
   "accessibility.dimUnfocused.enabled": true,
   "search.showLineNumbers": true,
   "editor.showFoldingControls": "never",
+  "editor.folding": false,  // This has to be off, not just the controls, in order to get rid of the extra margin
   // "editor.glyphMargin": false, // Don't enable this because I like seeing Error Lens icons in the margin. It's not just for debug breakpoints.
   "editor.lineDecorationsWidth": 3, // undocumented
   "workbench.editor.tabCloseButton": "off", // undocumented
@@ -316,7 +318,6 @@
   "window.openFoldersInNewWindow": "on",
   "sourcery.token": "user_gSH3RdUyWQod99kH8vGSoBdoTpWWAik_8cSe73IBejmc4_zbgjO_FtU0VQE",
   "dependi.npm.enabled": false,
-  "snyk.advanced.cliPath": "/Users/tyler/Library/Application Support/snyk-ls/snyk-macos-arm64",
   "github.copilot.editor.enableCodeActions": false,
   "workbench.iconTheme": "vscode-icons",
   "supermaven.enableFixWithSupermaven": false,
@@ -353,6 +354,7 @@
   "[yaml]": {
     "editor.defaultFormatter": "redhat.vscode-yaml"
   },
+  "yaml.format.singleQuote": true,
   "window.confirmBeforeClose": "keyboardOnly",
   "terminal.integrated.confirmOnExit": "hasChildProcesses",
   "workbench.editor.closeOnFileDelete": true,
@@ -398,7 +400,6 @@
   "security.promptForLocalFileProtocolHandling": false,
   "editor.smoothScrolling": true,
   "editor.suggest.preview": true,
-  "workbench.editor.enablePreviewFromCodeNavigation": true,
   "terminal.integrated.enableVisualBell": true,
   "terminal.integrated.fontLigatures": true,
   "git.blame.editorDecoration.enabled": false, // Conflicts with GitLens. Switch to this once I can change the font.
@@ -464,7 +465,6 @@
   },
   "gitlens.ai.model": "vscode",
   "gitlens.ai.vscode.model": "copilot:claude-3.5-sonnet",
-  "python.analysis.typeEvaluation.deprecateTypingAliases": true,
   "[markdown]": {
     "editor.wordWrap": "on",
     "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
@@ -563,6 +563,12 @@
   "window.density.editorTabHeight": "compact",
   "chat.agent.enabled": true,
   "github.copilot.chat.agent.thinkingTool": true,
-  "biome.requireConfigFile": true,
-  "workbench.startupEditor": "welcomePageInEmptyWorkbench",
+  "typescript.referencesCodeLens.showOnAllFunctions": true,
+  "typescript.reportStyleChecksAsWarnings": false,
+  "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
+  "javascript.inlayHints.functionLikeReturnTypes.enabled": true,
+  "python.analysis.typeEvaluation.strictListInference": true,
+  "workbench.preferredDarkColorTheme": "Shades of Purple (Super Dark)",
+  "biome.suggestInstallingGlobally": false,
+  "workbench.editor.highlightModifiedTabs": true,
 }
