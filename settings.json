@@ -3,35 +3,37 @@
     "editor.defaultFormatter": "charliermarsh.ruff",
     "diffEditor.ignoreTrimWhitespace": false,
     // "editor.autoClosingBrackets": "never",
-    "editor.fontFamily": "Liga ComicShannsMono Nerd Font"
+    "editor.fontFamily": "Cascadia Code, Liga ComicShannsMono Nerd Font"
   },
   "[csharp]": {
     "editor.defaultFormatter": "csharpier.csharpier-vscode"
   },
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
-    // "editor.fontFamily": "Monaspace Argon Var",
+    "editor.fontFamily": "Kelmscott Mono, Victor Mono, Liga Comic Mono, Liga ComicShannsMono Nerd Font",
   },
   "[javascript][typescript][javascriptreact][typescriptreact][json][jsonc][css]": {
     "editor.defaultFormatter": "biomejs.biome",
   },
   "[javascript][typescript][javascriptreact][typescriptreact]": {
-    "editor.fontFamily": "Victor Mono",
+    "editor.fontFamily": "Menlo",
   },
   "[json][jsonc][jsonl][scss][css]": {
     "editor.fontFamily": "OpenDyslexic Nerd Font, Cascadia Code, Menlo",
-    "breadcrumbs.showArrays": true
+    "breadcrumbs.showArrays": true,
+    "editor.defaultFormatter": "vscode.json-language-features"
   },
   "[shellscript]": {
-    "editor.defaultFormatter": "foxundermoon.shell-format"
+    "editor.defaultFormatter": "foxundermoon.shell-format",
+    "editor.fontFamily": "Ubuntu Mono Ligaturized"
   },
   "[toml]": {
     "editor.defaultFormatter": "tamasfe.even-better-toml",
   },
-  "editor.fontFamily": "Ubuntu Mono Ligaturized, Victor Mono, LigaSrc Pro, Monaspace Argon Var, Menlo",
+  "editor.fontFamily": "Victor Mono, Ubuntu Mono Ligaturized, Victor Mono, LigaSrc Pro, Monaspace Argon Var, Menlo",
   // "editor.fontLigatures": "'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09'",
-  // I only want some stylistics for Victor Mono
-  "editor.fontLigatures": "'calt', 'liga', 'ss01', 'ss07', 'ss08'",
+  // I only want some stylistics for Victor Mono and Menlo
+  "editor.fontLigatures": "'calt', 'ss01', 'ss07', 'ss08'",
   "errorLens.fontFamily": "Arial",
   "errorLens.fontSize": "14",
   "errorLens.messageTemplate": "[$source]($code) $message (+$count)",
@@ -42,7 +44,7 @@
   "gitlens.currentLine.fontFamily": "Arial",
   "gitlens.currentLine.fontSize": 14,
   "terminal.integrated.fontSize": 18,
-  "terminal.integrated.fontFamily": "TamzenForPowerline, Cascadia Code, Liga ComicShannsMono Nerd Font, Monaspace Argon Var, Menlo",
+  "terminal.integrated.fontFamily": "TamzenForPowerline, Ubuntu Mono Ligaturized",
   "editor.fontSize": 16,
   "markdown.preview.fontSize": 16,
   "editor.inlineSuggest.fontFamily": "Cascadia Code, Menlo",
@@ -50,18 +52,15 @@
   "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution",
   "editor.codeActionsOnSave": [
     // "source.addMissingImports", // This is dangerous because you might accidentally import from the wrong library
-    "source.organizeImports",
+    "source.sortPackageJson",
+    "source.organizeImports", // This seems to conflict with Biome and Ruff
     "source.fixAll",
-    "source.sortMembers" // TODO: what does this do?
+    "source.sortMembers", // TODO: what does this do?
   ],
   "editor.unicodeHighlight.includeStrings": false,
   "eslint.codeAction.disableRuleComment": {
     "enable": false
   },
-  "eslint.codeAction.showDocumentation": {
-    "enable": false
-  },
-  "eslint.format.enable": true,
   "eslint.lintTask.enable": true,
   "eslint.onIgnoredFiles": "warn",
   "eslint.useESLintClass": true,
@@ -139,7 +138,7 @@
   "githubPullRequests.pushBranch": "always",
   "editor.guides.bracketPairs": "active",
   "python.analysis.inlayHints.pytestParameters": true,
-  "editor.inlayHints.padding": true,
+  // "editor.inlayHints.padding": true,
   "ruff.codeAction.disableRuleComment": {
     "enable": false
   },
@@ -149,7 +148,6 @@
   "yaml.schemas": {
     "https://docs.sourcery.ai/resources/sourcery_yaml_schema.json": ".sourcery.yaml"
   },
-  "terminal.integrated.scrollback": 100000,
   "window.autoDetectColorScheme": true,
   "settingsSync.ignoredSettings": [
     "workbench.colorTheme"
@@ -187,11 +185,10 @@
   },
   "git.alwaysSignOff": true,
   "diffEditor.experimental.showMoves": true,
+  "rust-analyzer.semanticHighlighting.punctuation.enable": true,
   "rust-analyzer.semanticHighlighting.operator.specialization.enable": true,
   "rust-analyzer.semanticHighlighting.punctuation.specialization.enable": true,
-  "rust-analyzer.inlayHints.typeHints.hideClosureInitialization": true,
   "rust-analyzer.inlayHints.typeHints.hideNamedConstructor": true,
-  "rust-analyzer.inlayHints.typeHints.enable": false,
   // "rust-analyzer.check.overrideCommand": [
   //   "cargo",
   //   "clippy",
@@ -254,6 +251,8 @@
   "zenMode.showTabs": "none",
   "workbench.colorCustomizations": {
     "tab.activeBorder": "#ff00ff",
+    "terminal.background": "#000000",
+    "terminal.foreground": "#66ff66"
   },
   "window.customTitleBarVisibility": "windowed",
   "workbench.activityBar.location": "top",
@@ -262,7 +261,6 @@
   "editor.scrollbar.horizontalScrollbarSize": 8,
   "githubPullRequests.defaultMergeMethod": "squash",
   "editor.renderLineHighlight": "all",
-  "scm.diffDecorationsIgnoreTrimWhitespace": "inherit",
   "scm.showHistoryGraph": false,
   "debug.showBreakpointsInOverviewRuler": true,
   "debug.javascript.breakOnConditionalError": true,
@@ -272,7 +270,9 @@
   "evenBetterToml.semanticTokens": true,
   "terminal.integrated.smoothScrolling": true,
   "editor.suggestOnTriggerCharacters": false,
-  "editor.quickSuggestions": { "other": "off" },
+  "editor.quickSuggestions": {
+    "other": "off"
+  },
   "editor.suggest.snippetsPreventQuickSuggestions": true,
   "workbench.panel.defaultLocation": "right",
   "eslint.probe": [
@@ -286,12 +286,14 @@
     "svelte"
   ],
   "cSpell.userWords": [
-    "Bidusha"
+    "Bidusha",
+    "clippy",
+    "Exercism",
+    "gofmt",
+    "Laprade"
   ],
-  "accessibility.dimUnfocused.enabled": true,
   "search.showLineNumbers": true,
-  "editor.showFoldingControls": "never",
-  "editor.folding": false,  // This has to be off, not just the controls, in order to get rid of the extra margin
+  "editor.showFoldingControls": "never", // This has to be off, not just the controls, in order to get rid of the extra margin
   // "editor.glyphMargin": false, // Don't enable this because I like seeing Error Lens icons in the margin. It's not just for debug breakpoints.
   "editor.lineDecorationsWidth": 3, // undocumented
   "workbench.editor.tabCloseButton": "off", // undocumented
@@ -327,9 +329,10 @@
   "rust-analyzer.check.extraArgs": [
     "--",
     // TODO: Figure out how to allow overrides like "-Aclippy::cast_possible_truncation",
+    // "--forbid",
+    // "clippy::cast_sign_loss",
     "--force-warn",
     "clippy::pedantic",
-    // TODO: Figure out proper syntax for this // "-Dclippy::pedantic::cast_sign_loss",
     "-Dwarnings",
   ],
   "typescript.referencesCodeLens.enabled": true,
@@ -340,15 +343,12 @@
   "template-string-converter.addBracketsToProps": true,
   "workbench.sideBar.location": "right",
   "editor.accessibilitySupport": "off",
-  "editor.formatOnSave": true,
-  "diffEditor.ignoreTrimWhitespace": true,
   "editor.parameterHints.cycle": false,
   "editor.parameterHints.enabled": false,
   "Mathpad.enabled": false,
   "evenBetterToml.formatter.reorderArrays": true,
   "evenBetterToml.formatter.reorderKeys": true,
   "evenBetterToml.formatter.allowedBlankLines": 1,
-  "terminal.integrated.tabs.title": "${local}${separator}${cwdFolder}${separator}${task}",
   "terminal.integrated.tabs.description": "",
   "typescript.tsserver.experimental.enableProjectDiagnostics": true,
   "[yaml]": {
@@ -358,7 +358,6 @@
   "window.confirmBeforeClose": "keyboardOnly",
   "terminal.integrated.confirmOnExit": "hasChildProcesses",
   "workbench.editor.closeOnFileDelete": true,
-  "terminal.integrated.confirmOnKill": "always",
   "editor.lightbulb.enabled": "off",
   "rust-analyzer.lens.references.adt.enable": true,
   "rust-analyzer.lens.references.enumVariant.enable": true,
@@ -376,7 +375,6 @@
   "tsEssentialPlugins.suggestions.localityBonusMode": "nearest-to-position",
   "tsEssentialPlugins.tupleHelpSignature": true,
   "pylint.enabled": false,
-  "editor.inlineSuggest.enabled": false,
   "editor.occurrencesHighlight": "off",
   "better-comments.highlightPlainText": true,
   "markdown.occurrencesHighlight.enabled": true,
@@ -404,7 +402,8 @@
   "terminal.integrated.fontLigatures": true,
   "git.blame.editorDecoration.enabled": false, // Conflicts with GitLens. Switch to this once I can change the font.
   "terminal.integrated.env.osx": {
-    "Q_NEW_SESSION": "1"
+    "Q_NEW_SESSION": "1",
+    "PATH": "${workspaceFolder}/.pyprojectx/main:${workspaceFolder}/node_modules/.bin:${env:PATH}:${workspaceFolder}/.venv/bin"
   },
   "gitlens.advanced.messages": {
     "suppressIntegrationDisconnectedTooManyFailedRequestsWarning": true,
@@ -474,11 +473,9 @@
   "github.copilot.chat.edits.temporalContext.enabled": true,
   "github.copilot.nextEditSuggestions.enabled": true,
   "github.copilot.chat.languageContext.typescript.enabled": true,
-  "diffEditor.wordWrap": "on",
   "python.analysis.typeEvaluation.enableReachabilityAnalysis": true,
   "sourcery.suggestFixes": false,
   "python.analysis.diagnosticMode": "workspace",
-  "terminal.integrated.suggest.enabled": true,
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "python.analysis.showOnlyDirectDependenciesInAutoImport": true,
   "editor.snippetSuggestions": "bottom",
@@ -486,89 +483,106 @@
   "tsEssentialPlugins.jsxImproveElementsSuggestions.filterNamespaces": true,
   "editor.suggest.matchOnWordStartOnly": false,
   "files.associations": {
-    ".env*": "dotenv"
-  },
-  "dance.modes": {
-    "": {
-      "hiddenSelectionsIndicatorsDecoration": {
-        "after": {
-          "color": "$list.warningForeground"
-        },
-        "backgroundColor": "$inputValidation.warningBackground",
-        "borderColor": "$inputValidation.warningBorder",
-        "borderStyle": "solid",
-        "borderWidth": "1px",
-        "isWholeLine": true
-      }
-    },
-    "input": {
-      "cursorStyle": "underline-thin"
-    },
-    "insert": {
-      "cursorStyle": "line-thin",
-      "onLeaveMode": [
-        [
-          ".selections.save",
-          {
-            "register": " insert"
-          }
-        ]
-      ]
-    },
-    "select": {},
-    "normal": {
-      "lineNumbers": "relative",
-      "decorations": {
-        "applyTo": "main",
-        "backgroundColor": "$editor.hoverHighlightBackground",
-        "isWholeLine": true
-      },
-      "onEnterMode": [
-        [
-          ".selections.restore",
-          {
-            "register": " ^",
-            "try": true
-          }
-        ]
-      ],
-      "onLeaveMode": [
-        [
-          ".selections.save",
-          {
-            "register": " ^",
-            "style": {
-              "borderColor": "$editor.selectionBackground",
-              "borderStyle": "solid",
-              "borderWidth": "2px",
-              "borderRadius": "1px"
-            },
-            "until": [
-              [
-                "mode-did-change",
-                {
-                  "include": "normal"
-                }
-              ],
-              [
-                "selections-did-change"
-              ]
-            ]
-          }
-        ]
-      ]
-    }
+    ".env*": "dotenv",
+    "*.yml": "yaml",
+    "LICENSE": "plaintext",
   },
   "dotenv.enableAutocloaking": false,
   "window.density.editorTabHeight": "compact",
-  "chat.agent.enabled": true,
   "github.copilot.chat.agent.thinkingTool": true,
   "typescript.referencesCodeLens.showOnAllFunctions": true,
   "typescript.reportStyleChecksAsWarnings": false,
   "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
   "javascript.inlayHints.functionLikeReturnTypes.enabled": true,
-  "python.analysis.typeEvaluation.strictListInference": true,
-  "workbench.preferredDarkColorTheme": "Shades of Purple (Super Dark)",
+  "workbench.preferredDarkColorTheme": "Night Owl",
   "biome.suggestInstallingGlobally": false,
   "workbench.editor.highlightModifiedTabs": true,
+  "workbench.startupEditor": "welcomePageInEmptyWorkbench",
+  "dance.activeModeDisplayTextTransform": "uppercase",
+  "rust-analyzer.semanticHighlighting.punctuation.separate.macro.bang": true,
+  "basedpyright.analysis.autoImportCompletions": true,
+  "basedpyright.analysis.inlayHints.functionReturnTypes": true,
+  "basedpyright.analysis.diagnosticMode": "workspace",
+  "accessibility.signals.terminalBell": {
+    "sound": "on"
+  },
+  "rust-analyzer.inlayHints.closureStyle": "rust_analyzer",
+  "workbench.editor.empty.hint": "hidden",
+  "search.smartCase": true,
+  "workbench.quickOpen.closeOnFocusLost": false,
+  "graphite.commandPath": "/opt/homebrew/bin/gt",
+  "python.defaultInterpreterPath": "/opt/homebrew/bin/python3",
+  "python.languageServer": "None",
+  "terminal.integrated.commandsToSkipShell": [
+    "workbench.action.quickSwitchWindow",
+    "workbench.action.switchWindow"
+  ],
+  "editor.codeActions.triggerOnFocusChange": true,
+  "errorLens.statusBarIconsEnabled": true,
+  "errorLens.statusBarIconsTargetProblems": "activeEditor",
+  "docker.extension.enableComposeLanguageServer": false,
+  "git.diagnosticsCommitHook.enabled": true,
+  "accessibility.dimUnfocused.enabled": true,
+  "go.toolsManagement.autoUpdate": true,
+  "biome.requireConfiguration": true,
+  "git.defaultBranchName": "master",
+  "gitlens.terminal.overrideGitEditor": false,
+  "terminal.integrated.suggest.inlineSuggestion": "alwaysOnTopExceptExactMatch",
+  "editor.formatOnSave": true,
+  "amp.tab.enabled": true,
+  "amp.tab.experimental.diagnosticTracking": "multi_file",
+  "amp.tab.experimental.improvedDiffChunking": true,
+  "python.terminal.shellIntegration.enabled": true,
+  "python.analysis.supportAllPythonDocuments": true,
+  "python.useEnvironmentsExtensions": true,
+  "eslint.codeAction.showDocumentation": {
+    "enable": false
+  },
+  "eslint.problems.shortenToSingleLine": true,
+  "eslint.ignoreUntitled": true,
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.confirmOnKill": "always",
+  "terminal.integrated.ignoreProcessNames": [
+    "starship",
+    "oh-my-posh",
+    "bash",
+    "zsh",
+    "fish"
+  ],
+  "quokka.showStartViewOnFeatureRelease": false,
+  "rust-analyzer.inlayHints.expressionAdjustmentHints.enable": "reborrow",
+  "rust-analyzer.inlayHints.typeHints.hideClosureInitialization": true,
+  "rust-analyzer.inlayHints.closureCaptureHints.enable": true,
+  "amp.url": "https://ampcode.com/",
+  "terminal.integrated.suggest.enabled": true,
+  "terminal.integrated.suggest.upArrowNavigatesHistory": false,
+  "chatgpt.commentCodeLensEnabled": false,
+  "python.experiments.enabled": false,
+  "workbench.enableExperiments": false,
+  "workbench.editor.enablePreviewFromCodeNavigation": true,
+  "files.simpleDialog.enable": true,
+  "[dockercompose]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.autoIndent": "advanced",
+    "editor.quickSuggestions": {
+      "other": true,
+      "comments": false,
+      "strings": true
+    },
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "[github-actions-workflow]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "editor.foldingImportsByDefault": true,
+  "terminal.integrated.scrollback": 10000,
+  "claudeCode.useTerminal": true,
+  "claudeCode.allowDangerouslySkipPermissions": true,
+  "claudeCode.initialPermissionMode": "plan",
+  "rust-analyzer.restartServerOnConfigChange": true,
+  "terminal.integrated.tabs.title": "${local}${task}${sequence}${separator}${cwdFolder}",
+  "tsEssentialPlugins.renameImportNameOfFileRename": true,
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
+  "scm.diffDecorationsIgnoreTrimWhitespace": "inherit",
 }
