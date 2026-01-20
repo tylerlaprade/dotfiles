@@ -4,7 +4,7 @@ set -e
 echo "Installing dotfiles..."
 
 # Brew packages
-brew install helix zellij ghostty zoxide direnv sd fnm \
+brew install helix zellij ghostty zoxide direnv sd fnm pure \
   eza bat fd dust bottom procs ripgrep git-delta
 
 # Global language servers
