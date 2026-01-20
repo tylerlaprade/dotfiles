@@ -3,9 +3,10 @@
 
 source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
-# Prompt
-export VIRTUAL_ENV_DISABLE_PROMPT=1
-PS1="%F{black}%K{green}%1~ %%%f%k "
+# Prompt (Pure)
+fpath+=("$(brew --prefix)/share/zsh/site-functions")
+autoload -U promptinit; promptinit
+prompt pure
 
 . "$HOME/.local/bin/env"
 [[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
