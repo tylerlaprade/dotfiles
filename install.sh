@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+DOTFILES="$(cd "$(dirname "$0")" && pwd)"
+
 echo "Installing dotfiles..."
 
 # Brew packages
@@ -16,13 +18,13 @@ curl -L "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm
   -o ~/.config/zellij/plugins/zjstatus.wasm
 
 # Symlinks
-ln -sf ~/Code/dotfiles/.zshrc ~/.zshrc
-ln -sf ~/Code/dotfiles/helix ~/.config/helix
-ln -sf ~/Code/dotfiles/zellij/layouts ~/.config/zellij/layouts
+ln -sf $DOTFILES/.zshrc ~/.zshrc
+ln -sf $DOTFILES/helix ~/.config/helix
+ln -sf $DOTFILES/zellij/layouts ~/.config/zellij/layouts
 mkdir -p ~/.config/alacritty
-ln -sf ~/Code/dotfiles/alacritty.toml ~/.config/alacritty/alacritty.toml
+ln -sf $DOTFILES/alacritty.toml ~/.config/alacritty/alacritty.toml
 mkdir -p ~/Library/Application\ Support/com.mitchellh.ghostty
-ln -sf ~/Code/dotfiles/ghostty.config ~/Library/Application\ Support/com.mitchellh.ghostty/config
-ln -sf ~/Code/dotfiles/.claude/statusline.sh ~/.claude/statusline.sh
+ln -sf $DOTFILES/ghostty.config ~/Library/Application\ Support/com.mitchellh.ghostty/config
+ln -sf $DOTFILES/.claude/statusline.sh ~/.claude/statusline.sh
 
 echo "Done! Restart your shell."
