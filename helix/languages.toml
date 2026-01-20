@@ -1,0 +1,87 @@
+# Language Servers
+
+[language-server.biome]
+command = "bunx"
+args = ["biome", "lsp-proxy"]
+
+[language-server.vscode-eslint-language-server]
+command = "vscode-eslint-language-server"
+args = ["--stdio"]
+
+[language-server.vscode-eslint-language-server.config]
+validate = "on"
+experimental = { useFlatConfig = true }
+rulesCustomizations = []
+run = "onType"
+problems = { shortenToSingleLine = false }
+nodePath = ""
+
+[language-server.basedpyright]
+command = "uv"
+args = ["run", "basedpyright-langserver", "--stdio"]
+
+[language-server.ruff]
+command = "uv"
+args = ["run", "ruff", "server"]
+
+# JavaScript/TypeScript - Biome for formatting, ESLint for linting
+
+[[language]]
+name = "javascript"
+language-servers = [
+  { name = "typescript-language-server", except-features = ["format"] },
+  "vscode-eslint-language-server",
+  "biome",
+]
+auto-format = true
+
+[[language]]
+name = "typescript"
+language-servers = [
+  { name = "typescript-language-server", except-features = ["format"] },
+  "vscode-eslint-language-server",
+  "biome",
+]
+auto-format = true
+
+[[language]]
+name = "jsx"
+language-servers = [
+  { name = "typescript-language-server", except-features = ["format"] },
+  "vscode-eslint-language-server",
+  "biome",
+]
+auto-format = true
+
+[[language]]
+name = "tsx"
+language-servers = [
+  { name = "typescript-language-server", except-features = ["format"] },
+  "vscode-eslint-language-server",
+  "biome",
+]
+auto-format = true
+
+# Python - Basedpyright for types, Ruff for formatting/linting
+
+[[language]]
+name = "python"
+language-servers = ["basedpyright", "ruff"]
+auto-format = true
+
+# JSON
+[[language]]
+name = "json"
+language-servers = ["vscode-json-language-server"]
+auto-format = true
+
+[language-server.vscode-json-language-server]
+command = "vscode-json-language-server"
+args = ["--stdio"]
+
+[language-server.vscode-json-language-server.config.json.schemas]
+"https://json.schemastore.org/package.json" = ["package.json"]
+"https://json.schemastore.org/tsconfig.json" = ["tsconfig.json", "tsconfig.*.json"]
+"https://json.schemastore.org/biome.json" = ["biome.json", "biome.jsonc"]
+"https://json.schemastore.org/eslintrc.json" = [".eslintrc", ".eslintrc.json"]
+"https://json.schemastore.org/pyrightconfig.json" = ["pyrightconfig.json"]
