@@ -4,7 +4,7 @@ set -e
 echo "Installing dotfiles..."
 
 # Brew packages
-brew install helix zellij ghostty zoxide direnv sd fnm pure \
+brew install helix zellij ghostty alacritty zoxide direnv sd fnm pure \
   eza bat fd dust bottom procs ripgrep git-delta
 
 # Global language servers
@@ -19,5 +19,10 @@ curl -L "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm
 ln -sf ~/Code/dotfiles/.zshrc ~/.zshrc
 ln -sf ~/Code/dotfiles/helix ~/.config/helix
 ln -sf ~/Code/dotfiles/zellij/layouts ~/.config/zellij/layouts
+mkdir -p ~/.config/alacritty
+ln -sf ~/Code/dotfiles/alacritty.toml ~/.config/alacritty/alacritty.toml
+mkdir -p ~/Library/Application\ Support/com.mitchellh.ghostty
+ln -sf ~/Code/dotfiles/ghostty.config ~/Library/Application\ Support/com.mitchellh.ghostty/config
+ln -sf ~/Code/dotfiles/.claude/statusline.sh ~/.claude/statusline.sh
 
 echo "Done! Restart your shell."
