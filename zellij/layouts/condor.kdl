@@ -31,13 +31,12 @@ layout {
                 args "-c" "HIDE_GIT_PROMPT=1 exec claude"
             }
             pane split_direction="horizontal" {
-                pane size="30%" name="hanaq" cwd="hanaq" command="bash" {
-                    args "-c" "HIDE_GIT_PROMPT=1 exec zsh"
-                }
                 pane size="30%" name="paqarina" cwd="paqarina" command="bash" {
                     args "-c" "HIDE_GIT_PROMPT=1 exec zsh"
                 }
-                pane size="20%" name="serve" command="./serve.sh"
+                pane size="50%" name="hanaq" cwd="hanaq" command="bash" {
+                    args "-c" "HIDE_GIT_PROMPT=1 exec zsh"
+                }
                 pane size="20%" name="setup" close_on_exit=true command="run-vscode-tasks"
             }
         }
