@@ -13,7 +13,7 @@ layout {
                 format_right "{datetime}"
                 format_space ""
 
-                command_git_branch_command     "git-status-line"
+                command_git_branch_command     "git-status-line --async-pr"
                 command_git_branch_format      "{stdout}"
                 command_git_branch_interval    "5"
                 command_git_branch_rendermode  "raw"
