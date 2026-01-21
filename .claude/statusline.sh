@@ -1,4 +1,5 @@
 #!/bin/bash
+[[ -n "$HIDE_GIT_PROMPT" ]] && exit 0
 cd "$(cat | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
 repo=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)")
@@ -15,4 +16,4 @@ arrows=""
 stash=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
 [[ $stash -gt 0 ]] && stash="≡" || stash=""
 
-printf "\e[2m%s\e[0m \e[2;%sm%s%s\e[0m\e[2;36m%s%s\e[0m" "$repo" "${dirty:+33}${dirty:-32}" "$branch" "$dirty" "$arrows" "$stash"
+printf "\e[37m%s\e[0m \e[%sm%s%s\e[0m\e[96m %s%s\e[0m" "$repo" "${dirty:+93}${dirty:-92}" "$branch" "$dirty" "$arrows" "$stash"

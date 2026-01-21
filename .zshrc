@@ -6,7 +6,11 @@ source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 # Prompt (Pure)
 fpath+=("$(brew --prefix)/share/zsh/site-functions")
 autoload -U promptinit; promptinit
-prompt pure
+if [[ -n "$HIDE_GIT_PROMPT" ]]; then
+    PROMPT='%F{magenta}❯%f '
+else
+    prompt pure
+fi
 
 . "$HOME/.local/bin/env"
 [[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
@@ -25,6 +29,12 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
 
+# Zellij dev session with git repo as session name
+zdev() {
+  local name="$(basename "$(git rev-parse --show-toplevel)")"
+  zellij attach "$name" 2>/dev/null || zellij -n ~/.config/zellij/layouts/condor.kdl -s "$name"
+}
+
 # Rust tool aliases
 alias ls="eza"
 alias cat="bat"
@@ -41,5 +51,6 @@ eval "$(direnv hook zsh)"
 
 # Amazon Q post block. Keep at the bottom of this file.
 [[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh"
-# GITHUB_PERSONAL_ACCESS_TOKEN - stored securely, not in dotfiles
+# Source local secrets (not in repo)
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
 source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
