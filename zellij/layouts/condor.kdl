@@ -16,12 +16,40 @@ layout {
                 command_git_branch_command     "bash -c 'repo=$(basename \"$(git rev-parse --show-toplevel 2>/dev/null)\") || exit 0; branch=$(git rev-parse --abbrev-ref HEAD); dirty=$(git diff --quiet && git diff --cached --quiet || echo \"*\"); [[ ${#branch} -gt 40 ]] && branch=\"${branch:0:20}...${branch: -17}\"; read ahead behind < <(git rev-list --left-right --count @{u}...HEAD 2>/dev/null || echo \"0 0\"); arrows=\"\"; [[ $ahead -gt 0 ]] && arrows+=\"↓$ahead\"; [[ $behind -gt 0 ]] && arrows+=\"↑$behind\"; stash=$(git stash list 2>/dev/null | wc -l | tr -d \" \"); [[ $stash -gt 0 ]] && stash=\"≡\" || stash=\"\"; color=$([[ -n \"$dirty\" ]] && echo 93 || echo 92); printf \"\\e[37m%s\\e[0m \\e[%sm%s%s\\e[0m\\e[96m %s%s\\e[0m\" \"$repo\" \"$color\" \"$branch\" \"$dirty\" \"$arrows\" \"$stash\"'"
                 command_git_branch_format      "{stdout}"
                 command_git_branch_interval    "5"
-                command_git_branch_rendermode  "static"
+                command_git_branch_rendermode  "raw"
 
                 datetime          "#[fg=white]{format}"
                 datetime_format   "%H:%M"
                 datetime_timezone "America/New_York"
             }
         }
+    }
+
+    tab name="dev" focus=true {
+        pane split_direction="vertical" {
+            pane size="70%" name="claude" command="bash" {
+                args "-c" "HIDE_GIT_PROMPT=1 exec claude"
+            }
+            pane split_direction="horizontal" {
+                pane size="30%" name="hanaq" cwd="hanaq" command="bash" {
+                    args "-c" "HIDE_GIT_PROMPT=1 exec zsh"
+                }
+                pane size="30%" name="paqarina" cwd="paqarina" command="bash" {
+                    args "-c" "HIDE_GIT_PROMPT=1 exec zsh"
+                }
+                pane size="20%" name="serve" command="./serve.sh"
+                pane size="20%" name="setup" close_on_exit=true command="run-vscode-tasks"
+            }
+        }
+    }
+
+    tab name="helix" {
+        pane command="hx" {
+            args "."
+        }
+    }
+
+    tab name="lazygit" {
+        pane command="lazygit"
     }
 }
