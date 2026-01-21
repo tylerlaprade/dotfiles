@@ -6,6 +6,7 @@ source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 # Prompt (Pure)
 fpath+=("$(brew --prefix)/share/zsh/site-functions")
 autoload -U promptinit; promptinit
+export VIRTUAL_ENV_DISABLE_PROMPT=1
 if [[ -n "$HIDE_GIT_PROMPT" ]]; then
     PROMPT='%F{magenta}❯%f '
 else
@@ -13,6 +14,7 @@ else
 fi
 
 . "$HOME/.local/bin/env"
+export EDITOR="hx"
 [[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
 
 # Mac sends Ctrl+U when Cmd+Backspace is pressed
@@ -32,7 +34,7 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 # Zellij dev session with git repo as session name
 zdev() {
   local name="$(basename "$(git rev-parse --show-toplevel)")"
-  zellij attach "$name" 2>/dev/null || zellij -n ~/.config/zellij/layouts/condor.kdl -s "$name"
+  zellij -n ~/.config/zellij/layouts/condor.kdl -s "$name" 2>/dev/null || zellij attach "$name"
 }
 
 # Rust tool aliases

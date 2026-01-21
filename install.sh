@@ -43,5 +43,7 @@ mkdir -p ~/.claude
 link $DOTFILES/.claude/statusline.sh ~/.claude/statusline.sh
 mkdir -p ~/.local/bin
 link $DOTFILES/scripts/run-vscode-tasks.sh ~/.local/bin/run-vscode-tasks
+link $DOTFILES/scripts/gh-pr-lookup.sh ~/.local/bin/gh-pr-lookup
+link $DOTFILES/scripts/git-status-line.sh ~/.local/bin/git-status-line
 
 echo "Done! Restart your shell."
