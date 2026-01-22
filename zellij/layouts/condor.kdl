@@ -29,17 +29,17 @@ layout {
 
     tab name="dev" focus=true {
         pane split_direction="vertical" {
-            pane size="65%" name="claude" command="bash" {
+            pane size="65%" command="bash" {
                 args "-c" "source .venv/bin/activate && HIDE_GIT_PROMPT=1 exec claude"
             }
             pane split_direction="horizontal" {
-                pane size="30%" name="paqarina" cwd="paqarina" command="bash" {
+                pane size="30%" cwd="paqarina" command="bash" {
                     args "-c" "HIDE_GIT_PROMPT=1 exec zsh"
                 }
-                pane size="50%" name="hanaq" cwd="hanaq" command="bash" {
+                pane size="50%" cwd="hanaq" command="bash" {
                     args "-c" "source ../.venv/bin/activate && HIDE_GIT_PROMPT=1 exec zsh"
                 }
-                pane size="20%" name="setup" close_on_exit=true command="run-vscode-tasks"
+                pane size="20%" close_on_exit=true command="run-vscode-tasks"
             }
         }
     }
