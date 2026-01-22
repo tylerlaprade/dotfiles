@@ -8,7 +8,7 @@ fpath+=("$(brew --prefix)/share/zsh/site-functions")
 autoload -U promptinit; promptinit
 export VIRTUAL_ENV_DISABLE_PROMPT=1
 if [[ -n "$HIDE_GIT_PROMPT" ]]; then
-    PROMPT='%F{magenta}❯%f '
+    PROMPT='%F{blue}%1~%f %F{magenta}❯%f '
 else
     prompt pure
 fi
