@@ -11,8 +11,12 @@ pr_map="$HOME/.cache/gh-pr-map"
 mkdir -p "$(dirname "$pr_map")"
 key="$repo:$branch"
 
-# Occasionally wipe cache
-[[ $((RANDOM % 5000)) -eq 0 ]] && rm -f "$pr_map"
+# Occasionally wipe cache (but preserve current branch entry)
+if [[ $((RANDOM % 50000000)) -eq 0 ]]; then
+  current_entry=$(grep -m1 "^$key	" "$pr_map" 2>/dev/null)
+  rm -f "$pr_map"
+  [[ -n "$current_entry" ]] && echo "$current_entry" > "$pr_map"
+fi
 
 pr=$(grep -m1 "^$key	" "$pr_map" 2>/dev/null | cut -f2)
 if [[ -n "$pr" ]]; then
