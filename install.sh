@@ -33,14 +33,19 @@ curl -L "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm
 
 # Symlinks
 link $DOTFILES/.zshrc ~/.zshrc
-link $DOTFILES/helix ~/.config/helix
-link $DOTFILES/zellij/layouts ~/.config/zellij/layouts
-mkdir -p ~/.config/alacritty
-link $DOTFILES/alacritty.toml ~/.config/alacritty/alacritty.toml
-mkdir -p ~/Library/Application\ Support/com.mitchellh.ghostty
-link $DOTFILES/ghostty.config ~/Library/Application\ Support/com.mitchellh.ghostty/config
+link $DOTFILES/.gitconfig ~/.gitconfig
+
+mkdir -p ~/.config/alacritty ~/.config/ghostty ~/.config/git ~/.config/zellij
+link $DOTFILES/.config/helix ~/.config/helix
+link $DOTFILES/.config/alacritty/alacritty.toml ~/.config/alacritty/alacritty.toml
+link $DOTFILES/.config/ghostty/config ~/.config/ghostty/config
+link $DOTFILES/.config/git/ignore ~/.config/git/ignore
+link $DOTFILES/.config/zellij/config.kdl ~/.config/zellij/config.kdl
+link $DOTFILES/.config/zellij/layouts ~/.config/zellij/layouts
+
 mkdir -p ~/.claude
 link $DOTFILES/.claude/statusline.sh ~/.claude/statusline.sh
+
 mkdir -p ~/.local/bin
 link $DOTFILES/scripts/run-vscode-tasks.sh ~/.local/bin/run-vscode-tasks
 link $DOTFILES/scripts/gh-pr-lookup.sh ~/.local/bin/gh-pr-lookup
