@@ -1,6 +1,3 @@
-# Amazon Q pre block. Keep at the top of this file.
-[[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.pre.zsh"
-
 source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 # Prompt (Pure)
@@ -55,8 +52,6 @@ eval "$(zoxide init zsh)"
 # direnv - auto-load .envrc files
 eval "$(direnv hook zsh)"
 
-# Amazon Q post block. Keep at the bottom of this file.
-[[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh"
 # Source local secrets (not in repo)
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
 source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
