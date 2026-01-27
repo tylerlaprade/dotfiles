@@ -6,7 +6,15 @@
 async_pr=false
 [[ "$1" == "--async-pr" ]] && async_pr=true
 
-repo=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)") || exit 0
+# In zellij: always use session's project. Outside: use current git repo.
+if [[ -n "$ZELLIJ_SESSION_NAME" && -d "$HOME/Code/$ZELLIJ_SESSION_NAME/.git" ]]; then
+    cd "$HOME/Code/$ZELLIJ_SESSION_NAME" || exit 0
+    repo="$ZELLIJ_SESSION_NAME"
+elif git_root=$(git rev-parse --show-toplevel 2>/dev/null); then
+    repo=$(basename "$git_root")
+else
+    exit 0
+fi
 full_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
 dirty=$(git diff --quiet && git diff --cached --quiet || echo "*")
 
