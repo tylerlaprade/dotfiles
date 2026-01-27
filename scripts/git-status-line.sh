@@ -20,7 +20,7 @@ dirty=$(git diff --quiet && git diff --cached --quiet || echo "*")
 
 # Truncate branch for display
 branch="$full_branch"
-[[ ${#branch} -gt 40 ]] && branch="${branch:0:20}...${branch: -17}"
+[[ ${#branch} -gt 120 ]] && branch="${branch:0:60}...${branch: -57}"
 
 # Ahead/behind upstream
 read ahead behind < <(git rev-list --left-right --count @{u}...HEAD 2>/dev/null || echo "0 0")
