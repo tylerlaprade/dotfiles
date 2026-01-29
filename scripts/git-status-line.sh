@@ -32,14 +32,25 @@ arrows=""
 stash=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
 [[ $stash -gt 0 ]] && stash="≡" || stash=""
 
-# PR number
+# PR number and state
 if $async_pr; then
-  pr=$(gh-pr-lookup "$repo" "$full_branch" --async)
+  pr_data=$(gh-pr-lookup "$repo" "$full_branch" --async)
 else
-  pr=$(gh-pr-lookup "$repo" "$full_branch")
+  pr_data=$(gh-pr-lookup "$repo" "$full_branch")
 fi
+pr_num="${pr_data%%:*}"
+pr_state="${pr_data#*:}"
+
+# PR state colors (matching Claude Code)
+case "$pr_state" in
+  approved)          pr_color=32 ;;  # green
+  changes_requested) pr_color=31 ;;  # red
+  merged)            pr_color=35 ;;  # purple
+  draft)             pr_color=90 ;;  # gray
+  *)                 pr_color=33 ;;  # yellow (pending)
+esac
 
 # Output with ANSI colors
 color=$([[ -n "$dirty" ]] && echo 93 || echo 92)
 printf "\e[37m%s\e[0m \e[%sm%s%s\e[0m\e[96m %s%s\e[0m" "$repo" "$color" "$branch" "$dirty" "$arrows" "$stash"
-[[ -n "$pr" ]] && printf "\e[35m #%s\e[0m" "$pr"
+[[ -n "$pr_num" ]] && printf " \e[%sm#%s\e[0m" "$pr_color" "$pr_num"
