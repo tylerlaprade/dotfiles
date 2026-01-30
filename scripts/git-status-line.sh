@@ -1,7 +1,7 @@
 #!/bin/bash
 # Outputs formatted git status for statuslines
 # Usage: git-status-line [--async-pr]
-#   --async-pr: Fetch PR number in background (for frequently-called statuslines)
+#   --async-pr: Fetch PR data in background (for frequently-called statuslines)
 
 async_pr=false
 [[ "$1" == "--async-pr" ]] && async_pr=true
@@ -32,16 +32,32 @@ arrows=""
 stash=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
 [[ $stash -gt 0 ]] && stash="≡" || stash=""
 
-# PR number and state
+# PR number (cached indefinitely)
 if $async_pr; then
-  pr_data=$(gh-pr-lookup "$repo" "$full_branch" --async)
+  pr_num=$(gh-pr-lookup "$repo" "$full_branch" --async)
 else
-  pr_data=$(gh-pr-lookup "$repo" "$full_branch")
+  pr_num=$(gh-pr-lookup "$repo" "$full_branch")
 fi
-pr_num="${pr_data%%:*}"
-pr_state="${pr_data#*:}"
 
-# PR state colors (matching Claude Code)
+# PR status (10s TTL) - only fetch if we have a PR number
+pr_state=""
+pr_ci=""
+pr_merge=""
+if [[ -n "$pr_num" ]]; then
+  if $async_pr; then
+    pr_status=$(gh-pr-status "$repo" "$full_branch" --async)
+  else
+    pr_status=$(gh-pr-status "$repo" "$full_branch")
+  fi
+  if [[ -n "$pr_status" ]]; then
+    pr_state="${pr_status%%:*}"
+    rest="${pr_status#*:}"
+    pr_ci="${rest%%:*}"
+    pr_merge="${rest#*:}"
+  fi
+fi
+
+# PR state colors
 case "$pr_state" in
   approved)          pr_color=32 ;;  # green
   changes_requested) pr_color=31 ;;  # red
@@ -50,7 +66,13 @@ case "$pr_state" in
   *)                 pr_color=33 ;;  # yellow (pending)
 esac
 
+# Secondary indicators (both if applicable, red)
+indicators=""
+[[ "$pr_merge" == "conflict" ]] && indicators+=$'\e[31m!\e[0m'
+[[ "$pr_ci" == "fail" ]] && indicators+=$'\e[31m✗\e[0m'
+[[ -n "$indicators" ]] && indicators=" $indicators"
+
 # Output with ANSI colors
 color=$([[ -n "$dirty" ]] && echo 93 || echo 92)
 printf "\e[37m%s\e[0m \e[%sm%s%s\e[0m\e[96m %s%s\e[0m" "$repo" "$color" "$branch" "$dirty" "$arrows" "$stash"
-[[ -n "$pr_num" ]] && printf " \e[%sm#%s\e[0m" "$pr_color" "$pr_num"
+[[ -n "$pr_num" ]] && printf " \e[%sm#%s\e[0m%s" "$pr_color" "$pr_num" "$indicators"

@@ -1,5 +1,4 @@
 [editor]
-auto-reload = true
 scrolloff = 20
 cursorline = true
 rulers = [80]
