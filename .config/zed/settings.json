@@ -1,0 +1,83 @@
+// Zed settings
+//
+// For information on how to configure Zed, see the Zed
+// documentation: https://zed.dev/docs/configuring-zed
+//
+// To see all of Zed's default settings without changing your
+// custom settings, run `zed: open default settings` from the
+// command palette (cmd-shift-p / ctrl-shift-p)
+{
+  "features": {
+    "edit_prediction_provider": "zed"
+  },
+  "language_models": {
+    "copilot_chat": {
+      "api_url": "https://api.githubcopilot.com/chat/completions",
+      "auth_url": "https://api.github.com/copilot_internal/v2/token",
+      "models_url": "https://api.githubcopilot.com/models"
+    }
+  },
+  "agent": {
+    "default_profile": "ask",
+    "default_model": {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-latest"
+    },
+    "inline_assistant_model": {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-latest"
+    },
+    "play_sound_when_agent_done": true,
+    "button": false,
+    "version": "2"
+  },
+  "git": {
+    "inline_blame": {
+      "show_commit_summary": true
+    }
+  },
+  // "file_types": {
+  //   "dotenv": [
+  //     ".env*"
+  //   ]
+  // },
+  "show_completions_on_input": false,
+  "show_edit_predictions": false,
+  "ensure_final_newline_on_save": false,
+  "wrap_guides": [
+    80
+  ],
+  "vertical_scroll_margin": 17.0,
+  "gutter": {
+    "folds": false
+  },
+  "minimap": {
+    "show": "never"
+  },
+  "hover_popover_enabled": false,
+  "current_line_highlight": "all",
+  "terminal": {
+    "copy_on_select": true,
+    "blinking": "on",
+    "env": {
+      "Q_NEW_SESSION": "1"
+    },
+    "font_family": "TamzenForPowerline",
+    "font_size": 18.0
+  },
+  "when_closing_with_no_tabs": "close_window",
+  "autosave": {
+    "after_delay": {
+      "milliseconds": 500
+    }
+  },
+  "confirm_quit": true,
+  "vim_mode": true,
+  "ui_font_size": 16,
+  "buffer_font_size": 16,
+  "theme": {
+    "mode": "system",
+    "light": "One Light",
+    "dark": "One Dark"
+  }
+}
