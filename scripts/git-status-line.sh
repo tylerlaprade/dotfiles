@@ -1,20 +1,18 @@
 #!/bin/bash
 # Outputs formatted git status for statuslines
-# Usage: git-status-line [--async-pr]
-#   --async-pr: Fetch PR data in background (for frequently-called statuslines)
-
-async_pr=false
-[[ "$1" == "--async-pr" ]] && async_pr=true
 
 # In zellij: always use session's project. Outside: use current git repo.
 if [[ -n "$ZELLIJ_SESSION_NAME" && -d "$HOME/Code/$ZELLIJ_SESSION_NAME/.git" ]]; then
     cd "$HOME/Code/$ZELLIJ_SESSION_NAME" || exit 0
-    repo="$ZELLIJ_SESSION_NAME"
+    repo_name="$ZELLIJ_SESSION_NAME"
 elif git_root=$(git rev-parse --show-toplevel 2>/dev/null); then
-    repo=$(basename "$git_root")
+    repo_name=$(basename "$git_root")
 else
     exit 0
 fi
+
+# Get full repo path (owner/repo) for API calls
+repo_full=$(gh repo view --json nameWithOwner -q '.nameWithOwner' 2>/dev/null)
 full_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
 dirty=$(git diff --quiet && git diff --cached --quiet || echo "*")
 
@@ -33,22 +31,14 @@ stash=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
 [[ $stash -gt 0 ]] && stash="≡" || stash=""
 
 # PR number (cached indefinitely)
-if $async_pr; then
-  pr_num=$(gh-pr-lookup "$repo" "$full_branch" --async)
-else
-  pr_num=$(gh-pr-lookup "$repo" "$full_branch")
-fi
+pr_num=$(gh-pr-lookup "$repo_name" "$full_branch" --async)
 
-# PR status (10s TTL) - only fetch if we have a PR number
+# PR status (uses ETags - free if unchanged)
 pr_state=""
 pr_ci=""
 pr_merge=""
-if [[ -n "$pr_num" ]]; then
-  if $async_pr; then
-    pr_status=$(gh-pr-status "$repo" "$full_branch" --async)
-  else
-    pr_status=$(gh-pr-status "$repo" "$full_branch")
-  fi
+if [[ -n "$pr_num" && -n "$repo_full" ]]; then
+  pr_status=$(gh-pr-status "$repo_full" "$pr_num")
   if [[ -n "$pr_status" ]]; then
     pr_state="${pr_status%%:*}"
     rest="${pr_status#*:}"
@@ -74,5 +64,5 @@ indicators=""
 
 # Output with ANSI colors
 color=$([[ -n "$dirty" ]] && echo 93 || echo 92)
-printf "\e[37m%s\e[0m \e[%sm%s%s\e[0m\e[96m %s%s\e[0m" "$repo" "$color" "$branch" "$dirty" "$arrows" "$stash"
+printf "\e[37m%s\e[0m \e[%sm%s%s\e[0m\e[96m %s%s\e[0m" "$repo_name" "$color" "$branch" "$dirty" "$arrows" "$stash"
 [[ -n "$pr_num" ]] && printf " \e[%sm#%s\e[0m%s" "$pr_color" "$pr_num" "$indicators"
