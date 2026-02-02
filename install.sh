@@ -33,17 +33,23 @@ curl -L "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm
 
 # Symlinks
 link $DOTFILES/.zshrc ~/.zshrc
+link $DOTFILES/.zshenv ~/.zshenv
+link $DOTFILES/.zprofile ~/.zprofile
 link $DOTFILES/.gitconfig ~/.gitconfig
+link $DOTFILES/.npmrc ~/.npmrc
 
-mkdir -p ~/.config/alacritty ~/.config/ghostty ~/.config/git ~/.config/zellij
+mkdir -p ~/.config/alacritty ~/.config/ghostty ~/.config/git ~/.config/zellij ~/.config/zed
 link $DOTFILES/.config/helix ~/.config/helix
 link $DOTFILES/.config/alacritty/alacritty.toml ~/.config/alacritty/alacritty.toml
 link $DOTFILES/.config/ghostty/config ~/.config/ghostty/config
 link $DOTFILES/.config/git/ignore ~/.config/git/ignore
 link $DOTFILES/.config/zellij/config.kdl ~/.config/zellij/config.kdl
 link $DOTFILES/.config/zellij/layouts ~/.config/zellij/layouts
+link $DOTFILES/.config/zed/settings.json ~/.config/zed/settings.json
 
 mkdir -p ~/.claude
+link $DOTFILES/.claude/CLAUDE.md ~/.claude/CLAUDE.md
+link $DOTFILES/.claude/settings.json ~/.claude/settings.json
 link $DOTFILES/.claude/statusline.sh ~/.claude/statusline.sh
 
 mkdir -p ~/.local/bin
