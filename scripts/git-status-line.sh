@@ -11,8 +11,7 @@ else
     exit 0
 fi
 
-# Get full repo path (owner/repo) for API calls
-repo_full=$(gh repo view --json nameWithOwner -q '.nameWithOwner' 2>/dev/null)
+repo_full=$(git remote get-url origin 2>/dev/null | sed -E 's#(git@|https://)github\.com[:/]##; s#\.git$##')
 full_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
 dirty=$(git diff --quiet && git diff --cached --quiet || echo "*")
 
