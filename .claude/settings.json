@@ -20,5 +20,6 @@
   "alwaysThinkingEnabled": true,
   "feedbackSurveyState": {
     "lastShownTime": 9999999999999
-  }
+  },
+  "promptSuggestionEnabled": false
 }
