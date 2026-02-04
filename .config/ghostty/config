@@ -1,4 +1,5 @@
+auto-update-channel = tip
 copy-on-select = clipboard
 macos-option-as-alt = true
-bell-features = system
+bell-features = system,border
 font-size = 16
