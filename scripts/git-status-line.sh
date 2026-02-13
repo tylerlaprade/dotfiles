@@ -61,7 +61,18 @@ indicators=""
 [[ "$pr_ci" == "fail" ]] && indicators+=$'\e[31m✗\e[0m'
 [[ -n "$indicators" ]] && indicators=" $indicators"
 
+# Graphite status (cached, async on new branch)
+gt_info=$(gt-status "$repo_name" "$full_branch" --async)
+gt_display=""
+if [[ -n "$gt_info" ]]; then
+  IFS=: read gt_total gt_depth gt_unsub <<< "$gt_info"
+  gt_display="⌸$gt_total"
+  [[ $gt_depth -gt 0 ]] && gt_display+="↕$gt_depth"
+  [[ $gt_unsub -gt 0 ]] && gt_display+="◌$gt_unsub"
+fi
+
 # Output with ANSI colors
 color=$([[ -n "$dirty" ]] && echo 93 || echo 92)
 printf "\e[37m%s\e[0m \e[%sm%s%s\e[0m\e[96m %s%s\e[0m" "$repo_name" "$color" "$branch" "$dirty" "$arrows" "$stash"
 [[ -n "$pr_num" ]] && printf " \e[%sm#%s\e[0m%s" "$pr_color" "$pr_num" "$indicators"
+[[ -n "$gt_display" ]] && printf " \e[90m%s\e[0m" "$gt_display"

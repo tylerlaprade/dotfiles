@@ -18,8 +18,9 @@
     "code-review@claude-plugins-official": true
   },
   "alwaysThinkingEnabled": true,
+  "promptSuggestionEnabled": false,
   "feedbackSurveyState": {
     "lastShownTime": 9999999999999
   },
-  "promptSuggestionEnabled": false
+  "skipDangerousModePermissionPrompt": true
 }
