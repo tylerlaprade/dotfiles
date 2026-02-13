@@ -1,0 +1,26 @@
+{
+  "claude-plugins-official": {
+    "source": {
+      "source": "github",
+      "repo": "anthropics/claude-plugins-official"
+    }
+  },
+  "basedpyright-lsp": {
+    "source": {
+      "source": "github",
+      "repo": "tylerlaprade/basedpyright-lsp"
+    }
+  },
+  "agent-browser": {
+    "source": {
+      "source": "github",
+      "repo": "vercel-labs/agent-browser"
+    }
+  },
+  "dev-browser-marketplace": {
+    "source": {
+      "source": "github",
+      "repo": "SawyerHood/dev-browser"
+    }
+  }
+}

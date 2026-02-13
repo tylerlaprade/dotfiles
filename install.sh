@@ -47,15 +47,17 @@ link $DOTFILES/.config/zellij/config.kdl ~/.config/zellij/config.kdl
 link $DOTFILES/.config/zellij/layouts ~/.config/zellij/layouts
 link $DOTFILES/.config/zed/settings.json ~/.config/zed/settings.json
 
-mkdir -p ~/.claude
+mkdir -p ~/.claude/plugins
 link $DOTFILES/.claude/CLAUDE.md ~/.claude/CLAUDE.md
 link $DOTFILES/.claude/settings.json ~/.claude/settings.json
 link $DOTFILES/.claude/statusline.sh ~/.claude/statusline.sh
+link $DOTFILES/.claude/plugins/known_marketplaces.json ~/.claude/plugins/known_marketplaces.json
 
 mkdir -p ~/.local/bin
 link $DOTFILES/scripts/run-vscode-tasks.sh ~/.local/bin/run-vscode-tasks
 link $DOTFILES/scripts/gh-pr-lookup.sh ~/.local/bin/gh-pr-lookup
 link $DOTFILES/scripts/gh-pr-status.sh ~/.local/bin/gh-pr-status
 link $DOTFILES/scripts/git-status-line.sh ~/.local/bin/git-status-line
+link $DOTFILES/scripts/gt-status.sh ~/.local/bin/gt-status
 
 echo "Done! Restart your shell."
