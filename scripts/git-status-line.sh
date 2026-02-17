@@ -15,9 +15,18 @@ repo_full=$(git remote get-url origin 2>/dev/null | sed -E 's#(git@|https://)git
 full_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
 dirty=$(git diff --quiet && git diff --cached --quiet || echo "*")
 
-# Truncate branch for display
+# PR number + title (cached indefinitely, tab-separated)
+pr_lookup=$(gh-pr-lookup "$repo_name" "$full_branch" --async)
+pr_num=$(echo "$pr_lookup" | cut -f1)
+pr_title=$(echo "$pr_lookup" | cut -f2-)
+
+# Truncate branch for display (aggressive when PR exists since title is more useful)
 branch="$full_branch"
-[[ ${#branch} -gt 120 ]] && branch="${branch:0:60}...${branch: -57}"
+if [[ -n "$pr_num" ]]; then
+  [[ ${#branch} -gt 30 ]] && branch="${branch:0:27}..."
+else
+  [[ ${#branch} -gt 120 ]] && branch="${branch:0:60}...${branch: -57}"
+fi
 
 # Ahead/behind upstream
 read ahead behind < <(git rev-list --left-right --count @{u}...HEAD 2>/dev/null || echo "0 0")
@@ -28,9 +37,6 @@ arrows=""
 # Stash indicator
 stash=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
 [[ $stash -gt 0 ]] && stash="≡" || stash=""
-
-# PR number (cached indefinitely)
-pr_num=$(gh-pr-lookup "$repo_name" "$full_branch" --async)
 
 # PR status (uses ETags - free if unchanged)
 pr_state=""
@@ -74,5 +80,11 @@ fi
 # Output with ANSI colors
 color=$([[ -n "$dirty" ]] && echo 93 || echo 92)
 printf "\e[37m%s\e[0m \e[%sm%s%s\e[0m\e[96m %s%s\e[0m" "$repo_name" "$color" "$branch" "$dirty" "$arrows" "$stash"
-[[ -n "$pr_num" ]] && printf " \e[%sm#%s\e[0m%s" "$pr_color" "$pr_num" "$indicators"
+if [[ -n "$pr_num" ]]; then
+  # Truncate PR title to fit
+  display_title="$pr_title"
+  [[ ${#display_title} -gt 50 ]] && display_title="${display_title:0:47}..."
+  printf " \e[%sm#%s\e[0m%s" "$pr_color" "$pr_num" "$indicators"
+  [[ -n "$display_title" ]] && printf " \e[37m%s\e[0m" "$display_title"
+fi
 [[ -n "$gt_display" ]] && printf " \e[90m%s\e[0m" "$gt_display"
