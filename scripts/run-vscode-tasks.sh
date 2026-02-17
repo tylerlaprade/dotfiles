@@ -2,7 +2,9 @@
 # Run VSCode tasks.json tasks that have runOn: folderOpen
 set -e
 
-ROOT="$(git rev-parse --show-toplevel)"
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+[[ -n "$ZELLIJ" ]] && exit 0
+[[ -f "$ROOT/.vscode/tasks.json" ]] || exit 0
 cd "$ROOT"
 
 typeset -A pids

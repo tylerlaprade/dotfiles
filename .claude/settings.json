@@ -18,6 +18,19 @@
     "code-review@claude-plugins-official": true
   },
   "alwaysThinkingEnabled": true,
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/tyler/Code/dotfiles/scripts/run-vscode-tasks.sh"
+          }
+        ]
+      }
+    ]
+  },
   "promptSuggestionEnabled": false,
   "feedbackSurveyState": {
     "lastShownTime": 9999999999999
