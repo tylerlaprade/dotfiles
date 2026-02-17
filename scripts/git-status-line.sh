@@ -66,7 +66,7 @@ gt_info=$(gt-status "$repo_name" "$full_branch" --async)
 gt_display=""
 if [[ -n "$gt_info" ]]; then
   IFS=: read gt_total gt_depth gt_unsub <<< "$gt_info"
-  gt_display="⌸$gt_total"
+  gt_display="⎇$gt_total"
   [[ $gt_depth -gt 0 ]] && gt_display+="↕$gt_depth"
   [[ $gt_unsub -gt 0 ]] && gt_display+="◌$gt_unsub"
 fi
