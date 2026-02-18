@@ -20,13 +20,9 @@ pr_lookup=$(gh-pr-lookup "$repo_name" "$full_branch" --async)
 pr_num=$(echo "$pr_lookup" | cut -f1)
 pr_title=$(echo "$pr_lookup" | cut -f2-)
 
-# Truncate branch for display (aggressive when PR exists since title is more useful)
+# Truncate branch for display (only shown when no PR)
 branch="$full_branch"
-if [[ -n "$pr_num" ]]; then
-  [[ ${#branch} -gt 30 ]] && branch="${branch:0:27}..."
-else
-  [[ ${#branch} -gt 120 ]] && branch="${branch:0:60}...${branch: -57}"
-fi
+[[ ${#branch} -gt 120 ]] && branch="${branch:0:60}...${branch: -57}"
 
 # Ahead/behind upstream
 read ahead behind < <(git rev-list --left-right --count @{u}...HEAD 2>/dev/null || echo "0 0")
@@ -79,12 +75,15 @@ fi
 
 # Output with ANSI colors
 color=$([[ -n "$dirty" ]] && echo 93 || echo 92)
-printf "\e[37m%s\e[0m \e[%sm%s%s\e[0m\e[96m %s%s\e[0m" "$repo_name" "$color" "$branch" "$dirty" "$arrows" "$stash"
+printf "\e[37m%s\e[0m" "$repo_name"
 if [[ -n "$pr_num" ]]; then
-  # Truncate PR title to fit
+  # Skip branch when PR exists — show more of the title instead
+  printf "\e[96m %s%s\e[0m" "$arrows" "$stash"
   display_title="$pr_title"
-  [[ ${#display_title} -gt 50 ]] && display_title="${display_title:0:47}..."
+  [[ ${#display_title} -gt 80 ]] && display_title="${display_title:0:77}..."
   printf " \e[%sm#%s\e[0m%s" "$pr_color" "$pr_num" "$indicators"
   [[ -n "$display_title" ]] && printf " \e[37m%s\e[0m" "$display_title"
+else
+  printf " \e[%sm%s%s\e[0m\e[96m %s%s\e[0m" "$color" "$branch" "$dirty" "$arrows" "$stash"
 fi
 [[ -n "$gt_display" ]] && printf " \e[90m%s\e[0m" "$gt_display"
