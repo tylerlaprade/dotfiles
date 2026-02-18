@@ -78,10 +78,10 @@ color=$([[ -n "$dirty" ]] && echo 93 || echo 92)
 printf "\e[37m%s\e[0m" "$repo_name"
 if [[ -n "$pr_num" ]]; then
   # Skip branch when PR exists — show more of the title instead
-  printf "\e[96m %s%s\e[0m" "$arrows" "$stash"
+  printf "\e[96m %s%s\e[0m%s" "$arrows" "$stash" "$indicators"
   display_title="$pr_title"
   [[ ${#display_title} -gt 80 ]] && display_title="${display_title:0:77}..."
-  printf " \e[%sm#%s\e[0m%s" "$pr_color" "$pr_num" "$indicators"
+  printf " \e[%sm#%s\e[0m" "$pr_color" "$pr_num"
   [[ -n "$display_title" ]] && printf " \e[37m%s\e[0m" "$display_title"
 else
   printf " \e[%sm%s%s\e[0m\e[96m %s%s\e[0m" "$color" "$branch" "$dirty" "$arrows" "$stash"
