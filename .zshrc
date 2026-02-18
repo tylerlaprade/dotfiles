@@ -39,7 +39,7 @@ zj() {
 }
 
 # cw — condor workspace: create workspace + start Claude
-(){ (($#)) && source $1; } ~/Code/condor*/cw.sh(N)
+(){ (($#)) && source $1; } ~/Code/condor*/scripts/cw.sh(N)
 
 # Rust tool aliases
 alias ls="eza"
