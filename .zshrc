@@ -38,6 +38,9 @@ zj() {
   ZJ_PROJECT_DIR="$HOME/Code/$name" zellij -n ~/.config/zellij/layouts/condor.kdl -s "$name" 2>/dev/null || zellij attach "$name"
 }
 
+# cw — condor workspace: create workspace + start Claude
+(){ (($#)) && source $1; } ~/Code/condor*/cw.sh(N)
+
 # Rust tool aliases
 alias ls="eza"
 alias cat="bat"
