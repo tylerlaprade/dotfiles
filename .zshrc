@@ -39,7 +39,10 @@ zj() {
 }
 
 # cw — condor workspace: create workspace + start Claude
-(){ (($#)) && source $1; } ~/Code/condor*/scripts/cw.sh(N)
+# Prefer cw.sh from current repo (works from subdirs), fall back to any condor workspace
+_cw_root=$(git rev-parse --show-toplevel 2>/dev/null)
+(){ (($#)) && source $1; } ${_cw_root}/scripts/cw.sh(N) ~/Code/condor*/scripts/cw.sh(N)
+unset _cw_root
 
 # Rust tool aliases
 alias ls="eza"
