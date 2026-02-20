@@ -26,10 +26,6 @@
           {
             "type": "command",
             "command": "/Users/tyler/Code/dotfiles/scripts/sync-dotfiles.sh"
-          },
-          {
-            "type": "command",
-            "command": "/Users/tyler/Code/dotfiles/scripts/run-vscode-tasks.sh"
           }
         ]
       }
