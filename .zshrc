@@ -1,7 +1,7 @@
 source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 # Prompt (Pure)
-fpath+=("$(brew --prefix)/share/zsh/site-functions")
+fpath+=("/opt/homebrew/share/zsh/site-functions")
 autoload -U promptinit; promptinit
 export VIRTUAL_ENV_DISABLE_PROMPT=1
 if [[ -n "$HIDE_GIT_PROMPT" ]]; then
@@ -63,10 +63,11 @@ _set_tab_title() {
   local repo branch pr_num
   repo=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null) || return
   branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || return
-  pr_num=$(gh-pr-lookup "$repo" "$branch" --async 2>/dev/null | cut -f1)
+  local pr_info
+  pr_info=$(gh-pr-lookup "$repo" "$branch" --async 2>/dev/null)
+  local pr_num="${pr_info%%	*}"
   if [[ -n "$pr_num" ]]; then
-    local pr_title
-    pr_title=$(gh-pr-lookup "$repo" "$branch" --async 2>/dev/null | cut -f2-)
+    local pr_title="${pr_info#*	}"
     printf '\e]0;#%s %s\a' "$pr_num" "$pr_title"
   fi
 }
