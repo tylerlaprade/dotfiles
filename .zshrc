@@ -69,6 +69,8 @@ _set_tab_title() {
   if [[ -n "$pr_num" ]]; then
     local pr_title="${pr_info#*	}"
     printf '\e]0;#%s %s\a' "$pr_num" "$pr_title"
+  else
+    printf '\e]0;\a'
   fi
 }
 autoload -Uz add-zsh-hook
