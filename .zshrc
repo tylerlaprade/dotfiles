@@ -76,6 +76,7 @@ _set_tab_title() {
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd _set_tab_title
 add-zsh-hook preexec _set_tab_title
+add-zsh-hook chpwd _set_tab_title
 
 # Source local secrets (not in repo)
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
