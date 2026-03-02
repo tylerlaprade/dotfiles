@@ -1,5 +1,3 @@
-source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-
 # Prompt (Pure)
 fpath+=("/opt/homebrew/share/zsh/site-functions")
 autoload -U promptinit; promptinit
@@ -81,3 +79,18 @@ add-zsh-hook chpwd _set_tab_title
 # Source local secrets (not in repo)
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
 source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+_gt_yargs_completions()
+{
+  local reply
+  local si=$IFS
+  IFS=$'
+' reply=($(COMP_CWORD="$((CURRENT-1))" COMP_LINE="$BUFFER" COMP_POINT="$CURSOR" gt --get-yargs-completions "${words[@]}"))
+  IFS=$si
+  _describe 'values' reply
+}
+compdef _gt_yargs_completions gt
+
+# Must be last — wraps zsh widgets, breaks if loaded before other plugins
+# https://github.com/zsh-users/zsh-syntax-highlighting#why-must-zsh-syntax-highlightingzsh-be-sourced-at-the-end-of-the-zshrc-file
+source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
