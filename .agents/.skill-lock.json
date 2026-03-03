@@ -1,0 +1,28 @@
+{
+  "version": 3,
+  "skills": {
+    "recall": {
+      "source": "arjunkmrm/recall",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/arjunkmrm/recall.git",
+      "skillPath": "SKILL.md",
+      "skillFolderHash": "2efc1082d64afadf26f3ca225ba692582870ac75",
+      "installedAt": "2026-03-03T17:50:25.528Z",
+      "updatedAt": "2026-03-03T17:50:25.528Z"
+    }
+  },
+  "dismissed": {
+    "findSkillsPrompt": true
+  },
+  "lastSelectedAgents": [
+    "amp",
+    "cline",
+    "codex",
+    "cursor",
+    "gemini-cli",
+    "github-copilot",
+    "kimi-cli",
+    "opencode",
+    "claude-code"
+  ]
+}

@@ -2,6 +2,6 @@ auto-update-channel = tip
 copy-on-select = clipboard
 macos-option-as-alt = true
 bell-features = system,border
-font-size = 18
+font-size = 16
 mouse-hide-while-typing = true
 shell-integration-features = no-title
