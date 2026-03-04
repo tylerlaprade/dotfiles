@@ -47,6 +47,7 @@ alias ls="eza"
 alias cat="bat"
 alias find="fd"
 alias du="dust"
+alias lg="lazygit"
 alias top="bottom"
 alias ps="procs"
 
