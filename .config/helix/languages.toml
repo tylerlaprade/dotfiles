@@ -103,8 +103,3 @@ args = ["--stdio"]
 "https://json.schemastore.org/biome.json" = ["biome.json", "biome.jsonc"]
 "https://json.schemastore.org/eslintrc.json" = [".eslintrc", ".eslintrc.json"]
 "https://json.schemastore.org/pyrightconfig.json" = ["pyrightconfig.json"]
-
-# Rust
-[[language]]
-name = "rust"
-language-servers = ["rust-analyzer"]
