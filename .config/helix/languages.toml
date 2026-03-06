@@ -1,7 +1,7 @@
 # Language Servers
 
-[language-server.rust-analyzer.config.check]
-command = "clippy"
+[language-server.rust-analyzer]
+config = { check = { command = "clippy", extraArgs = ["--", "--force-warn", "clippy::pedantic", "-Dwarnings"] }, diagnostics = { styleLints = { enable = true } }, inlayHints = { closureStyle = "rust_analyzer", typeHints = { hideNamedConstructor = true, hideClosureInitialization = true }, expressionAdjustmentHints = { enable = "reborrow" }, closureCaptureHints = { enable = true } } }
 
 [language-server.biome]
 command = "bunx"
