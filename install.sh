@@ -7,7 +7,7 @@ echo "Installing dotfiles..."
 
 # Brew formulae
 brew install helix zellij zoxide direnv sd fnm pure \
-  eza bat fd dust bottom procs ripgrep git-delta lazygit gnupg \
+  eza bat fd dust bottom procs ripgrep git-delta lazygit gnupg pinentry-mac \
   zsh-autosuggestions zsh-syntax-highlighting
 
 # Brew casks (skip if already installed)
