@@ -2,26 +2,6 @@
 
 [language-server.rust-analyzer.config.check]
 command = "clippy"
-extraArgs = ["--", "--force-warn", "clippy::pedantic", "-Dwarnings"]
-
-[language-server.rust-analyzer.config.diagnostics]
-useRustcErrorCode = true
-
-[language-server.rust-analyzer.config.diagnostics.styleLints]
-enable = true
-
-[language-server.rust-analyzer.config.inlayHints]
-closureStyle = "rust_analyzer"
-
-[language-server.rust-analyzer.config.inlayHints.typeHints]
-hideNamedConstructor = true
-hideClosureInitialization = true
-
-[language-server.rust-analyzer.config.inlayHints.expressionAdjustmentHints]
-enable = "reborrow"
-
-[language-server.rust-analyzer.config.inlayHints.closureCaptureHints]
-enable = true
 
 [language-server.biome]
 command = "bunx"
