@@ -43,10 +43,17 @@
         "source": "github",
         "repo": "EveryInc/compound-engineering-plugin"
       }
+    },
+    "agent-browser": {
+      "source": {
+        "source": "github",
+        "repo": "vercel-labs/agent-browser"
+      }
     }
   },
   "alwaysThinkingEnabled": true,
   "promptSuggestionEnabled": false,
+  "voiceEnabled": true,
   "skipDangerousModePermissionPrompt": true,
   "feedbackSurveyState": {
     "lastShownTime": 9999999999999
