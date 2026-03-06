@@ -3,24 +3,26 @@
 [language-server.rust-analyzer]
 command = "rust-analyzer"
 
-[language-server.rust-analyzer.config]
-check.command = "clippy"
-check.extraArgs = ["--", "--force-warn", "clippy::pedantic", "-Dwarnings"]
-diagnostics.styleLints.enable = true
-diagnostics.useRustcErrorCode = true
+[language-server.rust-analyzer.config.check]
+command = "clippy"
+extraArgs = ["--", "--force-warn", "clippy::pedantic", "-Dwarnings"]
 
-# Inlay hints
-inlayHints.typeHints.hideNamedConstructor = true
-inlayHints.closureStyle = "rust_analyzer"
-inlayHints.expressionAdjustmentHints.enable = "reborrow"
-inlayHints.typeHints.hideClosureInitialization = true
-inlayHints.closureCaptureHints.enable = true
+[language-server.rust-analyzer.config.diagnostics]
+styleLints = { enable = true }
+useRustcErrorCode = true
 
-# Semantic highlighting
-semanticHighlighting.punctuation.enable = true
-semanticHighlighting.operator.specialization.enable = true
-semanticHighlighting.punctuation.specialization.enable = true
-semanticHighlighting.punctuation.separate.macro.bang = true
+[language-server.rust-analyzer.config.inlayHints]
+closureStyle = "rust_analyzer"
+
+[language-server.rust-analyzer.config.inlayHints.typeHints]
+hideNamedConstructor = true
+hideClosureInitialization = true
+
+[language-server.rust-analyzer.config.inlayHints.expressionAdjustmentHints]
+enable = "reborrow"
+
+[language-server.rust-analyzer.config.inlayHints.closureCaptureHints]
+enable = true
 
 [language-server.biome]
 command = "bunx"
