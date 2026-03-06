@@ -1,5 +1,27 @@
 # Language Servers
 
+[language-server.rust-analyzer]
+command = "rust-analyzer"
+
+[language-server.rust-analyzer.config]
+check.command = "clippy"
+check.extraArgs = ["--", "--force-warn", "clippy::pedantic", "-Dwarnings"]
+diagnostics.styleLints.enable = true
+diagnostics.useRustcErrorCode = true
+
+# Inlay hints
+inlayHints.typeHints.hideNamedConstructor = true
+inlayHints.closureStyle = "rust_analyzer"
+inlayHints.expressionAdjustmentHints.enable = "reborrow"
+inlayHints.typeHints.hideClosureInitialization = true
+inlayHints.closureCaptureHints.enable = true
+
+# Semantic highlighting
+semanticHighlighting.punctuation.enable = true
+semanticHighlighting.operator.specialization.enable = true
+semanticHighlighting.punctuation.specialization.enable = true
+semanticHighlighting.punctuation.separate.macro.bang = true
+
 [language-server.biome]
 command = "bunx"
 args = ["biome", "lsp-proxy"]
@@ -79,3 +101,8 @@ args = ["--stdio"]
 "https://json.schemastore.org/biome.json" = ["biome.json", "biome.jsonc"]
 "https://json.schemastore.org/eslintrc.json" = [".eslintrc", ".eslintrc.json"]
 "https://json.schemastore.org/pyrightconfig.json" = ["pyrightconfig.json"]
+
+# Rust
+[[language]]
+name = "rust"
+language-servers = ["rust-analyzer"]
