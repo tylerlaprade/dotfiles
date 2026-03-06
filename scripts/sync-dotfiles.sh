@@ -56,27 +56,60 @@ for item in "$DOTFILES"/.claude/*; do
     if [[ -L "$local_mkts" ]]; then
       rm "$local_mkts"
     fi
+    manifest="$HOME/.claude/plugins/.synced-marketplaces"
     if [[ -f "$local_mkts" ]]; then
-      python3 -c "
-import json, sys
-repo_path, local_path = sys.argv[1], sys.argv[2]
+      # Sync marketplaces bidirectionally using manifest to detect deletions
+      # Output format: "install <repo>" for new, "remove <name>" for deleted
+      actions=$(python3 -c "
+import json, sys, os
+repo_path, local_path, manifest_path = sys.argv[1], sys.argv[2], sys.argv[3]
 with open(repo_path) as f: repo = json.load(f)
 with open(local_path) as f: local = json.load(f)
-for k, v in repo.items():
+synced = set()
+if os.path.exists(manifest_path):
+    synced = set(open(manifest_path).read().split())
+for k, v in list(repo.items()):
     if k not in local:
-        local[k] = v
-with open(local_path, 'w') as f:
-    json.dump(local, f, indent=2)
-    f.write('\n')
+        if k in synced:
+            del repo[k]  # was synced before, now deleted locally — remove from repo
+            print(f'remove {k}')
+        else:
+            print(f'install {v[\"source\"][\"repo\"]}')  # new from another machine
 for k, v in local.items():
     if k not in repo:
         repo[k] = {'source': v['source']}
 with open(repo_path, 'w') as f:
     json.dump(repo, f, indent=2)
     f.write('\n')
-" "$repo_mkts" "$local_mkts"
+" "$repo_mkts" "$local_mkts" "$manifest")
+      if [[ -n "$actions" ]]; then
+        while IFS= read -r action; do
+          case "$action" in
+            install\ *)
+              claude plugin marketplace add "${action#install }" 2>/dev/null || true ;;
+            remove\ *)
+              claude plugin marketplace remove "${action#remove }" 2>/dev/null || true ;;
+          esac
+        done <<< "$actions"
+      fi
     else
-      cp "$repo_mkts" "$local_mkts"
+      # No local file yet — install all repo marketplaces from scratch
+      python3 -c "
+import json, sys
+with open(sys.argv[1]) as f: data = json.load(f)
+for v in data.values():
+    print(v['source']['repo'])
+" "$repo_mkts" | while IFS= read -r repo_url; do
+        claude plugin marketplace add "$repo_url" 2>/dev/null || true
+      done
+    fi
+    # Update manifest with current local state
+    if [[ -f "$local_mkts" ]]; then
+      python3 -c "
+import json, sys
+with open(sys.argv[1]) as f: data = json.load(f)
+print('\n'.join(data.keys()))
+" "$local_mkts" > "$manifest"
     fi
   elif [[ -d "$item" && ! -L "$item" ]]; then
     link_tree "$item" "$HOME/.claude/$local_name"

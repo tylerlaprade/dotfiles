@@ -11,22 +11,16 @@
       "repo": "tylerlaprade/basedpyright-lsp"
     }
   },
-  "agent-browser": {
-    "source": {
-      "source": "github",
-      "repo": "vercel-labs/agent-browser"
-    }
-  },
-  "dev-browser-marketplace": {
-    "source": {
-      "source": "github",
-      "repo": "SawyerHood/dev-browser"
-    }
-  },
   "compound-engineering-plugin": {
     "source": {
       "source": "github",
       "repo": "EveryInc/compound-engineering-plugin"
+    }
+  },
+  "agent-browser": {
+    "source": {
+      "source": "github",
+      "repo": "vercel-labs/agent-browser"
     }
   }
 }
