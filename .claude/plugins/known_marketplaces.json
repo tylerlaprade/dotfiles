@@ -22,5 +22,11 @@
       "source": "github",
       "repo": "SawyerHood/dev-browser"
     }
+  },
+  "compound-engineering-plugin": {
+    "source": {
+      "source": "github",
+      "repo": "EveryInc/compound-engineering-plugin"
+    }
   }
 }
