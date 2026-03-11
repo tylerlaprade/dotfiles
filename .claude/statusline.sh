@@ -6,3 +6,10 @@ cd "$(cat | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 git_status=$(git-status-line --async-pr | sed 's/\x1b\[[0-9;]*m//g')
 current_time=$(TZ="America/New_York" date +%H:%M)
 echo "${git_status} · ${current_time}"
+
+# Keep Ghostty tab title current (zsh hooks don't fire during TUI apps)
+if [[ "$git_status" =~ \#[0-9]+ ]]; then
+  printf '\e]0;%s\a' "$git_status" > /dev/tty 2>/dev/null
+else
+  printf '\e]0;\a' > /dev/tty 2>/dev/null
+fi
