@@ -1,0 +1,93 @@
+;; Kanata configuration for macOS with hold/tap remappings
+;; Based on home row mods (HRM) best practices
+
+(defcfg
+  ;; macOS specific settings
+  process-unmapped-keys yes
+  ;; danger-enable-cmd yes
+  log-layer-changes yes
+  ;; Let kanata grab whatever devices it can
+)
+
+;; Timing variables for easy configuration
+(defvar
+  ;; HRM timings (faster for typing flow)
+  tap-time-hrm 175
+  hold-time-hrm 200
+
+  ;; Primary key timings (more forgiving)
+  tap-time-primary 200
+  hold-time-primary 250
+)
+
+;; Define source keys - we need the full layout for the extend layer to work properly
+(defsrc
+  esc  f1   f2   f3   f4   f5   f6   f7   f8   f9   f10  f11  f12
+  grv  1    2    3    4    5    6    7    8    9    0    -    =    bspc
+  tab  q    w    e    r    t    y    u    i    o    p    [    ]    \
+  caps a    s    d    f    g    h    j    k    l    ;    '    ret
+  lsft z    x    c    v    b    n    m    ,    .    /    rsft
+  fn   lctl lalt lmet           spc           rmet ralt
+)
+
+;; Base layer - only remap what we need, rest passes through with '_'
+(deflayer base
+  _    _    _    _    _    _    _    _    _    _    _    _    _
+  _    _    _    _    _    _    _    _    _    _    _    _    _    _
+  _    _    _    _    _    _    _    _    _    _    _    _    _    _
+  @cap @a   @s   @d   @f   _    _    @j   @k   @l   @scl _    _
+  _    _    _    _    _    _    _    _    _    _    _    _
+  _    _    _    @lmt           @spc          @rmt @rat
+)
+
+;; Extend layer - activated by holding space
+;; Provides numbers, arrows, function keys, and navigation
+(deflayer extend
+  _    _    _    _    _    _    _    _    _    _    _    _    _
+  _    f1   f2   f3   f4   f5   f6   f7   f8   f9   f10  f11  f12  _
+  _    S-1  S-2  S-3  S-4  S-5  S-6  S-7  S-8  S-9  S-0  _    _    _
+  @cap @ea  @es  @ed  @ef  5    left @ej  @ek  @el  @escl del  _
+  _    6    7    8    9    0    home pgdn pgup end  _    _
+  _    _    _    @lmt           _              @rmt @rat
+)
+
+;; Aliases for hold/tap configurations
+
+(defalias
+  ;; ========== Primary Key Remappings ==========
+  ;; These use longer timeouts for frequently used keys
+  
+  cap (tap-hold-press $tap-time-primary $hold-time-primary esc lctl)  ;; Caps Lock → Esc/Ctrl
+  rmt (tap-hold-press $tap-time-primary $hold-time-primary ret rmet)  ;; Right Cmd → Enter/Cmd
+  rat (tap-hold-press $tap-time-primary $hold-time-primary bspc ralt) ;; Right Alt → Backspace/Alt
+  lmt (tap-hold-press $tap-time-primary $hold-time-primary tab lmet)  ;; Left Cmd → Tab/Cmd
+  spc (tap-hold $tap-time-primary $hold-time-primary spc (layer-while-held extend)) ;; Space → Space/Extend
+  
+  ;; ========== Base Layer Home Row Mods (CSAG order) ==========
+  ;; Left hand: Ctrl, Shift, Alt, Cmd (pinky to index)
+  a (tap-hold-press $tap-time-hrm $hold-time-hrm a lctl)
+  s (tap-hold-press $tap-time-hrm $hold-time-hrm s lsft)  
+  d (tap-hold-press $tap-time-hrm $hold-time-hrm d lalt)
+  f (tap-hold-press $tap-time-hrm $hold-time-hrm f lmet)
+  
+  ;; Right hand: Cmd, Alt, Shift, Ctrl (index to pinky)
+  j (tap-hold-press $tap-time-hrm $hold-time-hrm j rmet)
+  k (tap-hold-press $tap-time-hrm $hold-time-hrm k ralt)
+  l (tap-hold-press $tap-time-hrm $hold-time-hrm l rsft)
+  scl (tap-hold-press $tap-time-hrm $hold-time-hrm ; rctl)
+  
+  ;; ========== Extend Layer HRMs ==========
+  ;; Same modifiers, but tap produces numbers/arrows instead of letters
+  
+  ;; Left hand → numbers 1-4 with modifiers
+  ea (tap-hold-press $tap-time-hrm $hold-time-hrm 1 lctl)
+  es (tap-hold-press $tap-time-hrm $hold-time-hrm 2 lsft)
+  ed (tap-hold-press $tap-time-hrm $hold-time-hrm 3 lalt)
+  ef (tap-hold-press $tap-time-hrm $hold-time-hrm 4 lmet)
+  
+  ;; Right hand → arrow keys with modifiers (vim-like)
+  ej (tap-hold-press $tap-time-hrm $hold-time-hrm left rmet)  ;; J → ←
+  ek (tap-hold-press $tap-time-hrm $hold-time-hrm down ralt)  ;; K → ↓
+  el (tap-hold-press $tap-time-hrm $hold-time-hrm up rsft)    ;; L → ↑
+  escl (tap-hold-press $tap-time-hrm $hold-time-hrm rght rctl) ;; ; → →
+)

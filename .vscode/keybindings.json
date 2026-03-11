@@ -1,0 +1,477 @@
+[
+  {
+    "key": "ctrl+left",
+    "command": "cursorWordPartLeft",
+    "when": "textInputFocus"
+  },
+  {
+    "key": "ctrl+alt+left",
+    "command": "-cursorWordPartLeft",
+    "when": "textInputFocus"
+  },
+  {
+    "key": "ctrl+shift+left",
+    "command": "cursorWordPartLeftSelect",
+    "when": "textInputFocus"
+  },
+  {
+    "key": "ctrl+right",
+    "command": "cursorWordPartRight",
+    "when": "textInputFocus"
+  },
+  {
+    "key": "ctrl+alt+right",
+    "command": "-cursorWordPartRight",
+    "when": "textInputFocus"
+  },
+  {
+    "key": "ctrl+shift+right",
+    "command": "cursorWordPartRightSelect",
+    "when": "textInputFocus"
+  },
+  {
+    "key": "ctrl+tab",
+    "command": "-workbench.action.quickOpenPreviousRecentlyUsedEditorInGroup",
+    "when": "!activeEditorGroupEmpty"
+  },
+  {
+    "key": "ctrl+tab",
+    "command": "-workbench.action.quickOpenNavigateNextInEditorPicker",
+    "when": "inEditorsPicker && inQuickOpen"
+  },
+  {
+    "key": "ctrl+tab",
+    "command": "workbench.action.nextEditorInGroup"
+  },
+  {
+    "key": "cmd+k alt+cmd+right",
+    "command": "-workbench.action.nextEditorInGroup"
+  },
+  {
+    "key": "ctrl+shift+tab",
+    "command": "workbench.action.previousEditorInGroup"
+  },
+  {
+    "key": "cmd+k alt+cmd+left",
+    "command": "-workbench.action.previousEditorInGroup"
+  },
+  {
+    "key": "ctrl+shift+tab",
+    "command": "-workbench.action.quickOpenLeastRecentlyUsedEditorInGroup",
+    "when": "!activeEditorGroupEmpty"
+  },
+  {
+    "key": "ctrl+shift+tab",
+    "command": "-workbench.action.quickOpenNavigatePreviousInEditorPicker",
+    "when": "inEditorsPicker && inQuickOpen"
+  },
+  {
+    "key": "cmd+]",
+    "command": "-editor.action.indentLines",
+    "when": "editorTextFocus && !editorReadonly"
+  },
+  {
+    "key": "cmd+[",
+    "command": "-editor.action.outdentLines",
+    "when": "editorTextFocus && !editorReadonly"
+  },
+  {
+    "key": "ctrl+tab",
+    "command": "workbench.action.terminal.focusNext",
+    "when": "terminalFocus || terminalTabsFocus"
+  },
+  {
+    "key": "ctrl+shift+tab",
+    "command": "workbench.action.terminal.focusPrevious",
+    "when": "terminalFocus || terminalTabsFocus"
+  },
+  {
+    "key": "ctrl+cmd+g",
+    "command": "graphite.gti.focus"
+  },
+  {
+    "key": "cmd+]",
+    "command": "workbench.action.navigateForward",
+    "when": "canNavigateForward"
+  },
+  {
+    "key": "ctrl+shift+-",
+    "command": "-workbench.action.navigateForward",
+    "when": "canNavigateForward"
+  },
+  {
+    "key": "cmd+[",
+    "command": "workbench.action.navigateBack",
+    "when": "canNavigateBack"
+  },
+  {
+    "key": "cmd+right",
+    "command": "-editor.action.inlineSuggest.acceptNextWord",
+    "when": "inlineSuggestionVisible && !editorReadonly"
+  },
+  {
+    "key": "alt+right",
+    "command": "editor.action.inlineSuggest.acceptNextWord",
+    "when": "inlineSuggestionVisible"
+  },
+  {
+    "key": "alt+down",
+    "command": "editor.action.inlineSuggest.acceptNextLine",
+    "when": "inlineSuggestionVisible"
+  },
+  {
+    "key": "cmd+k",
+    "command": "-workbench.action.terminal.clear",
+    "when": "terminalFocus && terminalHasBeenCreated && !accessibilityModeEnabled || terminalFocus && terminalProcessSupported && !accessibilityModeEnabled || accessibilityModeEnabled && accessibleViewIsShown && terminalHasBeenCreated && accessibleViewCurrentProviderId == 'terminal' || accessibilityModeEnabled && accessibleViewIsShown && terminalProcessSupported && accessibleViewCurrentProviderId == 'terminal'"
+  },
+  {
+    "key": "cmd+h",
+    "command": "editor.action.startFindReplaceAction",
+    "when": "editorFocus || editorIsOpen"
+  },
+  {
+    "key": "k",
+    "command": "goToPreviousReference",
+    "when": "inReferenceSearchEditor || referenceSearchVisible"
+  },
+  {
+    "key": "j",
+    "command": "goToNextReference",
+    "when": "inReferenceSearchEditor || referenceSearchVisible"
+  },
+  {
+    "key": "cmd+enter",
+    "command": "editor.action.inlineSuggest.trigger",
+    "when": "!inlineSuggestionVisible"
+  },
+  {
+    "key": "ctrl+w",
+    "command": "workbench.action.quickOpenNavigateNext",
+    "when": "inQuickOpen && inWindowsPicker"
+  },
+  {
+    "key": "ctrl+shift+w",
+    "command": "workbench.action.quickOpenNavigatePrevious",
+    "when": "inQuickOpen && inWindowsPicker"
+  },
+  {
+    "key": "v",
+    "command": "dance.modes.set.select",
+    "when": "editorTextFocus && dance.mode == 'normal'",
+  },
+  {
+    // https://github.com/71/dance/wiki/Mirror-menu
+    "key": "'",
+    "command": "dance.openMenu",
+    "args": {
+      "menu": {
+        "items": {
+          "l": {
+            "text": "character left",
+            "command": "dance.run",
+            "args": {
+              "commands": [
+                ".select.left.extend",
+                ".selections.changeDirection",
+                ".select.right.extend",
+                ".selections.changeDirection",
+              ],
+            },
+          },
+          "h": {
+            "text": "character right",
+            "command": "dance.run",
+            "args": {
+              "commands": [
+                ".select.right.extend",
+                ".selections.changeDirection",
+                ".select.left.extend",
+                ".selections.changeDirection",
+              ],
+            },
+          },
+          "j": {
+            "text": "line down",
+            "command": "dance.run",
+            "args": {
+              "commands": [
+                ".select.down.extend",
+                ".selections.changeDirection",
+                ".select.up.extend",
+                ".selections.changeDirection",
+              ],
+            },
+          },
+          "k": {
+            "text": "line up",
+            "command": "dance.run",
+            "args": {
+              "commands": [
+                ".select.up.extend",
+                ".selections.changeDirection",
+                ".select.down.extend",
+                ".selections.changeDirection",
+              ],
+            },
+          },
+          "(": {
+            "text": "(surround)",
+            "command": "dance.run",
+            "args": {
+              "input": "await replace((x) => '(' + x + ')')",
+              "commands": [
+                [
+                  ".edit.insert",
+                  {
+                    "where": "start",
+                    "shift": "extend",
+                    "text": "("
+                  }
+                ],
+                [
+                  ".edit.insert",
+                  {
+                    "where": "end",
+                    "shift": "extend",
+                    "text": ")"
+                  }
+                ],
+              ],
+            },
+          },
+          "{": {
+            "text": "{surround}",
+            "command": "dance.run",
+            "args": {
+              "input": "await replace((x) => '{' + x + '}')",
+              "commands": [
+                [
+                  ".edit.insert",
+                  {
+                    "where": "start",
+                    "shift": "extend",
+                    "text": "{"
+                  }
+                ],
+                [
+                  ".edit.insert",
+                  {
+                    "where": "end",
+                    "shift": "extend",
+                    "text": "}"
+                  }
+                ],
+              ],
+            },
+          },
+          "[": {
+            "text": "[surround]",
+            "command": "dance.run",
+            "args": {
+              "input": "await replace((x) => '[' + x + ']')",
+              "commands": [
+                [
+                  ".edit.insert",
+                  {
+                    "where": "start",
+                    "shift": "extend",
+                    "text": "["
+                  }
+                ],
+                [
+                  ".edit.insert",
+                  {
+                    "where": "end",
+                    "shift": "extend",
+                    "text": "]"
+                  }
+                ],
+              ],
+            },
+          },
+          "<": {
+            "text": "<surround>",
+            "command": "dance.run",
+            "args": {
+              "input": "await replace((x) => '<' + x + '>')",
+              "commands": [
+                [
+                  ".edit.insert",
+                  {
+                    "where": "start",
+                    "shift": "extend",
+                    "text": "<"
+                  }
+                ],
+                [
+                  ".edit.insert",
+                  {
+                    "where": "end",
+                    "shift": "extend",
+                    "text": ">"
+                  }
+                ],
+              ],
+            },
+          },
+          "\"": {
+            "text": "\"surround\"",
+            "command": "dance.run",
+            "args": {
+              "input": "await replace((x) => '\"' + x + '\"')",
+              "commands": [
+                [
+                  ".edit.insert",
+                  {
+                    "where": "start",
+                    "shift": "extend",
+                    "text": "\""
+                  }
+                ],
+                [
+                  ".edit.insert",
+                  {
+                    "where": "end",
+                    "shift": "extend",
+                    "text": "\""
+                  }
+                ],
+              ],
+            },
+          },
+          "'": {
+            "text": "'surround'",
+            "command": "dance.run",
+            "args": {
+              "input": "await replace((x) => `'` + x + `'`)",
+              "commands": [
+                [
+                  ".edit.insert",
+                  {
+                    "where": "start",
+                    "shift": "extend",
+                    "text": "'"
+                  }
+                ],
+                [
+                  ".edit.insert",
+                  {
+                    "where": "end",
+                    "shift": "extend",
+                    "text": "'"
+                  }
+                ],
+              ],
+            },
+          },
+          "`": {
+            "text": "`surround`",
+            "command": "dance.run",
+            "args": {
+              "input": "await replace((x) => '`' + x + '`')",
+              "commands": [
+                [
+                  ".edit.insert",
+                  {
+                    "where": "start",
+                    "shift": "extend",
+                    "text": "`"
+                  }
+                ],
+                [
+                  ".edit.insert",
+                  {
+                    "where": "end",
+                    "shift": "extend",
+                    "text": "`"
+                  }
+                ],
+              ],
+            },
+          },
+          "d": {
+            "text": "delete surround",
+            "command": "dance.run",
+            "args": {
+              "input": "await replace((x) => x.slice(1, -1))",
+              "commands": [
+                ".selections.save",
+                ".selections.reduce.edges",
+                ".edit.delete",
+                ".selections.restore",
+              ],
+            },
+          },
+        },
+      },
+      "locked": true,
+    },
+    "when": "editorTextFocus && dance.mode == 'normal'",
+  },
+  {
+    "key": "=",
+    "command": "editor.action.smartSelect.expand",
+    "when": "editorTextFocus && dance.mode == 'normal'"
+  },
+  {
+    "key": "-",
+    "command": "editor.action.smartSelect.shrink",
+    "when": "editorTextFocus && dance.mode == 'normal'"
+  },
+  {
+    "key": "shift+cmd+i",
+    "command": "workbench.action.chat.open",
+    "when": "!chatSetupHidden"
+  },
+  {
+    "key": "shift+enter",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": {
+      "text": "\\\r\n"
+    },
+    "when": "terminalFocus"
+  },
+  {
+    "key": "ctrl+w",
+    "command": "workbench.action.quickSwitchWindow"
+  },
+  {
+    "key": "ctrl+w",
+    "command": "-workbench.action.switchWindow"
+  },
+  {
+    "key": "shift+cmd+l",
+    "command": "-amp.agent.newWindow",
+    "when": "amp.activated"
+  },
+  {
+    "key": "cmd+l",
+    "command": "-amp.agent.newThread",
+    "when": "amp.primaryShortcuts"
+  },
+  {
+    "key": "cmd+i",
+    "command": "-amp.agent.toggleVisibility",
+    "when": "amp.primaryShortcuts"
+  },
+  {
+    "key": "shift+cmd+m",
+    "command": "amp.agent.switchAgentMode",
+    "when": "amp.activated && amp.hasMultipleVisibleModes && view.amp.sidebarView.visible"
+  },
+  {
+    "key": "shift+cmd+m",
+    "command": "-amp.agent.switchAgentMode",
+    "when": "amp.activated && amp.hasMultipleVisibleModes"
+  },
+  {
+    "key": "shift+cmd+m",
+    "command": "workbench.actions.view.problems",
+    "when": "!view.amp.sidebarView.visible"
+  },
+  {
+    "key": "shift+cmd+m",
+    "command": "-workbench.actions.view.problems",
+    "when": "workbench.panel.markers.view.active"
+  }
+]
