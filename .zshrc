@@ -36,6 +36,9 @@ zj() {
   ZJ_PROJECT_DIR="$HOME/Code/$name" zellij -n ~/.config/zellij/layouts/condor.kdl -s "$name" 2>/dev/null || zellij attach "$name"
 }
 
+# Claude: allow bypass-permissions as a switchable option (Shift+Tab)
+claude() { command claude --allow-dangerously-skip-permissions "$@"; }
+
 # cw — condor workspace: create workspace + start Claude
 # Prefer cw.sh from current repo (works from subdirs), fall back to any condor workspace
 _cw_root=$(git rev-parse --show-toplevel 2>/dev/null)
