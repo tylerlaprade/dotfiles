@@ -1,1 +1,6 @@
 **/.claude/settings.local.json
+
+# Secrets — never commit
+.config/graphite/user_config
+.config/gh/hosts.yml
+.vscode/settings.secrets.json

@@ -19,7 +19,7 @@ bindkey '^U' backward-kill-line
 eval "$(fnm env --use-on-cd)"
 
 # bun completions
-[ -s "/Users/tyler/.bun/_bun" ] && source "/Users/tyler/.bun/_bun"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 # bun
 export BUN_INSTALL="$HOME/.bun"

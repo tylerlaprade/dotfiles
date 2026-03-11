@@ -1,0 +1,45 @@
+{
+  "restackCommitterDateIsAuthorDate": true,
+  "submitViaCli": false,
+  "gtiConfigs": [
+    {
+      "key": "gti.hasShownGettingStarted",
+      "value": "true"
+    },
+    {
+      "key": "graphite.branch_edit",
+      "value": "amend"
+    },
+    {
+      "key": "gti.submitAsDraft",
+      "value": "false"
+    },
+    {
+      "key": "gti.install-uuid",
+      "value": "63d79111-be74-4387-93cd-d6d9f4a633bb"
+    },
+    {
+      "key": "gti.is-onboarded",
+      "value": "true"
+    },
+    {
+      "key": "gti.submit-with-web",
+      "value": "\"web\""
+    },
+    {
+      "key": "gti.branch-name-wrapping",
+      "value": "\"wrap\""
+    },
+    {
+      "key": "gti.modify-behavior",
+      "value": "\"amend\""
+    },
+    {
+      "key": "gti.pull-button-choice",
+      "value": "\"pd\""
+    }
+  ],
+  "emptyBranchConfig": "delete",
+  "updateAutomatically": true,
+  "promptForUpdates": false
+}
