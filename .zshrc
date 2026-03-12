@@ -78,7 +78,6 @@ _set_tab_title() {
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd _set_tab_title
 add-zsh-hook preexec _set_tab_title
-add-zsh-hook chpwd _set_tab_title
 
 # Source local secrets (not in repo)
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
@@ -98,3 +97,4 @@ compdef _gt_yargs_completions gt
 # Must be last — wraps zsh widgets, breaks if loaded before other plugins
 # https://github.com/zsh-users/zsh-syntax-highlighting#why-must-zsh-syntax-highlightingzsh-be-sourced-at-the-end-of-the-zshrc-file
 source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
