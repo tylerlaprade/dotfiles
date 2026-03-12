@@ -44,7 +44,7 @@ fi
 
 # 7. Global bun packages
 echo "Installing global bun packages..."
-bun i -g typescript-language-server vscode-langservers-extracted 2>/dev/null || true
+bun i -g typescript-language-server vscode-langservers-extracted bash-language-server yaml-language-server markdownlint-cli2 2>/dev/null || true
 
 # 8. Sourcery LSP (for Helix/editors)
 pip3 install --user sourcery-cli 2>/dev/null || true
