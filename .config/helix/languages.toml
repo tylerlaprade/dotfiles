@@ -83,7 +83,76 @@ args = ["--stdio"]
 "https://json.schemastore.org/eslintrc.json" = [".eslintrc", ".eslintrc.json"]
 "https://json.schemastore.org/pyrightconfig.json" = ["pyrightconfig.json"]
 
+# Shell — bash-language-server uses shellcheck for diagnostics
+
+[language-server.bash-language-server]
+command = "bash-language-server"
+args = ["start"]
+
+# TOML
+
+[language-server.taplo]
+command = "taplo"
+args = ["lsp", "stdio"]
+
+# YAML
+
+[language-server.yaml-language-server]
+command = "yaml-language-server"
+args = ["--stdio"]
+
+[language-server.yaml-language-server.config.yaml]
+schemas = { "https://json.schemastore.org/github-workflow.json" = ".github/workflows/*.yml" }
+validation = true
+completion = true
+
+# CSS / HTML
+
+[language-server.vscode-css-language-server]
+command = "vscode-css-language-server"
+args = ["--stdio"]
+
+[language-server.vscode-html-language-server]
+command = "vscode-html-language-server"
+args = ["--stdio"]
+
 # Rust
 [[language]]
 name = "rust"
 formatter = { command = "rustfmt" }
+
+# Shell
+[[language]]
+name = "bash"
+language-servers = ["bash-language-server"]
+formatter = { command = "shfmt", args = ["-i", "2"] }
+
+# TOML
+[[language]]
+name = "toml"
+language-servers = ["taplo"]
+formatter = { command = "taplo", args = ["format", "-"] }
+
+# YAML
+[[language]]
+name = "yaml"
+language-servers = ["yaml-language-server"]
+
+# Markdown
+[[language]]
+name = "markdown"
+formatter = { command = "markdownlint-cli2", args = ["--fix"] }
+
+# CSS / SCSS
+[[language]]
+name = "css"
+language-servers = ["vscode-css-language-server"]
+
+[[language]]
+name = "scss"
+language-servers = ["vscode-css-language-server"]
+
+# HTML
+[[language]]
+name = "html"
+language-servers = ["vscode-html-language-server"]
