@@ -23,37 +23,27 @@ if ! command -v rustup &>/dev/null; then
   source "$HOME/.cargo/env"
 fi
 
-# 4. Cargo crates (via binstall for speed)
+# 4. Cargo crates (cargo-only tools not in brew)
 if command -v cargo &>/dev/null; then
   echo "Installing cargo tools..."
   cargo install cargo-binstall 2>/dev/null || true
-  cargo binstall -y cargo-insta cargo-nextest cargo-workspaces just taplo-cli wasm-pack wasm-tools 2>/dev/null || true
+  cargo binstall -y cargo-insta cargo-workspaces 2>/dev/null || true
 fi
 
-# 5. Bun
+# 5. Bun (no brew formula available)
 if ! command -v bun &>/dev/null; then
   echo "Installing bun..."
   curl -fsSL https://bun.sh/install | bash
 fi
 
-# 6. uv
-if ! command -v uv &>/dev/null; then
-  echo "Installing uv..."
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-fi
-
-# 7. Global bun packages
-echo "Installing global bun packages..."
-bun i -g typescript-language-server vscode-langservers-extracted bash-language-server yaml-language-server markdownlint-cli2 2>/dev/null || true
-
-# 8. Sourcery LSP (for Helix/editors)
+# 6. Sourcery LSP (for Helix/editors)
 pip3 install --user sourcery-cli 2>/dev/null || true
 
-# 9. Symlink dotfiles
+# 7. Symlink dotfiles
 echo "Syncing dotfiles..."
 "$DOTFILES/scripts/sync-dotfiles.sh"
 
-# 10. VS Code extensions (from Brewfile vscode entries)
+# 8. VS Code extensions (from Brewfile vscode entries)
 if command -v code &>/dev/null; then
   echo "Installing VS Code extensions..."
   brew bundle --file="$DOTFILES/Brewfile" --no-lock --vscode 2>/dev/null || true
