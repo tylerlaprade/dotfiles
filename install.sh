@@ -43,12 +43,6 @@ pip3 install --user sourcery-cli 2>/dev/null || true
 echo "Syncing dotfiles..."
 "$DOTFILES/scripts/sync-dotfiles.sh"
 
-# 8. VS Code extensions (from Brewfile vscode entries)
-if command -v code &>/dev/null; then
-  echo "Installing VS Code extensions..."
-  brew bundle --file="$DOTFILES/Brewfile" --no-lock --vscode 2>/dev/null || true
-fi
-
 echo ""
 echo "=== Manual steps remaining ==="
 echo "  1. macOS defaults:  $DOTFILES/scripts/macos-defaults.sh"
