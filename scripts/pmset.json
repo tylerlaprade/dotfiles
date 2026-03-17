@@ -1,0 +1,35 @@
+{
+  "battery": {
+    "Sleep": "On",
+    "lowpowermode": 1,
+    "standby": 1,
+    "ttyskeepawake": 1,
+    "hibernatemode": 3,
+    "powernap": 0,
+    "hibernatefile": "/var/vm/sleepimage",
+    "displaysleep": 10,
+    "womp": 0,
+    "networkoversleep": 0,
+    "sleep": 0,
+    "lessbright": 1,
+    "tcpkeepalive": 1,
+    "disksleep": 10,
+    "SleepServices": 0
+  },
+  "ac": {
+    "Sleep": "On",
+    "lowpowermode": 0,
+    "standby": 1,
+    "ttyskeepawake": 1,
+    "hibernatemode": 3,
+    "powernap": 0,
+    "hibernatefile": "/var/vm/sleepimage",
+    "displaysleep": 15,
+    "womp": 1,
+    "networkoversleep": 0,
+    "sleep": 15,
+    "tcpkeepalive": 1,
+    "disksleep": 10,
+    "SleepServices": 0
+  }
+}

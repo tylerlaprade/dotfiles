@@ -100,11 +100,11 @@ echo ""
 echo "--- Restoring personal files ---"
 
 echo "  ~/Documents/"
-cp -a "$RESTORE_DIR/Documents/"* "$HOME/Documents/" 2>/dev/null || true
+cp -R "$RESTORE_DIR/Documents/"* "$HOME/Documents/" 2>/dev/null || true
 
 echo "  ~/Desktop/"
 for item in "$RESTORE_DIR/Desktop/"*; do
-  [[ -e "$item" ]] && cp -a "$item" "$HOME/Desktop/"
+  [[ -e "$item" ]] && cp -R "$item" "$HOME/Desktop/"
 done
 
 # History files
@@ -121,7 +121,7 @@ done
 echo ""
 echo "--- Restoring fonts ---"
 mkdir -p "$HOME/Library/Fonts"
-cp -a "$RESTORE_DIR/Fonts/"* "$HOME/Library/Fonts/"
+cp -R "$RESTORE_DIR/Fonts/"* "$HOME/Library/Fonts/"
 echo "  $(ls "$RESTORE_DIR/Fonts/" | wc -l | tr -d ' ') fonts restored"
 
 # Cleanup

@@ -67,8 +67,15 @@ fi
 
 # Sourcery
 echo "  [sourcery] starting..."
-(pip3 install --user sourcery-cli >"$LOGDIR/sourcery.log" 2>&1 && echo "  [sourcery] done" || echo "  [sourcery] FAILED") &
+(uv tool install sourcery-cli >"$LOGDIR/sourcery.log" 2>&1 && echo "  [sourcery] done" || echo "  [sourcery] FAILED") &
 pid_sourcery=$!
+
+# Claude Code CLI
+if ! command -v claude &>/dev/null; then
+  echo "  [claude] starting..."
+  (curl -fsSL https://cli.anthropic.com/install.sh | sh >"$LOGDIR/claude.log" 2>&1 && echo "  [claude] done" || echo "  [claude] FAILED") &
+  pid_claude=$!
+fi
 
 # Remove macOS bloat (fast, no network)
 for app in GarageBand iMovie Keynote Numbers Pages; do
@@ -80,6 +87,7 @@ wait $pid_brew 2>/dev/null
 [[ -n "${pid_cargo:-}" ]] && wait $pid_cargo 2>/dev/null
 [[ -n "${pid_bun:-}" ]] && wait $pid_bun 2>/dev/null
 wait $pid_sourcery 2>/dev/null
+[[ -n "${pid_claude:-}" ]] && wait $pid_claude 2>/dev/null
 
 # Undo shell config modifications from installers (bun has no --no-modify-path)
 git -C "$DOTFILES" checkout -- .zshrc .zshenv .zprofile 2>/dev/null || true

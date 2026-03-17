@@ -149,3 +149,32 @@ for domain, blacklist in sorted(domains_to_export.items()):
 with open(SNAPSHOT_PATH, "w") as f:
     json.dump(snapshot, f, indent=2)
     f.write("\n")
+
+# Capture pmset (power management) settings
+PMSET_PATH = os.path.join(SCRIPT_DIR, "pmset.json")
+pmset_snapshot = {}
+for source, flag in [("battery", "-b"), ("ac", "-c")]:
+    raw = subprocess.run(["pmset", "-g", "custom"], capture_output=True, text=True)
+    if raw.returncode != 0:
+        continue
+    current_source = None
+    for line in raw.stdout.splitlines():
+        if "Battery Power:" in line:
+            current_source = "battery"
+            pmset_snapshot.setdefault("battery", {})
+        elif "AC Power:" in line:
+            current_source = "ac"
+            pmset_snapshot.setdefault("ac", {})
+        elif current_source and line.strip():
+            parts = line.strip().split()
+            if len(parts) >= 2:
+                key, val = parts[0], parts[1]
+                try:
+                    pmset_snapshot[current_source][key] = int(val)
+                except ValueError:
+                    pmset_snapshot[current_source][key] = val
+    break  # pmset -g custom shows both in one call
+
+with open(PMSET_PATH, "w") as f:
+    json.dump(pmset_snapshot, f, indent=2)
+    f.write("\n")
