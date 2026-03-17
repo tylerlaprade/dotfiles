@@ -70,7 +70,7 @@ if [[ "$sync_ok" -eq 0 ]]; then
 fi
 echo ""
 echo "  Write down your Brave sync code (Brave > Settings > Sync)."
-echo "  You'll need it on the new machine before unpacking the backup."
+echo "  You'll need it after Brave is installed on the new machine."
 read -p "  Done? [y/N] " -r
 [[ "$REPLY" =~ ^[Yy]$ ]] || exit 1
 
@@ -156,7 +156,7 @@ echo "--- Creating encrypted archive ---"
 rm -f "$ARCHIVE"
 cd "$(dirname "$BACKUP_DIR")"
 zip -r -e "$ARCHIVE" "$(basename "$BACKUP_DIR")"
-rm -rf "$BACKUP_DIR" 2>/dev/null || sudo rm -rf "$BACKUP_DIR"
+xattr -rc "$BACKUP_DIR" 2>/dev/null; chmod -R u+rwx "$BACKUP_DIR" 2>/dev/null; rm -rf "$BACKUP_DIR"
 
 echo ""
 echo "=== Backup complete ==="
