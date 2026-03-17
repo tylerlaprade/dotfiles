@@ -10,6 +10,7 @@ else
 fi
 
 export EDITOR="hx"
+export GPG_TTY=$(tty)
 
 # Experimental: intercept brew commands → run wax + zerobrew in parallel
 [[ -f "$HOME/.local/bin/brew-wrapper" ]] && source "$HOME/.local/bin/brew-wrapper"
