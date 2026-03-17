@@ -54,8 +54,8 @@ for profile_dir in "$brave_prefs_dir"/*/; do
   prefs="$profile_dir/Preferences"
   [[ -f "$prefs" ]] || continue
   name=$(python3 -c "import json; print(json.load(open('$prefs')).get('profile',{}).get('name','?'))" 2>/dev/null)
-  requested=$(python3 -c "import json; print(json.load(open('$prefs')).get('sync',{}).get('requested', False))" 2>/dev/null)
-  if [[ "$requested" != "True" ]]; then
+  sync_on=$(python3 -c "import json; s=json.load(open('$prefs')).get('sync',{}); print(s.get('has_setup_completed') or s.get('requested') or False)" 2>/dev/null)
+  if [[ "$sync_on" != "True" ]]; then
     echo "  ⚠ Profile '$name': sync is OFF"
     sync_ok=0
   else
