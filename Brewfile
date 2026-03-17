@@ -25,7 +25,6 @@ brew "jq"
 brew "kanata"
 brew "lazygit"
 brew "postgresql@17", restart_service: :changed, link: true
-brew "pinentry-mac"
 brew "procs"
 brew "pure"
 brew "pyenv"
