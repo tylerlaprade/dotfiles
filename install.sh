@@ -65,11 +65,6 @@ echo "  [sourcery] starting..."
 (pip3 install --user sourcery-cli >"$LOGDIR/sourcery.log" 2>&1 && echo "  [sourcery] done" || echo "  [sourcery] FAILED") &
 pid_sourcery=$!
 
-# Symlink dotfiles (fast, no network)
-echo "  [dotfiles] syncing..."
-"$DOTFILES/scripts/sync-dotfiles.sh"
-echo "  [dotfiles] done"
-
 # Remove macOS bloat (fast, no network)
 for app in GarageBand iMovie Keynote Numbers Pages; do
   [[ -d "/Applications/$app.app" ]] && sudo rm -rf "/Applications/$app.app"
@@ -80,6 +75,10 @@ wait $pid_brew 2>/dev/null
 [[ -n "${pid_cargo:-}" ]] && wait $pid_cargo 2>/dev/null
 [[ -n "${pid_bun:-}" ]] && wait $pid_bun 2>/dev/null
 wait $pid_sourcery 2>/dev/null
+
+# Symlink dotfiles (needs uv from brew)
+echo "Syncing dotfiles..."
+"$DOTFILES/scripts/sync-dotfiles.sh"
 
 rm -rf "$LOGDIR"
 
