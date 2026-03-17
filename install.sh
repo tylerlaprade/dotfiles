@@ -73,7 +73,7 @@ pid_sourcery=$!
 # Claude Code CLI (native installer, auto-updates)
 if ! command -v claude &>/dev/null; then
   echo "  [claude] starting..."
-  (curl -fsSL https://cli.anthropic.com/install.sh | sh >"$LOGDIR/claude.log" 2>&1 && echo "  [claude] done" || echo "  [claude] FAILED") &
+  (curl -fsSL https://claude.ai/install.sh | bash >"$LOGDIR/claude.log" 2>&1 && echo "  [claude] done" || echo "  [claude] FAILED") &
   pid_claude=$!
 fi
 
