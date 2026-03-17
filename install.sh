@@ -70,12 +70,13 @@ echo "  [sourcery] starting..."
 (uv tool install sourcery-cli >"$LOGDIR/sourcery.log" 2>&1 && echo "  [sourcery] done" || echo "  [sourcery] FAILED") &
 pid_sourcery=$!
 
-# Claude Code CLI
+# Claude Code CLI (native installer, auto-updates)
 if ! command -v claude &>/dev/null; then
   echo "  [claude] starting..."
   (curl -fsSL https://cli.anthropic.com/install.sh | sh >"$LOGDIR/claude.log" 2>&1 && echo "  [claude] done" || echo "  [claude] FAILED") &
   pid_claude=$!
 fi
+
 
 # Remove macOS bloat (fast, no network)
 for app in GarageBand iMovie Keynote Numbers Pages; do
@@ -88,6 +89,13 @@ wait $pid_brew 2>/dev/null
 [[ -n "${pid_bun:-}" ]] && wait $pid_bun 2>/dev/null
 wait $pid_sourcery 2>/dev/null
 [[ -n "${pid_claude:-}" ]] && wait $pid_claude 2>/dev/null
+
+# Codex CLI (needs node from fnm/brew, must run after brew finishes)
+if ! command -v codex &>/dev/null; then
+  echo "Installing Codex CLI..."
+  eval "$(fnm env)" 2>/dev/null
+  npm i -g @openai/codex 2>/dev/null || true
+fi
 
 # Undo shell config modifications from installers (bun has no --no-modify-path)
 git -C "$DOTFILES" checkout -- .zshrc .zshenv .zprofile 2>/dev/null || true
