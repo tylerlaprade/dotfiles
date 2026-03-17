@@ -15,7 +15,7 @@ fi
 # 2. Rust toolchain (needed before wax)
 if ! command -v rustup &>/dev/null; then
   echo "Installing Rust..."
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
   source "$HOME/.cargo/env"
 fi
 
@@ -27,7 +27,7 @@ fi
 [[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
 if ! command -v zb &>/dev/null; then
   echo "Installing zerobrew..."
-  curl -fsSL https://zerobrew.rs/install | bash 2>/dev/null || true
+  curl -fsSL https://zerobrew.rs/install | bash -s -- --no-modify-path 2>/dev/null || true
   [[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
 fi
 
@@ -76,6 +76,9 @@ wait $pid_brew 2>/dev/null
 [[ -n "${pid_cargo:-}" ]] && wait $pid_cargo 2>/dev/null
 [[ -n "${pid_bun:-}" ]] && wait $pid_bun 2>/dev/null
 wait $pid_sourcery 2>/dev/null
+
+# Undo shell config modifications from installers (bun has no --no-modify-path)
+git -C "$DOTFILES" checkout -- .zshrc .zshenv .zprofile 2>/dev/null || true
 
 # Symlink dotfiles (needs uv from brew)
 # Skip macOS defaults capture on install — we want to apply, not overwrite
