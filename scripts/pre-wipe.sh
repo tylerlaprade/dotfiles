@@ -161,9 +161,24 @@ chmod -RN "$BACKUP_DIR" 2>/dev/null; rm -rf "$BACKUP_DIR"
 echo ""
 echo "=== Backup complete ==="
 echo "Archive: $ARCHIVE"
+
+# Serve the archive over HTTP for the new machine to download
+local_ip=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null)
+if [[ -n "$local_ip" ]]; then
+  echo ""
+  echo "Serving archive at http://$local_ip:8000/$(basename "$ARCHIVE")"
+  echo "On the new machine, run:"
+  echo "  curl -o ~/Desktop/$(basename "$ARCHIVE") http://$local_ip:8000/$(basename "$ARCHIVE")"
+  echo ""
+  echo "Press Ctrl-C when transfer is complete."
+  cd "$(dirname "$ARCHIVE")" && python3 -m http.server 8000
+else
+  echo ""
+  echo "Could not determine local IP. Transfer manually:"
+  open -R "$ARCHIVE"
+fi
+
 echo ""
-echo "Next steps:"
-echo "  1. AirDrop $ARCHIVE to the new machine"
-echo "  2. Push all repos with unpushed work"
-echo "  3. On the new machine, run bootstrap.sh then restore.sh"
-echo "  4. Rotate your GitHub PAT after migration"
+echo "Remaining steps:"
+echo "  1. Push all repos with unpushed work"
+echo "  2. On the new machine, run bootstrap.sh then restore.sh"
