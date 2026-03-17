@@ -43,7 +43,7 @@ for dir in "$DOTFILES"/.config/*/; do
 done
 
 # ~/.claude/* (skip machine-local files)
-mkdir -p ~/.claude
+mkdir -p "$HOME/.claude"
 for item in "$DOTFILES"/.claude/*; do
   local_name="$(basename "$item")"
   [[ "$local_name" == "settings.local.json" ]] && continue
@@ -90,7 +90,7 @@ done
 link_tree "$DOTFILES/.config/KeyBindings" "$HOME/Library/KeyBindings"
 
 # scripts -> ~/.local/bin
-mkdir -p ~/.local/bin
+mkdir -p "$HOME/.local/bin"
 for script in "$DOTFILES"/scripts/*.sh; do
   link "$script" "$HOME/.local/bin/$(basename "$script" .sh)"
 done

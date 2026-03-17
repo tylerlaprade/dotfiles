@@ -24,8 +24,12 @@ with open(SNAPSHOT_PATH) as f:
 
 for domain, entries in snapshot.items():
     for key, info in entries.items():
-        t, val = info["type"], info["value"]
-        if t == "bool":
+        t = info["type"]
+        val = info.get("value")
+        if t == "plist-file":
+            plist_path = os.path.join(SCRIPT_DIR, info["file"])
+            subprocess.run(["defaults", "import", domain, plist_path])
+        elif t == "bool":
             subprocess.run(["defaults", "write", domain, key, "-bool", str(val).lower()])
         elif t == "int":
             subprocess.run(["defaults", "write", domain, key, "-int", str(val)])

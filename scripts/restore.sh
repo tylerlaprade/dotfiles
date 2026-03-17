@@ -22,35 +22,73 @@ echo ""
 echo "--- Restoring secrets ---"
 
 echo "  ~/.ssh/"
-mkdir -p ~/.ssh
-cp -a "$RESTORE_DIR/ssh/"* ~/.ssh/
-chmod 700 ~/.ssh
-chmod 600 ~/.ssh/id_* 2>/dev/null || true
+mkdir -p "$HOME/.ssh"
+cp -a "$RESTORE_DIR/ssh/"* "$HOME/.ssh/"
+chmod 700 "$HOME/.ssh"
+chmod 600 "$HOME/.ssh/"id_* 2>/dev/null || true
 
 echo "  ~/.gnupg/"
-mkdir -p ~/.gnupg
-cp -a "$RESTORE_DIR/gnupg/"* ~/.gnupg/
-chmod 700 ~/.gnupg
+mkdir -p "$HOME/.gnupg"
+cp -a "$RESTORE_DIR/gnupg/"* "$HOME/.gnupg/"
+chmod 700 "$HOME/.gnupg"
 
 echo "  ~/.aws/"
-mkdir -p ~/.aws
-cp -a "$RESTORE_DIR/aws/"* ~/.aws/
+mkdir -p "$HOME/.aws"
+cp -a "$RESTORE_DIR/aws/"* "$HOME/.aws/"
+
+echo "  ~/.config/AWSVPNClient/"
+if [[ -d "$RESTORE_DIR/AWSVPNClient" ]]; then
+  mkdir -p "$HOME/.config/AWSVPNClient"
+  cp -a "$RESTORE_DIR/AWSVPNClient/"* "$HOME/.config/AWSVPNClient/"
+fi
 
 echo "  ~/.zshrc.local"
-cp "$RESTORE_DIR/zshrc.local" ~/.zshrc.local
+cp "$RESTORE_DIR/zshrc.local" "$HOME/.zshrc.local"
 
 echo "  Graphite user_config"
 if [[ -f "$RESTORE_DIR/graphite/user_config" ]]; then
-  mkdir -p ~/.config/graphite
-  cp "$RESTORE_DIR/graphite/user_config" ~/.config/graphite/user_config
+  mkdir -p "$HOME/.config/graphite"
+  cp "$RESTORE_DIR/graphite/user_config" "$HOME/.config/graphite/user_config"
+fi
+
+echo "  Atlassian CLI config"
+if [[ -d "$RESTORE_DIR/acli" ]]; then
+  mkdir -p "$HOME/.config/acli"
+  cp -a "$RESTORE_DIR/acli/"* "$HOME/.config/acli/"
+fi
+
+echo "  Sourcery auth"
+if [[ -f "$RESTORE_DIR/sourcery/auth.yaml" ]]; then
+  mkdir -p "$HOME/.config/sourcery"
+  cp "$RESTORE_DIR/sourcery/auth.yaml" "$HOME/.config/sourcery/auth.yaml"
 fi
 
 # Claude memories
+# Project keys are derived from repo paths. If the home directory changed,
+# remap old keys to match the new home directory.
 echo ""
 echo "--- Restoring Claude memories ---"
+old_home_slug=""
+new_home_slug=$(echo "$HOME" | tr '/' '-')
 for projectdir in "$RESTORE_DIR/claude-memories"/*/; do
   [[ -d "$projectdir" ]] || continue
   project=$(basename "$projectdir")
+
+  # Detect old home slug from the first project key
+  if [[ -z "$old_home_slug" ]]; then
+    # Project keys look like -Users-tyler-Code-condor
+    # Try to find the common prefix that differs from current $HOME
+    old_home_slug=$(echo "$project" | sed -E 's/(-Code-.*)//' )
+    if [[ "$old_home_slug" != "$new_home_slug" ]]; then
+      echo "  Remapping project keys: $old_home_slug -> $new_home_slug"
+    fi
+  fi
+
+  # Remap the project key if home directory changed
+  if [[ "$old_home_slug" != "$new_home_slug" ]]; then
+    project="${project/$old_home_slug/$new_home_slug}"
+  fi
+
   dest="$HOME/.claude/projects/$project/memory"
   mkdir -p "$dest"
   cp "$projectdir"*.md "$dest/"
@@ -62,11 +100,11 @@ echo ""
 echo "--- Restoring personal files ---"
 
 echo "  ~/Documents/"
-cp -a "$RESTORE_DIR/Documents/"* ~/Documents/ 2>/dev/null || true
+cp -a "$RESTORE_DIR/Documents/"* "$HOME/Documents/" 2>/dev/null || true
 
 echo "  ~/Desktop/"
 for item in "$RESTORE_DIR/Desktop/"*; do
-  [[ -e "$item" ]] && cp -a "$item" ~/Desktop/
+  [[ -e "$item" ]] && cp -a "$item" "$HOME/Desktop/"
 done
 
 # History files
@@ -82,8 +120,8 @@ done
 # Fonts
 echo ""
 echo "--- Restoring fonts ---"
-mkdir -p ~/Library/Fonts
-cp -a "$RESTORE_DIR/Fonts/"* ~/Library/Fonts/
+mkdir -p "$HOME/Library/Fonts"
+cp -a "$RESTORE_DIR/Fonts/"* "$HOME/Library/Fonts/"
 echo "  $(ls "$RESTORE_DIR/Fonts/" | wc -l | tr -d ' ') fonts restored"
 
 # Cleanup
@@ -100,3 +138,8 @@ echo "  2. Verify Brave Sync pulled everything down"
 echo "  3. Run: $HOME/Code/dotfiles/scripts/apply-macos-defaults.py"
 echo "  4. Grant accessibility permissions for Kanata"
 echo "  5. Grant input monitoring permissions for Karabiner"
+echo "  6. Add custom /etc/hosts entries:"
+echo "     sudo sh -c 'echo \"127.0.0.1       local.paqarina.dev\" >> /etc/hosts'"
+echo "  7. Re-add login items: Hyperkey, Discord, Granola, Graphite, Google Calendar, Slack"
+echo "  8. Reinstall Google Calendar PWA in Brave (three dots > Install page as app):"
+echo "     https://calendar.google.com/calendar/r"

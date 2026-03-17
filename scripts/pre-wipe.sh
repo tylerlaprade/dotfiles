@@ -10,7 +10,7 @@ echo "=== Pre-Wipe Backup ==="
 echo ""
 echo "--- Scanning ~/Code for uncommitted/unpushed work ---"
 dirty=0
-for dir in ~/Code/*/; do
+for dir in "$HOME/Code/"*/; do
   (cd "$dir" 2>/dev/null && if git rev-parse --is-inside-work-tree &>/dev/null; then
     st=$(git status --porcelain 2>/dev/null)
     up=$(git log --oneline @{u}..HEAD 2>/dev/null)
@@ -68,25 +68,35 @@ echo "--- Copying files ---"
 
 # Secrets
 echo "  ~/.ssh/"
-cp -a ~/.ssh "$BACKUP_DIR/ssh"
+cp -a "$HOME/.ssh" "$BACKUP_DIR/ssh"
 
 echo "  ~/.gnupg/"
-cp -a ~/.gnupg "$BACKUP_DIR/gnupg"
+cp -a "$HOME/.gnupg" "$BACKUP_DIR/gnupg"
 
 echo "  ~/.aws/"
-cp -a ~/.aws "$BACKUP_DIR/aws"
+cp -a "$HOME/.aws" "$BACKUP_DIR/aws"
+
+echo "  ~/.config/AWSVPNClient/"
+cp -a "$HOME/.config/AWSVPNClient" "$BACKUP_DIR/AWSVPNClient" 2>/dev/null || echo "    (not found, skipping)"
 
 echo "  ~/.zshrc.local"
-cp ~/.zshrc.local "$BACKUP_DIR/zshrc.local"
+cp "$HOME/.zshrc.local" "$BACKUP_DIR/zshrc.local"
 
 echo "  ~/.config/graphite/user_config"
 mkdir -p "$BACKUP_DIR/graphite"
-cp ~/.config/graphite/user_config "$BACKUP_DIR/graphite/user_config" 2>/dev/null || echo "    (not found, skipping)"
+cp "$HOME/.config/graphite/user_config" "$BACKUP_DIR/graphite/user_config" 2>/dev/null || echo "    (not found, skipping)"
+
+echo "  ~/.config/acli/"
+cp -a "$HOME/.config/acli" "$BACKUP_DIR/acli" 2>/dev/null || echo "    (not found, skipping)"
+
+echo "  ~/.config/sourcery/"
+mkdir -p "$BACKUP_DIR/sourcery"
+cp "$HOME/.config/sourcery/auth.yaml" "$BACKUP_DIR/sourcery/auth.yaml" 2>/dev/null || echo "    (not found, skipping)"
 
 # Claude memories
 echo "  Claude memory files"
 mkdir -p "$BACKUP_DIR/claude-memories"
-for memdir in ~/.claude/projects/*/memory; do
+for memdir in "$HOME/.claude/projects/"*/memory; do
   [[ -d "$memdir" ]] || continue
   project=$(basename "$(dirname "$memdir")")
   # Only copy if there are actual files
@@ -99,7 +109,7 @@ done
 # Personal files
 echo "  ~/Documents/ (excluding Zoom, screen recordings)"
 mkdir -p "$BACKUP_DIR/Documents"
-for item in ~/Documents/*; do
+for item in "$HOME/Documents/"*; do
   name=$(basename "$item")
   [[ "$name" == "Zoom" ]] && continue
   [[ "$name" == Screen\ Recording* ]] && continue
@@ -108,7 +118,7 @@ done
 
 echo "  ~/Desktop/ (excluding this backup)"
 mkdir -p "$BACKUP_DIR/Desktop"
-for item in ~/Desktop/*; do
+for item in "$HOME/Desktop/"*; do
   name=$(basename "$item")
   [[ "$name" == "machine-backup" || "$name" == "machine-backup.zip" ]] && continue
   cp -a "$item" "$BACKUP_DIR/Desktop/$name"
@@ -123,7 +133,7 @@ done
 
 # Fonts
 echo "  ~/Library/Fonts/"
-cp -a ~/Library/Fonts "$BACKUP_DIR/Fonts"
+cp -a "$HOME/Library/Fonts" "$BACKUP_DIR/Fonts"
 
 # Create encrypted zip
 echo ""
