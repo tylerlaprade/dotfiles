@@ -36,8 +36,7 @@ if [[ " $* " == *" --experimental "* ]] && { command -v wax &>/dev/null || comma
   source "$DOTFILES/scripts/brew-wrapper.sh"
 fi
 echo "Installing brew packages..."
-brew bundle --file="$DOTFILES/Brewfile" --no-lock
-
+brew bundle --file="$DOTFILES/Brewfile" 
 # 5. Cargo crates (cargo-only tools not in brew)
 if command -v cargo &>/dev/null; then
   echo "Installing cargo tools..."
