@@ -27,7 +27,6 @@ brew "lazygit"
 brew "postgresql@17", restart_service: :changed, link: true
 brew "procs"
 brew "pure"
-brew "pyenv"
 brew "ripgrep"
 brew "shellcheck"
 brew "shfmt"
