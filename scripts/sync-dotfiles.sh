@@ -9,8 +9,13 @@ link() {
   if [[ -L "$dst" ]]; then
     ln -snf "$src" "$dst"
   elif [[ -e "$dst" ]]; then
-    echo "⚠️  Skipped $dst (file exists, not a symlink)"
-    return
+    if [[ -n "${FORCE_LINKS:-}" ]]; then
+      rm -f "$dst"
+      ln -s "$src" "$dst"
+    else
+      echo "⚠️  Skipped $dst (file exists, not a symlink)"
+      return
+    fi
   else
     ln -s "$src" "$dst"
   fi

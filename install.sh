@@ -103,7 +103,7 @@ git -C "$DOTFILES" checkout -- .zshrc .zshenv .zprofile 2>/dev/null || true
 # Symlink dotfiles (needs uv from brew)
 # Skip macOS defaults capture on install — we want to apply, not overwrite
 echo "Syncing dotfiles..."
-SKIP_DEFAULTS_SYNC=1 "$DOTFILES/scripts/sync-dotfiles.sh"
+SKIP_DEFAULTS_SYNC=1 FORCE_LINKS=1 "$DOTFILES/scripts/sync-dotfiles.sh"
 
 rm -rf "$LOGDIR"
 
