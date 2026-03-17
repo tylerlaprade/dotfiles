@@ -65,13 +65,11 @@ done
 if [[ "$sync_ok" -eq 0 ]]; then
   echo ""
   echo "  Enable sync: Brave > Settings > Sync"
-  read -p "  Continue without fixing? [y/N] " -r
-  [[ "$REPLY" =~ ^[Yy]$ ]] || exit 1
 fi
 echo ""
 echo "  Write down your Brave sync code (Brave > Settings > Sync)."
 echo "  You'll need it after Brave is installed on the new machine."
-read -p "  Done? [y/N] " -r
+read -p "  Ready to continue? [y/N] " -r
 [[ "$REPLY" =~ ^[Yy]$ ]] || exit 1
 
 # Build backup directory
