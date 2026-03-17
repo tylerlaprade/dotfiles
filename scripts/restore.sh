@@ -45,6 +45,17 @@ fi
 echo "  ~/.zshrc.local"
 cp "$RESTORE_DIR/zshrc.local" "$HOME/.zshrc.local"
 
+echo "  ~/.config/gh/hosts.yml"
+if [[ -f "$RESTORE_DIR/gh/hosts.yml" ]]; then
+  mkdir -p "$HOME/.config/gh"
+  cp "$RESTORE_DIR/gh/hosts.yml" "$HOME/.config/gh/hosts.yml"
+fi
+
+echo "  VS Code secrets"
+if [[ -f "$RESTORE_DIR/settings.secrets.json" ]]; then
+  cp "$RESTORE_DIR/settings.secrets.json" "$(cd "$(dirname "$0")/.." && pwd)/.vscode/settings.secrets.json"
+fi
+
 echo "  Graphite user_config"
 if [[ -f "$RESTORE_DIR/graphite/user_config" ]]; then
   mkdir -p "$HOME/.config/graphite"

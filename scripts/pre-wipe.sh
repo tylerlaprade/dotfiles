@@ -97,6 +97,13 @@ cp -a "$HOME/.config/AWSVPNClient" "$BACKUP_DIR/AWSVPNClient" 2>/dev/null || ech
 echo "  ~/.zshrc.local"
 cp "$HOME/.zshrc.local" "$BACKUP_DIR/zshrc.local"
 
+echo "  ~/.config/gh/hosts.yml"
+mkdir -p "$BACKUP_DIR/gh"
+cp "$HOME/.config/gh/hosts.yml" "$BACKUP_DIR/gh/hosts.yml" 2>/dev/null || echo "    (not found, skipping)"
+
+echo "  VS Code secrets"
+cp "$DOTFILES/.vscode/settings.secrets.json" "$BACKUP_DIR/settings.secrets.json" 2>/dev/null || echo "    (not found, skipping)"
+
 echo "  ~/.config/graphite/user_config"
 mkdir -p "$BACKUP_DIR/graphite"
 cp "$HOME/.config/graphite/user_config" "$BACKUP_DIR/graphite/user_config" 2>/dev/null || echo "    (not found, skipping)"

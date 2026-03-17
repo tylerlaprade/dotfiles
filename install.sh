@@ -96,10 +96,20 @@ wait $pid_brew 2>/dev/null
 wait $pid_sourcery 2>/dev/null
 [[ -n "${pid_claude:-}" ]] && wait $pid_claude 2>/dev/null
 
-# Codex CLI (needs node from fnm/brew, must run after brew finishes)
-if ! command -v codex &>/dev/null; then
-  echo "Installing Codex CLI..."
+# Node via fnm (needed for Codex CLI)
+if command -v fnm &>/dev/null; then
   eval "$(fnm env)" 2>/dev/null
+  if ! fnm list 2>/dev/null | grep -q default; then
+    echo "Installing Node LTS..."
+    fnm install --lts
+    fnm default lts-latest
+    eval "$(fnm env)" 2>/dev/null
+  fi
+fi
+
+# Codex CLI (needs node from fnm)
+if ! command -v codex &>/dev/null && command -v npm &>/dev/null; then
+  echo "Installing Codex CLI..."
   npm i -g @openai/codex 2>/dev/null || true
 fi
 
@@ -108,12 +118,18 @@ for f in "${shell_configs[@]}"; do
   [[ -f "$f" || -L "$f" ]] && chmod u+w "$f" 2>/dev/null || true
 done
 
+# Remove files that block symlink creation (created by tools like git init)
+for f in .gitconfig .npmrc; do
+  [[ -f "$HOME/$f" && ! -L "$HOME/$f" ]] && rm "$HOME/$f"
+done
+
 # Symlink dotfiles (needs uv from brew)
 # Skip macOS defaults capture on install — we want to apply, not overwrite
 echo "Syncing dotfiles..."
 SKIP_DEFAULTS_SYNC=1 "$DOTFILES/scripts/sync-dotfiles.sh"
 
-rm -rf "$LOGDIR"
+# Keep logs around for inspection — they're in $TMPDIR and will be cleaned by the OS
+echo "  Install logs: $LOGDIR"
 
 # Restore from backup if archive exists
 BACKUP="$HOME/Desktop/machine-backup.zip"
@@ -126,6 +142,11 @@ fi
 echo ""
 echo "Applying macOS defaults..."
 "$DOTFILES/scripts/apply-macos-defaults.py"
+
+# /etc/hosts
+if ! grep -q "local.paqarina.dev" /etc/hosts 2>/dev/null; then
+  sudo sh -c 'echo "127.0.0.1       local.paqarina.dev" >> /etc/hosts'
+fi
 
 echo ""
 echo "=== Next steps ==="
