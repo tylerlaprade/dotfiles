@@ -1,0 +1,117 @@
+#!/bin/bash
+set -e
+
+BACKUP_DIR="$HOME/Desktop/machine-backup"
+ARCHIVE="$HOME/Desktop/machine-backup.zip"
+
+echo "=== Pre-Wipe Backup ==="
+
+# Check for uncommitted/unpushed work in ~/Code
+echo ""
+echo "--- Scanning ~/Code for uncommitted/unpushed work ---"
+dirty=0
+for dir in ~/Code/*/; do
+  (cd "$dir" 2>/dev/null && if git rev-parse --is-inside-work-tree &>/dev/null; then
+    st=$(git status --porcelain 2>/dev/null)
+    up=$(git log --oneline @{u}..HEAD 2>/dev/null)
+    if [[ -n "$st" || -n "$up" ]]; then
+      echo "  ⚠ $(basename "$dir")"
+      [[ -n "$st" ]] && echo "    Uncommitted: $(echo "$st" | wc -l | tr -d ' ') files"
+      [[ -n "$up" ]] && echo "    Unpushed: $(echo "$up" | wc -l | tr -d ' ') commits"
+      dirty=1
+    fi
+  fi) || true
+done
+if [[ "$dirty" -eq 1 ]]; then
+  echo ""
+  read -p "Repos above have uncommitted/unpushed work. Continue anyway? [y/N] " -r
+  [[ "$REPLY" =~ ^[Yy]$ ]] || exit 1
+else
+  echo "  All clean."
+fi
+
+# Remind about Brave Sync
+echo ""
+echo "--- Brave Sync ---"
+echo "  Have you verified Brave Sync is enabled with all categories?"
+echo "  Brave > Settings > Sync > Manage what you sync"
+read -p "  Confirmed? [y/N] " -r
+[[ "$REPLY" =~ ^[Yy]$ ]] || exit 1
+
+# Build backup directory
+rm -rf "$BACKUP_DIR"
+mkdir -p "$BACKUP_DIR"
+
+echo ""
+echo "--- Copying files ---"
+
+# Secrets
+echo "  ~/.ssh/"
+cp -a ~/.ssh "$BACKUP_DIR/ssh"
+
+echo "  ~/.gnupg/"
+cp -a ~/.gnupg "$BACKUP_DIR/gnupg"
+
+echo "  ~/.aws/"
+cp -a ~/.aws "$BACKUP_DIR/aws"
+
+echo "  ~/.zshrc.local"
+cp ~/.zshrc.local "$BACKUP_DIR/zshrc.local"
+
+echo "  ~/.config/graphite/user_config"
+mkdir -p "$BACKUP_DIR/graphite"
+cp ~/.config/graphite/user_config "$BACKUP_DIR/graphite/user_config" 2>/dev/null || echo "    (not found, skipping)"
+
+# Claude memories
+echo "  Claude memory files"
+mkdir -p "$BACKUP_DIR/claude-memories"
+for memdir in ~/.claude/projects/*/memory; do
+  [[ -d "$memdir" ]] || continue
+  project=$(basename "$(dirname "$memdir")")
+  # Only copy if there are actual files
+  if ls "$memdir"/*.md &>/dev/null; then
+    mkdir -p "$BACKUP_DIR/claude-memories/$project"
+    cp "$memdir"/*.md "$BACKUP_DIR/claude-memories/$project/"
+  fi
+done
+
+# Personal files
+echo "  ~/Documents/"
+cp -a ~/Documents "$BACKUP_DIR/Documents"
+
+echo "  ~/Desktop/ (excluding this backup)"
+mkdir -p "$BACKUP_DIR/Desktop"
+for item in ~/Desktop/*; do
+  name=$(basename "$item")
+  [[ "$name" == "machine-backup" || "$name" == "machine-backup.zip" ]] && continue
+  cp -a "$item" "$BACKUP_DIR/Desktop/$name"
+done
+
+# History files
+echo "  Shell/REPL histories"
+mkdir -p "$BACKUP_DIR/histories"
+for f in .zsh_history .psql_history .python_history .node_repl_history; do
+  [[ -f "$HOME/$f" ]] && cp "$HOME/$f" "$BACKUP_DIR/histories/$f"
+done
+
+# Fonts
+echo "  ~/Library/Fonts/"
+cp -a ~/Library/Fonts "$BACKUP_DIR/Fonts"
+
+# Create encrypted zip
+echo ""
+echo "--- Creating encrypted archive ---"
+rm -f "$ARCHIVE"
+cd "$(dirname "$BACKUP_DIR")"
+zip -r -e "$ARCHIVE" "$(basename "$BACKUP_DIR")"
+rm -rf "$BACKUP_DIR"
+
+echo ""
+echo "=== Backup complete ==="
+echo "Archive: $ARCHIVE"
+echo ""
+echo "Next steps:"
+echo "  1. AirDrop $ARCHIVE to the new machine"
+echo "  2. Push all repos with unpushed work"
+echo "  3. On the new machine, run bootstrap.sh then restore.sh"
+echo "  4. Rotate your GitHub PAT after migration"

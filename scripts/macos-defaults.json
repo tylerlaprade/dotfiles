@@ -1,0 +1,280 @@
+{
+  "com.apple.dock": {
+    "autohide": {
+      "type": "bool",
+      "value": true
+    },
+    "expose-group-apps": {
+      "type": "bool",
+      "value": true
+    },
+    "largesize": {
+      "type": "int",
+      "value": 128
+    },
+    "magnification": {
+      "type": "bool",
+      "value": false
+    },
+    "minimize-to-application": {
+      "type": "bool",
+      "value": true
+    },
+    "mru-spaces": {
+      "type": "bool",
+      "value": false
+    },
+    "orientation": {
+      "type": "string",
+      "value": "right"
+    },
+    "showAppExposeGestureEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "tilesize": {
+      "type": "int",
+      "value": 65
+    },
+    "wvous-br-corner": {
+      "type": "int",
+      "value": 1
+    },
+    "wvous-br-modifier": {
+      "type": "int",
+      "value": 1048576
+    }
+  },
+  "com.apple.finder": {
+    "FXArrangeGroupViewBy": {
+      "type": "string",
+      "value": "Name"
+    },
+    "FXPreferredViewStyle": {
+      "type": "string",
+      "value": "icnv"
+    },
+    "FXRemoveOldTrashItems": {
+      "type": "bool",
+      "value": true
+    },
+    "RecentsArrangeGroupViewBy": {
+      "type": "string",
+      "value": "Date Last Opened"
+    },
+    "ShowExternalHardDrivesOnDesktop": {
+      "type": "bool",
+      "value": true
+    },
+    "ShowHardDrivesOnDesktop": {
+      "type": "bool",
+      "value": false
+    },
+    "ShowPathbar": {
+      "type": "bool",
+      "value": false
+    },
+    "ShowRemovableMediaOnDesktop": {
+      "type": "bool",
+      "value": true
+    },
+    "ShowSidebar": {
+      "type": "bool",
+      "value": true
+    },
+    "ShowStatusBar": {
+      "type": "bool",
+      "value": false
+    },
+    "_FXSortFoldersFirst": {
+      "type": "bool",
+      "value": true
+    },
+    "_FXSortFoldersFirstOnDesktop": {
+      "type": "bool",
+      "value": true
+    }
+  },
+  "com.apple.screencapture": {
+    "captureDelay": {
+      "type": "int",
+      "value": 5
+    },
+    "captureHDR": {
+      "type": "bool",
+      "value": true
+    },
+    "location": {
+      "type": "string",
+      "value": "~/Documents/"
+    },
+    "showsClicks": {
+      "type": "bool",
+      "value": true
+    },
+    "style": {
+      "type": "string",
+      "value": "display"
+    },
+    "target": {
+      "type": "string",
+      "value": "file"
+    },
+    "video": {
+      "type": "bool",
+      "value": true
+    }
+  },
+  "com.apple.WindowManager": {
+    "AppWindowGroupingBehavior": {
+      "type": "int",
+      "value": 1
+    },
+    "AutoHide": {
+      "type": "bool",
+      "value": false
+    },
+    "EnableTiledWindowMargins": {
+      "type": "bool",
+      "value": false
+    },
+    "GloballyEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "HideDesktop": {
+      "type": "bool",
+      "value": false
+    },
+    "StageManagerHideWidgets": {
+      "type": "bool",
+      "value": false
+    },
+    "StandardHideWidgets": {
+      "type": "bool",
+      "value": false
+    }
+  },
+  "NSGlobalDomain": {
+    "AppleActionOnDoubleClick": {
+      "type": "string",
+      "value": "Minimize"
+    },
+    "AppleAntiAliasingThreshold": {
+      "type": "int",
+      "value": 4
+    },
+    "AppleInterfaceStyleSwitchesAutomatically": {
+      "type": "bool",
+      "value": true
+    },
+    "AppleKeyboardUIMode": {
+      "type": "int",
+      "value": 0
+    },
+    "AppleMenuBarFontSize": {
+      "type": "string",
+      "value": "large"
+    },
+    "AppleMiniaturizeOnDoubleClick": {
+      "type": "bool",
+      "value": false
+    },
+    "AppleReduceDesktopTinting": {
+      "type": "bool",
+      "value": false
+    },
+    "AppleScrollerPagingBehavior": {
+      "type": "bool",
+      "value": true
+    },
+    "AppleShowScrollBars": {
+      "type": "string",
+      "value": "Always"
+    },
+    "AppleSpacesSwitchOnActivate": {
+      "type": "bool",
+      "value": true
+    },
+    "AppleWindowTabbingMode": {
+      "type": "string",
+      "value": "always"
+    },
+    "InitialKeyRepeat": {
+      "type": "int",
+      "value": 15
+    },
+    "KeyRepeat": {
+      "type": "int",
+      "value": 2
+    },
+    "NSAutomaticCapitalizationEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "NSAutomaticDashSubstitutionEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "NSAutomaticPeriodSubstitutionEnabled": {
+      "type": "bool",
+      "value": false
+    },
+    "NSAutomaticQuoteSubstitutionEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "NSAutomaticSpellingCorrectionEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "NSAutomaticTextCompletionEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "NSTableViewDefaultSizeMode": {
+      "type": "int",
+      "value": 2
+    },
+    "WebAutomaticSpellingCorrectionEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "_HIHideMenuBar": {
+      "type": "bool",
+      "value": true
+    },
+    "com.apple.keyboard.fnState": {
+      "type": "bool",
+      "value": true
+    },
+    "com.apple.sound.beep.feedback": {
+      "type": "int",
+      "value": 1
+    },
+    "com.apple.sound.beep.flash": {
+      "type": "int",
+      "value": 0
+    },
+    "com.apple.sound.beep.sound": {
+      "type": "string",
+      "value": "/System/Library/Sounds/Tink.aiff"
+    },
+    "com.apple.sound.beep.volume": {
+      "type": "int",
+      "value": 1
+    },
+    "com.apple.springing.delay": {
+      "type": "float",
+      "value": 0.5
+    },
+    "com.apple.springing.enabled": {
+      "type": "bool",
+      "value": true
+    },
+    "com.apple.trackpad.forceClick": {
+      "type": "bool",
+      "value": false
+    }
+  }
+}

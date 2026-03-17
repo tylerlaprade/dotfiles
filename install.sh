@@ -39,20 +39,22 @@ fi
 # 6. Sourcery LSP (for Helix/editors)
 pip3 install --user sourcery-cli 2>/dev/null || true
 
-# 7. Symlink dotfiles
+# 7. Remove macOS bloat
+for app in GarageBand iMovie Keynote Numbers Pages; do
+  [[ -d "/Applications/$app.app" ]] && sudo rm -rf "/Applications/$app.app"
+done
+
+# 8. Symlink dotfiles
 echo "Syncing dotfiles..."
 "$DOTFILES/scripts/sync-dotfiles.sh"
 
 echo ""
-echo "=== Manual steps remaining ==="
-echo "  1. macOS defaults:  $DOTFILES/scripts/macos-defaults.sh"
-echo "  2. GPG key import:  gpg --import /path/to/key.asc"
-echo "  3. SSH key:          Copy ~/.ssh/id_ed25519{,.pub} from backup"
-echo "  4. Graphite auth:    gt auth"
-echo "  5. GitHub CLI auth:  gh auth login"
-echo "  6. Sourcery auth:    sourcery login"
-echo "  7. VS Code Sourcery: Run 'Sourcery: Login' from command palette"
-echo "  8. Kanata:           Grant accessibility permissions in System Preferences"
-echo "  9. Karabiner:        Grant input monitoring permissions in System Preferences"
+echo "=== Next steps ==="
+echo "  1. Restore backup:   $DOTFILES/scripts/restore.sh ~/Desktop/machine-backup.zip"
+echo "  2. macOS defaults:   $DOTFILES/scripts/apply-macos-defaults.py"
+echo "  3. GitHub CLI auth:  gh auth login"
+echo "  4. Sourcery auth:    sourcery login"
+echo "  5. Kanata:           Grant accessibility permissions in System Preferences"
+echo "  6. Karabiner:        Grant input monitoring permissions in System Preferences"
 echo ""
 echo "Done! Restart your shell."

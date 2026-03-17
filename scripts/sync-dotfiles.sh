@@ -57,59 +57,16 @@ for item in "$DOTFILES"/.claude/*; do
       rm "$local_mkts"
     fi
     manifest="$HOME/.claude/plugins/.synced-marketplaces"
-    if [[ -f "$local_mkts" ]]; then
-      # Sync marketplaces bidirectionally using manifest to detect deletions
-      # Output format: "install <repo>" for new, "remove <name>" for deleted
-      actions=$(python3 -c "
-import json, sys, os
-repo_path, local_path, manifest_path = sys.argv[1], sys.argv[2], sys.argv[3]
-with open(repo_path) as f: repo = json.load(f)
-with open(local_path) as f: local = json.load(f)
-synced = set()
-if os.path.exists(manifest_path):
-    synced = set(open(manifest_path).read().split())
-for k, v in list(repo.items()):
-    if k not in local:
-        if k in synced:
-            del repo[k]  # was synced before, now deleted locally — remove from repo
-            print(f'remove {k}')
-        else:
-            print(f'install {v[\"source\"][\"repo\"]}')  # new from another machine
-for k, v in local.items():
-    if k not in repo:
-        repo[k] = {'source': v['source']}
-with open(repo_path, 'w') as f:
-    json.dump(repo, f, indent=2)
-    f.write('\n')
-" "$repo_mkts" "$local_mkts" "$manifest")
-      if [[ -n "$actions" ]]; then
-        while IFS= read -r action; do
-          case "$action" in
-            install\ *)
-              claude plugin marketplace add "${action#install }" 2>/dev/null || true ;;
-            remove\ *)
-              claude plugin marketplace remove "${action#remove }" 2>/dev/null || true ;;
-          esac
-        done <<< "$actions"
-      fi
-    else
-      # No local file yet — install all repo marketplaces from scratch
-      python3 -c "
-import json, sys
-with open(sys.argv[1]) as f: data = json.load(f)
-for v in data.values():
-    print(v['source']['repo'])
-" "$repo_mkts" | while IFS= read -r repo_url; do
-        claude plugin marketplace add "$repo_url" 2>/dev/null || true
-      done
-    fi
-    # Update manifest with current local state
-    if [[ -f "$local_mkts" ]]; then
-      python3 -c "
-import json, sys
-with open(sys.argv[1]) as f: data = json.load(f)
-print('\n'.join(data.keys()))
-" "$local_mkts" > "$manifest"
+    actions=$("$DOTFILES/scripts/sync-claude-plugins.py" "$repo_mkts" "$local_mkts" "$manifest")
+    if [[ -n "$actions" ]]; then
+      while IFS= read -r action; do
+        case "$action" in
+          install\ *)
+            claude plugin marketplace add "${action#install }" 2>/dev/null || true ;;
+          remove\ *)
+            claude plugin marketplace remove "${action#remove }" 2>/dev/null || true ;;
+        esac
+      done <<< "$actions"
     fi
   elif [[ -d "$item" && ! -L "$item" ]]; then
     link_tree "$item" "$HOME/.claude/$local_name"
@@ -189,36 +146,13 @@ gt_prefs="$DOTFILES/.config/graphite/preferences.json"
 gt_config="$HOME/.config/graphite/user_config"
 
 if [[ -f "$gt_prefs" && -f "$gt_config" ]]; then
-  python3 -c "
-import json, sys
-
-prefs_path, config_path = sys.argv[1], sys.argv[2]
-with open(prefs_path) as f: prefs = json.load(f)
-with open(config_path) as f: config = json.load(f)
-
-# Sync FROM local: extract non-secret preferences from config back to repo
-local_prefs = {k: v for k, v in config.items()
-               if k not in ('authToken', 'alternativeProfiles')}
-
-# Sync TO local: merge repo preferences into config, preserving auth
-for k, v in prefs.items():
-    if k not in config:
-        config[k] = v
-
-# If local has changed preferences, update repo
-if local_prefs != prefs:
-    with open(prefs_path, 'w') as f:
-        json.dump(local_prefs, f, indent=2)
-        f.write('\n')
-
-# Write merged config back
-with open(config_path, 'w') as f:
-    json.dump(config, f, indent=2)
-    f.write('\n')
-" "$gt_prefs" "$gt_config"
+  "$DOTFILES/scripts/sync-graphite.py" "$gt_prefs" "$gt_config"
 elif [[ -f "$gt_prefs" && ! -f "$gt_config" ]]; then
   # Fresh machine, no config yet — just copy preferences (user needs to run gt auth first)
   mkdir -p "$(dirname "$gt_config")"
   cp "$gt_prefs" "$gt_config"
   echo "ℹ️  Copied Graphite preferences. Run 'gt auth' to add your auth token."
 fi
+
+# macOS defaults — read current values and regenerate the apply script
+"$DOTFILES/scripts/sync-macos-defaults.py"
