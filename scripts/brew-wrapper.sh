@@ -10,6 +10,9 @@
 # Temp dir for collecting results (unique per shell process)
 _BREW_EXP_DIR="${TMPDIR:-/tmp}/brew-experiment-$$"
 
+# Sanitize package name for use as filename (slashes in tap formulas)
+_brew_exp_safename() { echo "${1//\//__}"; }
+
 brew() {
   case "$1" in
     install)
@@ -51,14 +54,16 @@ _brew_exp_install() {
   rm -rf "$_BREW_EXP_DIR"
   mkdir -p "$_BREW_EXP_DIR/wax" "$_BREW_EXP_DIR/zb"
 
+  # Run experimental tools in parallel
   local pids=()
   for pkg in "${pkgs[@]}"; do
+    local safe=$(_brew_exp_safename "$pkg")
     if $has_wax; then
-      ( wax install "$pkg" >"$_BREW_EXP_DIR/wax/$pkg.out" 2>&1; echo $? >"$_BREW_EXP_DIR/wax/$pkg.rc" ) &
+      ( wax install "$pkg" >"$_BREW_EXP_DIR/wax/$safe.out" 2>&1; echo $? >"$_BREW_EXP_DIR/wax/$safe.rc" ) &
       pids+=($!)
     fi
     if $has_zb; then
-      ( zb install "$pkg" >"$_BREW_EXP_DIR/zb/$pkg.out" 2>&1; echo $? >"$_BREW_EXP_DIR/zb/$pkg.rc" ) &
+      ( zb install "$pkg" >"$_BREW_EXP_DIR/zb/$safe.out" 2>&1; echo $? >"$_BREW_EXP_DIR/zb/$safe.rc" ) &
       pids+=($!)
     fi
   done
@@ -68,6 +73,23 @@ _brew_exp_install() {
   done
 
   _brew_exp_report "${pkgs[@]}"
+
+  # Fall back to real brew for anything that failed in both tools
+  local brew_fallback=()
+  for pkg in "${pkgs[@]}"; do
+    local safe=$(_brew_exp_safename "$pkg")
+    local wax_ok=false zb_ok=false
+    $has_wax && [[ -f "$_BREW_EXP_DIR/wax/$safe.rc" ]] && [[ "$(cat "$_BREW_EXP_DIR/wax/$safe.rc")" == "0" ]] && wax_ok=true
+    $has_zb && [[ -f "$_BREW_EXP_DIR/zb/$safe.rc" ]] && [[ "$(cat "$_BREW_EXP_DIR/zb/$safe.rc")" == "0" ]] && zb_ok=true
+    if ! $wax_ok && ! $zb_ok; then
+      brew_fallback+=("$pkg")
+    fi
+  done
+  if [[ ${#brew_fallback[@]} -gt 0 ]]; then
+    echo ""
+    echo "brew-wrapper: falling back to brew for ${#brew_fallback[@]} failed package(s)"
+    command brew install "${flags[@]}" "${brew_fallback[@]}"
+  fi
 }
 
 _brew_exp_bundle() {
@@ -153,12 +175,13 @@ _brew_exp_bundle() {
       echo $? >"$_BREW_EXP_DIR/zb/_bundle.rc"
       # Parse output to determine per-package results
       for p in "${all_pkgs[@]}"; do
+        local safe=$(_brew_exp_safename "$p")
         if grep -qi "error.*${p}\|${p}.*fail\|${p}.*not found" "$_BREW_EXP_DIR/zb/_bundle.out" 2>/dev/null; then
-          grep -i "$p" "$_BREW_EXP_DIR/zb/_bundle.out" >"$_BREW_EXP_DIR/zb/$p.out" 2>/dev/null
-          echo 1 >"$_BREW_EXP_DIR/zb/$p.rc"
+          grep -i "$p" "$_BREW_EXP_DIR/zb/_bundle.out" >"$_BREW_EXP_DIR/zb/$safe.out" 2>/dev/null
+          echo 1 >"$_BREW_EXP_DIR/zb/$safe.rc"
         else
-          echo 0 >"$_BREW_EXP_DIR/zb/$p.rc"
-          : >"$_BREW_EXP_DIR/zb/$p.out"
+          echo 0 >"$_BREW_EXP_DIR/zb/$safe.rc"
+          : >"$_BREW_EXP_DIR/zb/$safe.out"
         fi
       done
     ) &
@@ -174,9 +197,10 @@ _brew_exp_bundle() {
 
       local install_pids=()
       for p in "${all_pkgs[@]}"; do
+        local safe=$(_brew_exp_safename "$p")
         (
-          wax install "$p" >"$_BREW_EXP_DIR/wax/$p.out" 2>&1
-          echo $? >"$_BREW_EXP_DIR/wax/$p.rc"
+          wax install "$p" >"$_BREW_EXP_DIR/wax/$safe.out" 2>&1
+          echo $? >"$_BREW_EXP_DIR/wax/$safe.rc"
         ) &
         install_pids+=($!)
       done
@@ -192,6 +216,29 @@ _brew_exp_bundle() {
   done
 
   _brew_exp_report "${all_pkgs[@]}"
+
+  # Fall back to real brew bundle for anything that failed in both tools
+  local brew_fallback=()
+  for pkg in "${all_pkgs[@]}"; do
+    local safe=$(_brew_exp_safename "$pkg")
+    local wax_ok=false zb_ok=false
+    $has_wax && [[ -f "$_BREW_EXP_DIR/wax/$safe.rc" ]] && [[ "$(cat "$_BREW_EXP_DIR/wax/$safe.rc")" == "0" ]] && wax_ok=true
+    $has_zb && [[ -f "$_BREW_EXP_DIR/zb/$safe.rc" ]] && [[ "$(cat "$_BREW_EXP_DIR/zb/$safe.rc")" == "0" ]] && zb_ok=true
+    if ! $wax_ok && ! $zb_ok; then
+      brew_fallback+=("$pkg")
+    fi
+  done
+  if [[ ${#brew_fallback[@]} -gt 0 ]]; then
+    echo ""
+    echo "brew-wrapper: falling back to brew for ${#brew_fallback[@]} failed package(s)"
+    for pkg in "${brew_fallback[@]}"; do
+      command brew install "$pkg" || true
+    done
+    # Also handle taps that wax may have missed
+    for tap in "${taps[@]}"; do
+      command brew tap "$tap" 2>/dev/null || true
+    done
+  fi
 }
 
 _brew_exp_report() {
@@ -204,26 +251,27 @@ _brew_exp_report() {
   local wax_fail_details="" zb_fail_details=""
 
   for pkg in "${pkgs[@]}"; do
+    local safe=$(_brew_exp_safename "$pkg")
     if $has_wax; then
-      local rc_file="$_BREW_EXP_DIR/wax/$pkg.rc"
+      local rc_file="$_BREW_EXP_DIR/wax/$safe.rc"
       if [[ -f "$rc_file" ]] && [[ "$(cat "$rc_file")" == "0" ]]; then
         wax_ok=$((wax_ok + 1))
       else
         wax_fail=$((wax_fail + 1))
         local err=""
-        [[ -f "$_BREW_EXP_DIR/wax/$pkg.out" ]] && err="$(tail -3 "$_BREW_EXP_DIR/wax/$pkg.out")"
+        [[ -f "$_BREW_EXP_DIR/wax/$safe.out" ]] && err="$(tail -3 "$_BREW_EXP_DIR/wax/$safe.out")"
         wax_fail_details="${wax_fail_details}${pkg}|${err}
 "
       fi
     fi
     if $has_zb; then
-      local rc_file="$_BREW_EXP_DIR/zb/$pkg.rc"
+      local rc_file="$_BREW_EXP_DIR/zb/$safe.rc"
       if [[ -f "$rc_file" ]] && [[ "$(cat "$rc_file")" == "0" ]]; then
         zb_ok=$((zb_ok + 1))
       else
         zb_fail=$((zb_fail + 1))
         local err=""
-        [[ -f "$_BREW_EXP_DIR/zb/$pkg.out" ]] && err="$(tail -3 "$_BREW_EXP_DIR/zb/$pkg.out")"
+        [[ -f "$_BREW_EXP_DIR/zb/$safe.out" ]] && err="$(tail -3 "$_BREW_EXP_DIR/zb/$safe.out")"
         zb_fail_details="${zb_fail_details}${pkg}|${err}
 "
       fi
@@ -279,7 +327,7 @@ _brew_exp_prompt_issue() {
 
   echo ""
   printf "File a %s issue with %d failure(s)? [y/N] " "$tool_name" "$fail_count"
-  read -r reply
+  read -r reply || reply=""
   if [[ "$reply" =~ ^[Yy]$ ]]; then
     local title="Package install failures ($(date +%Y-%m-%d))"
     local body="The following packages failed to install via \`$tool_name\`:"

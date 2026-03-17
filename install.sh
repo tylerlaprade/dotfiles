@@ -30,8 +30,11 @@ if ! command -v zb &>/dev/null; then
   [[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
 fi
 
-# 4. Brew packages (intercepted by wrapper → runs wax + zb in parallel)
-source "$DOTFILES/scripts/brew-wrapper.sh"
+# 4. Brew packages
+# Use experimental wrapper only if --experimental flag is passed
+if [[ " $* " == *" --experimental "* ]] && { command -v wax &>/dev/null || command -v zb &>/dev/null; }; then
+  source "$DOTFILES/scripts/brew-wrapper.sh"
+fi
 echo "Installing brew packages..."
 brew bundle --file="$DOTFILES/Brewfile" --no-lock
 
