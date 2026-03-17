@@ -1,5 +1,4 @@
 tap "atlassian/acli"
-tap "homebrew/services"
 tap "sst/tap"
 tap "withgraphite/tap"
 brew "atlassian/acli/acli"
