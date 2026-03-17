@@ -28,11 +28,11 @@ if command -v cargo &>/dev/null && ! command -v wax &>/dev/null; then
   echo "Installing wax..."
   cargo install waxpkg 2>/dev/null || true
 fi
-[[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
+export PATH="$HOME/.local/bin:$PATH"
 if ! command -v zb &>/dev/null; then
   echo "Installing zerobrew..."
   curl -fsSL https://zerobrew.rs/install | bash -s -- --no-modify-path 2>/dev/null || true
-  [[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
+  export PATH="$HOME/.local/bin:$PATH"
 fi
 
 # 4. Everything else in parallel
@@ -91,13 +91,23 @@ SKIP_DEFAULTS_SYNC=1 "$DOTFILES/scripts/sync-dotfiles.sh"
 
 rm -rf "$LOGDIR"
 
+# Restore from backup if archive exists
+BACKUP="$HOME/Desktop/machine-backup.zip"
+if [[ -f "$BACKUP" ]]; then
+  echo ""
+  "$DOTFILES/scripts/restore.sh" "$BACKUP"
+fi
+
+# Apply macOS defaults
+echo ""
+echo "Applying macOS defaults..."
+"$DOTFILES/scripts/apply-macos-defaults.py"
+
 echo ""
 echo "=== Next steps ==="
-echo "  1. Restore backup:   $DOTFILES/scripts/restore.sh ~/Desktop/machine-backup.zip"
-echo "  2. macOS defaults:   $DOTFILES/scripts/apply-macos-defaults.py"
-echo "  3. GitHub CLI auth:  gh auth login"
-echo "  4. Sourcery auth:    sourcery login"
-echo "  5. Kanata:           Grant accessibility permissions in System Preferences"
-echo "  6. Karabiner:        Grant input monitoring permissions in System Preferences"
+echo "  1. GitHub CLI auth:  gh auth login"
+echo "  2. Sourcery auth:    sourcery login"
+echo "  3. Kanata:           Grant accessibility permissions in System Preferences"
+echo "  4. Karabiner:        Grant input monitoring permissions in System Preferences"
 echo ""
 echo "Done! Restart your shell."

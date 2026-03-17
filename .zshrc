@@ -1,5 +1,6 @@
 # Prompt (Pure)
 fpath+=("/opt/homebrew/share/zsh/site-functions")
+autoload -Uz compinit && compinit
 autoload -U promptinit; promptinit
 export VIRTUAL_ENV_DISABLE_PROMPT=1
 if [[ -n "$HIDE_GIT_PROMPT" ]]; then
@@ -8,7 +9,6 @@ else
     prompt pure
 fi
 
-[[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
 export EDITOR="hx"
 
 # Experimental: intercept brew commands → run wax + zerobrew in parallel

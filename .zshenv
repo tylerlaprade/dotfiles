@@ -1,2 +1,2 @@
 . "$HOME/.cargo/env"
-[[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
+[[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
