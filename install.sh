@@ -44,6 +44,12 @@ if [[ " $* " == *" --experimental "* ]] && { command -v wax &>/dev/null || comma
   source "$DOTFILES/scripts/brew-wrapper.sh"
 fi
 
+# Protect tracked shell configs from installers that append to them
+shell_configs=("$HOME/.zshrc" "$HOME/.zshenv" "$HOME/.zprofile")
+for f in "${shell_configs[@]}"; do
+  [[ -f "$f" || -L "$f" ]] && chmod a-w "$f" 2>/dev/null || true
+done
+
 echo "Installing in parallel..."
 
 # Brew packages (slowest — runs in background)
@@ -97,13 +103,15 @@ if ! command -v codex &>/dev/null; then
   npm i -g @openai/codex 2>/dev/null || true
 fi
 
-# Undo shell config modifications from installers (bun has no --no-modify-path)
-git -C "$DOTFILES" checkout -- .zshrc .zshenv .zprofile 2>/dev/null || true
+# Restore write permissions on shell configs
+for f in "${shell_configs[@]}"; do
+  [[ -f "$f" || -L "$f" ]] && chmod u+w "$f" 2>/dev/null || true
+done
 
 # Symlink dotfiles (needs uv from brew)
 # Skip macOS defaults capture on install — we want to apply, not overwrite
 echo "Syncing dotfiles..."
-SKIP_DEFAULTS_SYNC=1 FORCE_LINKS=1 "$DOTFILES/scripts/sync-dotfiles.sh"
+SKIP_DEFAULTS_SYNC=1 "$DOTFILES/scripts/sync-dotfiles.sh"
 
 rm -rf "$LOGDIR"
 
