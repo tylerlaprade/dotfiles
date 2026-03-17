@@ -78,8 +78,9 @@ wait $pid_brew 2>/dev/null
 wait $pid_sourcery 2>/dev/null
 
 # Symlink dotfiles (needs uv from brew)
+# Skip macOS defaults capture on install — we want to apply, not overwrite
 echo "Syncing dotfiles..."
-"$DOTFILES/scripts/sync-dotfiles.sh"
+SKIP_DEFAULTS_SYNC=1 "$DOTFILES/scripts/sync-dotfiles.sh"
 
 rm -rf "$LOGDIR"
 

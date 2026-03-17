@@ -157,5 +157,7 @@ elif [[ -f "$gt_prefs" && ! -f "$gt_config" ]]; then
   echo "ℹ️  Copied Graphite preferences. Run 'gt auth' to add your auth token."
 fi
 
-# macOS defaults — read current values and regenerate the apply script
-"$DOTFILES/scripts/sync-macos-defaults.py"
+# macOS defaults — read current values and update snapshot
+if [[ -z "${SKIP_DEFAULTS_SYNC:-}" ]]; then
+  "$DOTFILES/scripts/sync-macos-defaults.py"
+fi
