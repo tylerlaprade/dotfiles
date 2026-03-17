@@ -10,6 +10,9 @@ fi
 
 [[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
 export EDITOR="hx"
+
+# Experimental: intercept brew commands → run wax + zerobrew in parallel
+[[ -f "$HOME/.local/bin/brew-wrapper" ]] && source "$HOME/.local/bin/brew-wrapper"
 [[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
 
 # Mac sends Ctrl+U when Cmd+Backspace is pressed
