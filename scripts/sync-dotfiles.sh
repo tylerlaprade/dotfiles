@@ -86,6 +86,9 @@ for item in "$DOTFILES"/.[!.]*; do
   fi
 done
 
+# ~/Library/KeyBindings
+link_tree "$DOTFILES/.config/KeyBindings" "$HOME/Library/KeyBindings"
+
 # scripts -> ~/.local/bin
 mkdir -p ~/.local/bin
 for script in "$DOTFILES"/scripts/*.sh; do
