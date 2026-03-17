@@ -36,7 +36,8 @@ if os.path.exists(local_path):
                 del repo[k]  # was synced before, now deleted locally
                 print(f"remove {k}")
             else:
-                print(f'install {v["source"]["repo"]}')  # new from another machine
+                if "repo" in v["source"]:
+                    print(f'install {v["source"]["repo"]}')  # new from another machine
 
     for k, v in local.items():
         if k not in repo:
@@ -49,7 +50,9 @@ else:
     # No local file — install all repo marketplaces from scratch
     local = {}
     for v in repo.values():
-        print(f'install {v["source"]["repo"]}')
+        src = v["source"]
+        if "repo" in src:
+            print(f'install {src["repo"]}')
 
 # Update manifest with current local state
 if os.path.exists(local_path):
