@@ -65,6 +65,22 @@ for source, settings in pmset_settings.items():
     for key, val in settings.items():
         subprocess.run(["sudo", "pmset", flag, key, str(val)], capture_output=True)
 
+# Restore login items
+login_items_file = os.path.join(SCRIPT_DIR, "login-items.json")
+if os.path.exists(login_items_file):
+    with open(login_items_file) as f:
+        login_items = json.load(f)
+    for item in login_items:
+        path = item["path"]
+        # Skip items whose apps aren't installed
+        if not os.path.exists(path):
+            failed.append((["login-item", item["name"]], f"App not found at {path}"))
+            continue
+        subprocess.run([
+            "osascript", "-e",
+            f'tell application "System Events" to make login item at end with properties {{path:"{path}", hidden:false}}'
+        ], capture_output=True)
+
 # Restart affected services
 for proc in ["Dock", "Finder", "SystemUIServer"]:
     subprocess.run(["killall", proc], stderr=subprocess.DEVNULL)

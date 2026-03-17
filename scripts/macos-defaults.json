@@ -889,10 +889,6 @@
           "InputSourceKind": "Keyboard Layout",
           "KeyboardLayout ID": 0,
           "KeyboardLayout Name": "U.S."
-        },
-        {
-          "Bundle ID": "com.apple.inputmethod.ironwood",
-          "InputSourceKind": "Non Keyboard Input Method"
         }
       ]
     }

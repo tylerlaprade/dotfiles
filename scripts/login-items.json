@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Hyperkey",
+    "path": "/Applications/Hyperkey.app"
+  },
+  {
+    "name": "Discord",
+    "path": "/Applications/Discord.app"
+  },
+  {
+    "name": "Granola",
+    "path": "/Applications/Granola.app"
+  },
+  {
+    "name": "Graphite",
+    "path": "/Applications/Graphite.app"
+  },
+  {
+    "name": "Google Calendar",
+    "path": "/Users/tyler/Applications/Chrome Apps.localized/Google Calendar.app"
+  },
+  {
+    "name": "Slack",
+    "path": "/Applications/Slack.app"
+  }
+]

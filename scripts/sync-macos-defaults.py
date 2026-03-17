@@ -180,3 +180,20 @@ for source, flag in [("battery", "-b"), ("ac", "-c")]:
 with open(PMSET_PATH, "w") as f:
     json.dump(pmset_snapshot, f, indent=2)
     f.write("\n")
+
+# Capture login items
+LOGIN_ITEMS_PATH = os.path.join(SCRIPT_DIR, "login-items.json")
+raw = subprocess.run(
+    ["osascript", "-e", 'tell application "System Events" to get the {name, path} of every login item'],
+    capture_output=True, text=True
+)
+if raw.returncode == 0 and raw.stdout.strip():
+    # Output is "name1, name2, path1, path2" — split in half
+    parts = [p.strip() for p in raw.stdout.strip().split(", ")]
+    half = len(parts) // 2
+    names = parts[:half]
+    paths = parts[half:]
+    items = [{"name": n, "path": p} for n, p in zip(names, paths)]
+    with open(LOGIN_ITEMS_PATH, "w") as f:
+        json.dump(items, f, indent=2)
+        f.write("\n")
