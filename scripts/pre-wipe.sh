@@ -30,12 +30,33 @@ else
   echo "  All clean."
 fi
 
-# Remind about Brave Sync
+# Check Brave Sync
 echo ""
 echo "--- Brave Sync ---"
-echo "  Have you verified Brave Sync is enabled with all categories?"
-echo "  Brave > Settings > Sync > Manage what you sync"
-read -p "  Confirmed? [y/N] " -r
+brave_prefs_dir="$HOME/Library/Application Support/BraveSoftware/Brave-Browser"
+sync_ok=1
+for profile_dir in "$brave_prefs_dir"/*/; do
+  prefs="$profile_dir/Preferences"
+  [[ -f "$prefs" ]] || continue
+  name=$(python3 -c "import json; print(json.load(open('$prefs')).get('profile',{}).get('name','?'))" 2>/dev/null)
+  requested=$(python3 -c "import json; print(json.load(open('$prefs')).get('sync',{}).get('requested', False))" 2>/dev/null)
+  if [[ "$requested" != "True" ]]; then
+    echo "  ⚠ Profile '$name': sync is OFF"
+    sync_ok=0
+  else
+    echo "  ✓ Profile '$name': sync is on"
+  fi
+done
+if [[ "$sync_ok" -eq 0 ]]; then
+  echo ""
+  echo "  Enable sync: Brave > Settings > Sync"
+  read -p "  Continue without fixing? [y/N] " -r
+  [[ "$REPLY" =~ ^[Yy]$ ]] || exit 1
+fi
+echo ""
+echo "  Write down your Brave sync code (Brave > Settings > Sync)."
+echo "  You'll need it on the new machine before unpacking the backup."
+read -p "  Done? [y/N] " -r
 [[ "$REPLY" =~ ^[Yy]$ ]] || exit 1
 
 # Build backup directory
@@ -76,8 +97,14 @@ for memdir in ~/.claude/projects/*/memory; do
 done
 
 # Personal files
-echo "  ~/Documents/"
-cp -a ~/Documents "$BACKUP_DIR/Documents"
+echo "  ~/Documents/ (excluding Zoom, screen recordings)"
+mkdir -p "$BACKUP_DIR/Documents"
+for item in ~/Documents/*; do
+  name=$(basename "$item")
+  [[ "$name" == "Zoom" ]] && continue
+  [[ "$name" == Screen\ Recording* ]] && continue
+  cp -a "$item" "$BACKUP_DIR/Documents/$name"
+done
 
 echo "  ~/Desktop/ (excluding this backup)"
 mkdir -p "$BACKUP_DIR/Desktop"
@@ -104,7 +131,7 @@ echo "--- Creating encrypted archive ---"
 rm -f "$ARCHIVE"
 cd "$(dirname "$BACKUP_DIR")"
 zip -r -e "$ARCHIVE" "$(basename "$BACKUP_DIR")"
-rm -rf "$BACKUP_DIR"
+rm -rf "$BACKUP_DIR" 2>/dev/null || sudo rm -rf "$BACKUP_DIR"
 
 echo ""
 echo "=== Backup complete ==="

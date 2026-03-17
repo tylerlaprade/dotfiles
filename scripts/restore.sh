@@ -89,7 +89,7 @@ echo "  $(ls "$RESTORE_DIR/Fonts/" | wc -l | tr -d ' ') fonts restored"
 # Cleanup
 echo ""
 read -p "Remove backup directory? (archive kept) [y/N] " -r
-[[ "$REPLY" =~ ^[Yy]$ ]] && rm -rf "$RESTORE_DIR"
+[[ "$REPLY" =~ ^[Yy]$ ]] && { rm -rf "$RESTORE_DIR" 2>/dev/null || sudo rm -rf "$RESTORE_DIR"; }
 
 echo ""
 echo "=== Restore complete ==="
