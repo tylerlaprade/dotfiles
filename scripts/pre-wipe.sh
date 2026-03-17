@@ -75,7 +75,9 @@ read -p "  Done? [y/N] " -r
 [[ "$REPLY" =~ ^[Yy]$ ]] || exit 1
 
 # Build backup directory
-rm -rf "$BACKUP_DIR"
+if [[ -d "$BACKUP_DIR" ]]; then
+  xattr -rc "$BACKUP_DIR" 2>/dev/null; chmod -R u+rwx "$BACKUP_DIR" 2>/dev/null; rm -rf "$BACKUP_DIR"
+fi
 mkdir -p "$BACKUP_DIR"
 
 echo ""
