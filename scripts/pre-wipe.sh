@@ -74,7 +74,7 @@ read -p "  Ready to continue? [y/N] " -r
 
 # Build backup directory
 if [[ -d "$BACKUP_DIR" ]]; then
-  xattr -rc "$BACKUP_DIR" 2>/dev/null; chmod -R u+rwx "$BACKUP_DIR" 2>/dev/null; rm -rf "$BACKUP_DIR"
+  chmod -RN "$BACKUP_DIR" 2>/dev/null; rm -rf "$BACKUP_DIR"
 fi
 mkdir -p "$BACKUP_DIR"
 
@@ -156,7 +156,7 @@ echo "--- Creating encrypted archive ---"
 rm -f "$ARCHIVE"
 cd "$(dirname "$BACKUP_DIR")"
 zip -r -e "$ARCHIVE" "$(basename "$BACKUP_DIR")"
-xattr -rc "$BACKUP_DIR" 2>/dev/null; chmod -R u+rwx "$BACKUP_DIR" 2>/dev/null; rm -rf "$BACKUP_DIR"
+chmod -RN "$BACKUP_DIR" 2>/dev/null; rm -rf "$BACKUP_DIR"
 
 echo ""
 echo "=== Backup complete ==="
