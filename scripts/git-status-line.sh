@@ -73,16 +73,24 @@ fi
 if [[ -n "$pr_num" ]]; then
   display_title="$pr_title"
   [[ ${#display_title} -gt 80 ]] && display_title="${display_title:0:77}..."
-  ref="\e[${pr_color}m#${pr_num}\e[0m"
-  [[ -n "$display_title" ]] && ref+=" \e[37m${display_title}\e[0m"
+  display_title="$pr_title"
+  [[ ${#display_title} -gt 80 ]] && display_title="${display_title:0:77}..."
+  gt_url="https://app.graphite.dev/github/pr/${repo_full}/${pr_num}"
 else
   branch="$full_branch"
   [[ ${#branch} -gt 120 ]] && branch="${branch:0:60}...${branch: -57}"
   color=$([[ -n "$dirty" ]] && echo 93 || echo 92)
-  ref="\e[${color}m${branch}${dirty}\e[0m"
 fi
 
 # Output with ANSI colors
-printf "\e[37m%s\e[0m %b" "$repo_name" "$ref"
+printf "\e[37m%s\e[0m " "$repo_name"
+if [[ -n "$pr_num" ]]; then
+  printf '\e]8;;%s\e\\' "$gt_url"
+  printf "\e[${pr_color}m#%s\e[0m" "$pr_num"
+  printf '\e]8;;\e\\'
+  [[ -n "$display_title" ]] && printf " \e[37m%s\e[0m" "$display_title"
+else
+  printf "\e[${color}m%s\e[0m" "${branch}${dirty}"
+fi
 printf "\e[96m %s%s\e[0m%s" "$arrows" "$stash" "$indicators"
 [[ -n "$gt_display" ]] && printf " \e[90m%s\e[0m" "$gt_display"
