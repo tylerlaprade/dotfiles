@@ -30,37 +30,58 @@ if ! command -v zb &>/dev/null; then
   [[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
 fi
 
-# 4. Brew packages
+# 4. Everything else in parallel
+LOGDIR="${TMPDIR:-/tmp}/dotfiles-install-$$"
+mkdir -p "$LOGDIR"
+
 # Use experimental wrapper only if --experimental flag is passed
 if [[ " $* " == *" --experimental "* ]] && { command -v wax &>/dev/null || command -v zb &>/dev/null; }; then
   source "$DOTFILES/scripts/brew-wrapper.sh"
 fi
-echo "Installing brew packages..."
-brew bundle --file="$DOTFILES/Brewfile" 
-# 5. Cargo crates (cargo-only tools not in brew)
+
+echo "Installing in parallel..."
+
+# Brew packages (slowest — runs in background)
+echo "  [brew] starting..."
+(brew bundle --file="$DOTFILES/Brewfile" >"$LOGDIR/brew.log" 2>&1 && echo "  [brew] done" || echo "  [brew] FAILED — see $LOGDIR/brew.log") &
+pid_brew=$!
+
+# Cargo crates
 if command -v cargo &>/dev/null; then
-  echo "Installing cargo tools..."
-  cargo install cargo-binstall 2>/dev/null || true
-  cargo binstall -y cargo-insta cargo-workspaces 2>/dev/null || true
+  echo "  [cargo] starting..."
+  (cargo install cargo-binstall 2>/dev/null; cargo binstall -y cargo-insta cargo-workspaces 2>/dev/null; echo "  [cargo] done") &
+  pid_cargo=$!
 fi
 
-# 6. Bun (no brew formula available)
+# Bun
 if ! command -v bun &>/dev/null; then
-  echo "Installing bun..."
-  curl -fsSL https://bun.sh/install | bash
+  echo "  [bun] starting..."
+  (curl -fsSL https://bun.sh/install | bash >"$LOGDIR/bun.log" 2>&1 && echo "  [bun] done" || echo "  [bun] FAILED") &
+  pid_bun=$!
 fi
 
-# 7. Sourcery LSP (for Helix/editors)
-pip3 install --user sourcery-cli 2>/dev/null || true
+# Sourcery
+echo "  [sourcery] starting..."
+(pip3 install --user sourcery-cli >"$LOGDIR/sourcery.log" 2>&1 && echo "  [sourcery] done" || echo "  [sourcery] FAILED") &
+pid_sourcery=$!
 
-# 8. Remove macOS bloat
+# Symlink dotfiles (fast, no network)
+echo "  [dotfiles] syncing..."
+"$DOTFILES/scripts/sync-dotfiles.sh"
+echo "  [dotfiles] done"
+
+# Remove macOS bloat (fast, no network)
 for app in GarageBand iMovie Keynote Numbers Pages; do
   [[ -d "/Applications/$app.app" ]] && sudo rm -rf "/Applications/$app.app"
 done
 
-# 9. Symlink dotfiles
-echo "Syncing dotfiles..."
-"$DOTFILES/scripts/sync-dotfiles.sh"
+# Wait for background jobs
+wait $pid_brew 2>/dev/null
+[[ -n "${pid_cargo:-}" ]] && wait $pid_cargo 2>/dev/null
+[[ -n "${pid_bun:-}" ]] && wait $pid_bun 2>/dev/null
+wait $pid_sourcery 2>/dev/null
+
+rm -rf "$LOGDIR"
 
 echo ""
 echo "=== Next steps ==="
