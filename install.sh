@@ -24,6 +24,7 @@ if command -v cargo &>/dev/null && ! command -v wax &>/dev/null; then
   echo "Installing wax..."
   cargo install waxpkg 2>/dev/null || true
 fi
+[[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
 if ! command -v zb &>/dev/null; then
   echo "Installing zerobrew..."
   curl -fsSL https://zerobrew.rs/install | bash 2>/dev/null || true
