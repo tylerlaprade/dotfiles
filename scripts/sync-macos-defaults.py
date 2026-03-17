@@ -168,7 +168,9 @@ for source, flag in [("battery", "-b"), ("ac", "-c")]:
         elif current_source and line.strip():
             parts = line.strip().split()
             if len(parts) >= 2:
-                key, val = parts[0], parts[1]
+                # Value is always last token, key is everything before it
+                val = parts[-1]
+                key = " ".join(parts[:-1])
                 try:
                     pmset_snapshot[current_source][key] = int(val)
                 except ValueError:

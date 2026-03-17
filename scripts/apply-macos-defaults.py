@@ -63,8 +63,6 @@ if os.path.exists(pmset_file):
 for source, settings in pmset_settings.items():
     flag = "-b" if source == "battery" else "-c"
     for key, val in settings.items():
-        if not isinstance(val, int):
-            continue  # skip non-numeric values (paths, strings)
         subprocess.run(["sudo", "pmset", flag, key, str(val)], capture_output=True)
 
 # Restart affected services

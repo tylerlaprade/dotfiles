@@ -1,6 +1,6 @@
 {
   "battery": {
-    "Sleep": "On",
+    "Sleep On Power Button": 1,
     "lowpowermode": 1,
     "standby": 1,
     "ttyskeepawake": 1,
@@ -17,7 +17,7 @@
     "SleepServices": 0
   },
   "ac": {
-    "Sleep": "On",
+    "Sleep On Power Button": 1,
     "lowpowermode": 0,
     "standby": 1,
     "ttyskeepawake": 1,
