@@ -608,14 +608,6 @@
       "type": "string",
       "value": "on"
     },
-    "JetEngine_metricsSampling_page_render_sampleWindowStart": {
-      "type": "float",
-      "value": 765984002.566094
-    },
-    "MetricsSamplingLotteryWindowStart_pageRender": {
-      "type": "float",
-      "value": 702315323.865218
-    },
     "NSWindow Frame AppStoreMainWindow": {
       "type": "string",
       "value": "512 221 1000 686 0 0 1512 950 "
@@ -627,14 +619,6 @@
     "kAOSUIProfilePictureCropRect": {
       "type": "string",
       "value": "{{0, 0}, {500, 500}}"
-    },
-    "lastBootstrapDate": {
-      "type": "float",
-      "value": 777561275.801858
-    },
-    "lastBootstrapTimeZone": {
-      "type": "string",
-      "value": "America/New_York"
     },
     "mostRecentTabIdentifier": {
       "type": "string",
@@ -889,214 +873,6 @@
           "InputSourceKind": "Keyboard Layout",
           "KeyboardLayout ID": 0,
           "KeyboardLayout Name": "U.S."
-        }
-      ]
-    }
-  },
-  "com.apple.LaunchServices/com.apple.launchservices.secure": {
-    "LSHandlers": {
-      "type": "plist",
-      "value": [
-        {
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.microsoft.teams",
-          "LSHandlerURLScheme": "msteams"
-        },
-        {
-          "LSHandlerContentTag": "slackworkflow",
-          "LSHandlerContentTagClass": "public.filename-extension",
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.microsoft.vscode"
-        },
-        {
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "org.whispersystems.signal-desktop",
-          "LSHandlerURLScheme": "sgnl"
-        },
-        {
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.brave.browser",
-          "LSHandlerURLScheme": "webcal"
-        },
-        {
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "org.whispersystems.signal-desktop",
-          "LSHandlerURLScheme": "signalcaptcha"
-        },
-        {
-          "LSHandlerContentType": "com.apple.ical.backup-package",
-          "LSHandlerModificationDate": 795130566,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.apple.ical"
-        },
-        {
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.loom.desktop",
-          "LSHandlerURLScheme": "loomdesktop"
-        },
-        {
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "dev.zed.zed",
-          "LSHandlerURLScheme": "zed"
-        },
-        {
-          "LSHandlerModificationDate": 795458971,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.granola.app",
-          "LSHandlerURLScheme": "granola"
-        },
-        {
-          "LSHandlerContentType": "public.url",
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleViewer": "-"
-          },
-          "LSHandlerRoleViewer": "com.google.chrome"
-        },
-        {
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.brave.browser",
-          "LSHandlerURLScheme": "http"
-        },
-        {
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.postmanlabs.mac",
-          "LSHandlerURLScheme": "postman"
-        },
-        {
-          "LSHandlerModificationDate": 795130540,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "us.zoom.xos",
-          "LSHandlerURLScheme": "zoomphonesms"
-        },
-        {
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.brave.browser",
-          "LSHandlerURLScheme": "https"
-        },
-        {
-          "LSHandlerContentType": "public.html",
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.brave.browser"
-        },
-        {
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.figma.desktop",
-          "LSHandlerURLScheme": "figma"
-        },
-        {
-          "LSHandlerModificationDate": 790115906,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "notion.id",
-          "LSHandlerURLScheme": "notion"
-        },
-        {
-          "LSHandlerContentType": "com.apple.default-app.web-browser",
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.brave.browser"
-        },
-        {
-          "LSHandlerContentType": "com.apple.default-app.mail-client",
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.google.chrome"
-        },
-        {
-          "LSHandlerModificationDate": 795130540,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "us.zoom.xos",
-          "LSHandlerURLScheme": "zoomphonecall"
-        },
-        {
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.google.chrome",
-          "LSHandlerURLScheme": "mailto"
-        },
-        {
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.termius-dmg.mac",
-          "LSHandlerURLScheme": "termius"
-        },
-        {
-          "LSHandlerModificationDate": 0,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.termius-dmg.mac",
-          "LSHandlerURLScheme": "ssh"
-        },
-        {
-          "LSHandlerModificationDate": 795130540,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "us.zoom.xos",
-          "LSHandlerURLScheme": "zoomcontactcentercall"
-        },
-        {
-          "LSHandlerModificationDate": 795034354,
-          "LSHandlerPreferredVersions": {
-            "LSHandlerRoleAll": "-"
-          },
-          "LSHandlerRoleAll": "com.anthropic.claudefordesktop",
-          "LSHandlerURLScheme": "claude"
         }
       ]
     }
@@ -2782,14 +2558,6 @@
     "fontStyle": {
       "type": "int",
       "value": 0
-    },
-    "last-analytics-stamp": {
-      "type": "float",
-      "value": 794935861.485284
-    },
-    "widgets": {
-      "type": "plist-file",
-      "file": "macos-plists/com.apple.notificationcenterui.widgets.plist"
     }
   },
   "com.apple.quicklook.QuickLookUIService": {
@@ -6360,8 +6128,8 @@
       "value": "2"
     },
     "vimKeysEnabled": {
-      "type": "string",
-      "value": "true"
+      "type": "bool",
+      "value": true
     },
     "windowDisplayDelay": {
       "type": "string",

@@ -17,6 +17,8 @@ import os
 import plistlib
 import subprocess
 import sys
+from datetime import date, datetime
+from math import isclose
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONF_PATH = os.path.join(SCRIPT_DIR, "macos-defaults.conf")
@@ -24,6 +26,16 @@ SNAPSHOT_PATH = os.path.join(SCRIPT_DIR, "macos-defaults.json")
 
 if not os.path.exists(CONF_PATH):
     sys.exit(0)
+
+
+def load_existing_snapshot():
+    if not os.path.exists(SNAPSHOT_PATH):
+        return {}
+    try:
+        with open(SNAPSHOT_PATH) as f:
+            return json.load(f)
+    except Exception:
+        return {}
 
 # Parse conf
 apple_whitelist = {}  # domain -> key blacklist patterns
@@ -95,7 +107,40 @@ def has_bytes(obj):
     return False
 
 
-def export_domain(domain, blacklist):
+def normalize_plist_value(obj):
+    """Convert plist-only values into JSON-safe structures."""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    if isinstance(obj, date):
+        return obj.isoformat()
+    if isinstance(obj, dict):
+        return {k: normalize_plist_value(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [normalize_plist_value(v) for v in obj]
+    return obj
+
+
+def stabilize_number(domain, key, kind, value, existing_snapshot):
+    """Preserve prior numeric typing/value when a new export is effectively identical."""
+    existing = existing_snapshot.get(domain, {}).get(key)
+    if not existing or existing.get("type") not in {"int", "float"}:
+        return kind, value
+
+    old_type = existing["type"]
+    old_value = existing.get("value")
+    if not isinstance(old_value, (int, float)):
+        return kind, value
+
+    if old_type == kind and old_value == value:
+        return old_type, old_value
+
+    if isclose(float(old_value), float(value), rel_tol=1e-9, abs_tol=1e-8):
+        return old_type, old_value
+
+    return kind, value
+
+
+def export_domain(domain, blacklist, existing_snapshot):
     """Export a single domain, returning (domain, entries) or None."""
     raw = subprocess.run(["defaults", "export", domain, "-"], capture_output=True)
     if raw.returncode != 0:
@@ -113,12 +158,11 @@ def export_domain(domain, blacklist):
         if isinstance(val, bool):
             entries[key] = {"type": "bool", "value": val}
         elif isinstance(val, int):
-            entries[key] = {"type": "int", "value": val}
+            kind, value = stabilize_number(domain, key, "int", val, existing_snapshot)
+            entries[key] = {"type": kind, "value": value}
         elif isinstance(val, float):
-            if val == int(val):
-                entries[key] = {"type": "int", "value": int(val)}
-            else:
-                entries[key] = {"type": "float", "value": val}
+            kind, value = stabilize_number(domain, key, "float", val, existing_snapshot)
+            entries[key] = {"type": kind, "value": value}
         elif isinstance(val, str):
             entries[key] = {"type": "string", "value": val}
         elif isinstance(val, (list, dict)):
@@ -131,7 +175,11 @@ def export_domain(domain, blacklist):
                     plistlib.dump({key: val}, pf, fmt=plistlib.FMT_XML)
                 entries[key] = {"type": "plist-file", "file": f"macos-plists/{domain}.{key}.plist"}
             else:
-                entries[key] = {"type": "plist", "value": val}
+                entries[key] = {"type": "plist", "value": normalize_plist_value(val)}
+        elif isinstance(val, datetime):
+            entries[key] = {"type": "datetime", "value": val.isoformat()}
+        elif isinstance(val, date):
+            entries[key] = {"type": "date", "value": val.isoformat()}
         elif isinstance(val, bytes):
             continue
 
@@ -140,9 +188,10 @@ def export_domain(domain, blacklist):
     return None
 
 
+existing_snapshot = load_existing_snapshot()
 snapshot = {}
 for domain, blacklist in sorted(domains_to_export.items()):
-    result = export_domain(domain, blacklist)
+    result = export_domain(domain, blacklist, existing_snapshot)
     if result:
         snapshot[result[0]] = result[1]
 
