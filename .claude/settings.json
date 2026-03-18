@@ -157,6 +157,18 @@
         "source": "directory",
         "path": "/Users/tyler/Code/condor/plugins/swarm"
       }
+    },
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
+    },
+    "basedpyright-lsp": {
+      "source": {
+        "source": "github",
+        "repo": "tylerlaprade/basedpyright-lsp"
+      }
     }
   },
   "alwaysThinkingEnabled": true,
