@@ -118,9 +118,12 @@ for f in "${shell_configs[@]}"; do
   [[ -f "$f" || -L "$f" ]] && chmod u+w "$f" 2>/dev/null || true
 done
 
-# Remove files that block symlink creation (created by tools like git init)
+# Remove files that block symlink creation (created by tools or restore)
 for f in .gitconfig .npmrc; do
   [[ -f "$HOME/$f" && ! -L "$HOME/$f" ]] && rm "$HOME/$f"
+done
+for f in gpg.conf gpg-agent.conf dirmngr.conf; do
+  [[ -f "$HOME/.gnupg/$f" && ! -L "$HOME/.gnupg/$f" ]] && rm "$HOME/.gnupg/$f"
 done
 
 # Symlink dotfiles (needs uv from brew)

@@ -71,7 +71,7 @@ if os.path.exists(login_items_file):
     with open(login_items_file) as f:
         login_items = json.load(f)
     for item in login_items:
-        path = item["path"]
+        path = os.path.expanduser(item["path"])
         # Skip items whose apps aren't installed
         if not os.path.exists(path):
             failed.append((["login-item", item["name"]], f"App not found at {path}"))

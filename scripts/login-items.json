@@ -12,12 +12,8 @@
     "path": "/Applications/Granola.app"
   },
   {
-    "name": "Graphite",
-    "path": "/Applications/Graphite.app"
-  },
-  {
     "name": "Google Calendar",
-    "path": "/Users/tyler/Applications/Chrome Apps.localized/Google Calendar.app"
+    "path": "~/Applications/Brave Browser Apps.localized/Google Calendar.app"
   },
   {
     "name": "Slack",
