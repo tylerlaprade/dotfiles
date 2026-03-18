@@ -1,39 +1,43 @@
 #!/usr/bin/env -S uv run --script
 """Bidirectional sync of Graphite preferences.
 
-Merges preferences between the repo file and local user_config,
-keeping authToken and alternativeProfiles local-only.
+Keeps non-secret preferences in sync between the repo file and local
+``user_config`` using last-writer-wins semantics, while preserving
+``authToken`` and ``alternativeProfiles`` locally.
 
 Usage: sync-graphite.py <repo_prefs> <local_config>
 """
 
 import json
+import os
 import sys
 
 prefs_path, config_path = sys.argv[1], sys.argv[2]
+LOCAL_ONLY_KEYS = {"authToken", "alternativeProfiles"}
 
 with open(prefs_path) as f:
     prefs = json.load(f)
 with open(config_path) as f:
     config = json.load(f)
 
-# Sync FROM local: extract non-secret preferences from config back to repo
-local_prefs = {
-    k: v for k, v in config.items() if k not in ("authToken", "alternativeProfiles")
-}
+# Split local config into syncable preferences and machine-local state.
+local_only = {k: v for k, v in config.items() if k in LOCAL_ONLY_KEYS}
+local_prefs = {k: v for k, v in config.items() if k not in LOCAL_ONLY_KEYS}
 
-# Sync TO local: merge repo preferences into config, preserving auth
-for k, v in prefs.items():
-    if k not in config:
-        config[k] = v
+repo_mtime = os.path.getmtime(prefs_path)
+config_mtime = os.path.getmtime(config_path)
 
-# If local has changed preferences, update repo
-if local_prefs != prefs:
+# Pick the newer set of non-secret preferences, then write it both ways.
+merged_prefs = local_prefs if config_mtime > repo_mtime else prefs
+
+if prefs != merged_prefs:
     with open(prefs_path, "w") as f:
-        json.dump(local_prefs, f, indent=2)
+        json.dump(merged_prefs, f, indent=2)
         f.write("\n")
 
-# Write merged config back
-with open(config_path, "w") as f:
-    json.dump(config, f, indent=2)
-    f.write("\n")
+merged_config = {**local_only, **merged_prefs}
+
+if config != merged_config:
+    with open(config_path, "w") as f:
+        json.dump(merged_config, f, indent=2)
+        f.write("\n")

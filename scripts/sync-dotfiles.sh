@@ -9,8 +9,10 @@ link() {
   if [[ -L "$dst" ]]; then
     ln -snf "$src" "$dst"
   elif [[ -e "$dst" ]]; then
-    echo "⚠️  Skipped $dst (file exists, not a symlink)"
-    return
+    local backup="${dst}.pre-dotfiles-$(date +%Y%m%d%H%M%S)"
+    mv "$dst" "$backup"
+    echo "ℹ️  Backed up $dst -> $backup"
+    ln -s "$src" "$dst"
   else
     ln -s "$src" "$dst"
   fi
@@ -134,36 +136,12 @@ done
 local_settings="$vscode_dir/settings.json"
 repo_settings="$DOTFILES/.vscode/settings.json"
 secrets_file="$DOTFILES/.vscode/settings.secrets.json"
-# Add secret key patterns here (grep -E pattern matching JSON keys)
-secret_keys_pattern='"sourcery\.token"\s*:'
-
-if [[ -f "$local_settings" && ! -L "$local_settings" ]]; then
-  # Live file exists: extract secrets, sync non-secrets back to repo
-  grep -E "$secret_keys_pattern" "$local_settings" | sed 's/^[[:space:]]*//' > "$secrets_file.tmp" 2>/dev/null
-  if [[ -s "$secrets_file.tmp" ]]; then
-    mv "$secrets_file.tmp" "$secrets_file"
-  else
-    rm -f "$secrets_file.tmp"
-  fi
-  # Copy live settings (minus secret lines) to repo
-  grep -vE "$secret_keys_pattern" "$local_settings" > "$repo_settings.tmp"
-  mv "$repo_settings.tmp" "$repo_settings"
-elif [[ -f "$repo_settings" ]]; then
-  # No live file (fresh machine): build from repo + secrets
-  if [[ -f "$secrets_file" ]]; then
-    # Insert secret lines before the final closing brace
-    sed '$d' "$repo_settings" > "$local_settings"
-    sed -i '' 's/[[:space:]]*$//' "$local_settings"
-    while IFS= read -r line; do
-      [[ -n "$line" ]] && printf '\t%s\n' "$line" >> "$local_settings"
-    done < "$secrets_file"
-    echo '}' >> "$local_settings"
-  else
-    cp "$repo_settings" "$local_settings"
-  fi
+if [[ -L "$local_settings" ]]; then
+  rm "$local_settings"
 fi
-# Remove any leftover symlink from old sync
-[[ -L "$local_settings" ]] && rm "$local_settings" && cp "$repo_settings" "$local_settings"
+if [[ -f "$repo_settings" ]]; then
+  "$DOTFILES/scripts/sync-vscode-settings.py" "$repo_settings" "$local_settings" "$secrets_file"
+fi
 
 # Graphite — bidirectional preferences sync (authToken stays local)
 gt_prefs="$DOTFILES/.config/graphite/preferences.json"

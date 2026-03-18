@@ -2,12 +2,13 @@
 """Bidirectional sync of Claude plugin marketplace sources.
 
 Compares repo and local known_marketplaces.json, using a manifest to detect
-deletions. Outputs actions to stdout for the shell caller to execute:
+deletions. Reconciles changed entries with last-writer-wins semantics and
+outputs actions to stdout for the shell caller to execute:
   install <repo-url>
   remove <name>
 
-Also updates the repo file with any locally-added marketplaces and writes
-the manifest for next sync.
+Also updates the repo file with local additions/edits and writes the manifest
+for next sync.
 
 Usage: sync-claude-plugins.py <repo_file> <local_file> <manifest_file>
   If local_file doesn't exist, outputs install actions for all repo entries.
@@ -25,6 +26,9 @@ with open(repo_path) as f:
 if os.path.exists(local_path):
     with open(local_path) as f:
         local = json.load(f)
+    repo_mtime = os.path.getmtime(repo_path)
+    local_mtime = os.path.getmtime(local_path)
+    prefer_local = local_mtime > repo_mtime
 
     synced = set()
     if os.path.exists(manifest_path):
@@ -42,6 +46,10 @@ if os.path.exists(local_path):
     for k, v in local.items():
         if k not in repo:
             repo[k] = {"source": v["source"]}
+        elif repo[k].get("source") != v.get("source"):
+            repo[k] = {"source": v["source"]} if prefer_local else {"source": repo[k]["source"]}
+            if not prefer_local and "repo" in repo[k]["source"]:
+                print(f'install {repo[k]["source"]["repo"]}')
 
     with open(repo_path, "w") as f:
         json.dump(repo, f, indent=2)
