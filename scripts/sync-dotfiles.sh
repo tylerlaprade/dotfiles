@@ -75,10 +75,31 @@ for item in "$DOTFILES"/.claude/*; do
   fi
 done
 
+# ~/.codex/* (keep runtime state local)
+mkdir -p "$HOME/.codex"
+if [[ -f "$DOTFILES/.codex/config.toml" ]]; then
+  link "$DOTFILES/.codex/config.toml" "$HOME/.codex/config.toml"
+fi
+
+# Sync only user-managed Codex skills and memories. Leave bundled `.system`
+# skills plus auth/history/sqlite/session state local to this machine.
+if [[ -d "$DOTFILES/.codex/skills" ]]; then
+  mkdir -p "$HOME/.codex/skills"
+  for item in "$DOTFILES"/.codex/skills/*; do
+    [[ -e "$item" || -L "$item" ]] || continue
+    local_name="$(basename "$item")"
+    link_tree "$item" "$HOME/.codex/skills/$local_name"
+  done
+fi
+
+if [[ -d "$DOTFILES/.codex/memories" ]]; then
+  link_tree "$DOTFILES/.codex/memories" "$HOME/.codex/memories"
+fi
+
 # ~/.*rc, ~/.gitconfig, etc.
 for item in "$DOTFILES"/.[!.]*; do
   local_name="$(basename "$item")"
-  [[ "$local_name" == ".git" || "$local_name" == ".config" || "$local_name" == ".claude" || "$local_name" == ".vscode" ]] && continue
+  [[ "$local_name" == ".git" || "$local_name" == ".config" || "$local_name" == ".claude" || "$local_name" == ".codex" || "$local_name" == ".vscode" ]] && continue
   if [[ -d "$item" && ! -L "$item" ]]; then
     link_tree "$item" "$HOME/$local_name"
   else

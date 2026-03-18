@@ -1,0 +1,17 @@
+personality = "pragmatic"
+model = "gpt-5.4"
+service_tier = "fast"
+approvals_reviewer = "guardian_subagent"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[projects."/Users/Tyler Laprade/Code/dotfiles"]
+trust_level = "trusted"
+
+[notice.model_migrations]
+"gpt-5.3-codex" = "gpt-5.4"
+
+[features]
+js_repl = true
+guardian_approval = true
+prevent_idle_sleep = true
