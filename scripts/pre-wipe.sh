@@ -118,6 +118,7 @@ cp "$HOME/.config/sourcery/auth.yaml" "$BACKUP_DIR/sourcery/auth.yaml" 2>/dev/nu
 # Claude memories
 echo "  Claude memory files"
 mkdir -p "$BACKUP_DIR/claude-memories"
+echo "$HOME" > "$BACKUP_DIR/claude-memories/.home"
 for memdir in "$HOME/.claude/projects/"*/memory; do
   [[ -d "$memdir" ]] || continue
   project=$(basename "$(dirname "$memdir")")

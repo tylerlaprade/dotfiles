@@ -83,24 +83,19 @@ fi
 # remap old keys to match the new home directory.
 echo ""
 echo "--- Restoring Claude memories ---"
-old_home_slug=""
 new_home_slug=$(echo "$HOME" | tr '/' '-')
+old_home_slug=""
+if [[ -f "$RESTORE_DIR/claude-memories/.home" ]]; then
+  old_home_slug=$(tr '/' '-' < "$RESTORE_DIR/claude-memories/.home")
+fi
+if [[ -n "$old_home_slug" && "$old_home_slug" != "$new_home_slug" ]]; then
+  echo "  Remapping project keys: $old_home_slug -> $new_home_slug"
+fi
 for projectdir in "$RESTORE_DIR/claude-memories"/*/; do
   [[ -d "$projectdir" ]] || continue
   project=$(basename "$projectdir")
 
-  # Detect old home slug from the first project key
-  if [[ -z "$old_home_slug" ]]; then
-    # Project keys look like -Users-tyler-Code-condor
-    # Try to find the common prefix that differs from current $HOME
-    old_home_slug=$(echo "$project" | sed -E 's/(-Code-.*)//' )
-    if [[ "$old_home_slug" != "$new_home_slug" ]]; then
-      echo "  Remapping project keys: $old_home_slug -> $new_home_slug"
-    fi
-  fi
-
-  # Remap the project key if home directory changed
-  if [[ "$old_home_slug" != "$new_home_slug" ]]; then
+  if [[ -n "$old_home_slug" && "$old_home_slug" != "$new_home_slug" ]]; then
     project="${project/$old_home_slug/$new_home_slug}"
   fi
 
