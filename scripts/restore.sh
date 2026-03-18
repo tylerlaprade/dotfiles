@@ -23,12 +23,16 @@ echo "--- Restoring secrets ---"
 
 echo "  ~/.ssh/"
 mkdir -p "$HOME/.ssh"
+find "$HOME/.ssh" -maxdepth 1 -type l -delete 2>/dev/null || true
+chmod -R u+w "$HOME/.ssh" 2>/dev/null || true
 cp -a "$RESTORE_DIR/ssh/"* "$HOME/.ssh/"
 chmod 700 "$HOME/.ssh"
 chmod 600 "$HOME/.ssh/"id_* 2>/dev/null || true
 
 echo "  ~/.gnupg/"
 mkdir -p "$HOME/.gnupg"
+find "$HOME/.gnupg" -maxdepth 1 -type l -delete 2>/dev/null || true
+chmod -R u+w "$HOME/.gnupg" 2>/dev/null || true
 cp -a "$RESTORE_DIR/gnupg/"* "$HOME/.gnupg/"
 chmod 700 "$HOME/.gnupg"
 
