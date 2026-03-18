@@ -118,6 +118,16 @@ for f in "${shell_configs[@]}"; do
   [[ -f "$f" || -L "$f" ]] && chmod u+w "$f" 2>/dev/null || true
 done
 
+# Graphite desktop app (not in Homebrew)
+if [[ ! -d "/Applications/Graphite.app" ]]; then
+  echo "Installing Graphite desktop app..."
+  curl -fsSL -o /tmp/graphite.zip "https://github.com/withgraphite/graphite-desktop/releases/latest/download/Graphite-darwin-arm64.zip" 2>/dev/null \
+    && unzip -qo /tmp/graphite.zip -d /Applications/ 2>/dev/null \
+    && rm /tmp/graphite.zip \
+    && echo "  Graphite installed" \
+    || echo "  Graphite install failed"
+fi
+
 # Remove files that block symlink creation (created by tools or restore)
 for f in .gitconfig .npmrc; do
   [[ -f "$HOME/$f" && ! -L "$HOME/$f" ]] && rm "$HOME/$f"
