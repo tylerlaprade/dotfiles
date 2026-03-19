@@ -118,14 +118,32 @@ for f in "${shell_configs[@]}"; do
   [[ -f "$f" || -L "$f" ]] && chmod u+w "$f" 2>/dev/null || true
 done
 
+# GitHub CLI auth (needed for release downloads below)
+if ! gh auth status &>/dev/null; then
+  echo "GitHub CLI auth required for app downloads..."
+  gh auth login
+fi
+
 # Graphite desktop app (not in Homebrew)
 if [[ ! -d "/Applications/Graphite.app" ]]; then
   echo "Installing Graphite desktop app..."
-  curl -fsSL -o /tmp/graphite.zip "https://github.com/withgraphite/graphite-desktop/releases/latest/download/Graphite-darwin-arm64.zip" 2>/dev/null \
-    && unzip -qo /tmp/graphite.zip -d /Applications/ 2>/dev/null \
-    && rm /tmp/graphite.zip \
+  gh release download --repo withgraphite/graphite-desktop --pattern '*darwin-arm64*' -D /tmp --clobber 2>/dev/null \
+    && unzip -qo /tmp/Graphite-darwin-arm64-*.zip -d /Applications/ 2>/dev/null \
+    && rm /tmp/Graphite-darwin-arm64-*.zip \
     && echo "  Graphite installed" \
     || echo "  Graphite install failed"
+fi
+
+# Notchi (Claude Code notch companion, not in Homebrew)
+if [[ ! -d "/Applications/Notchi.app" ]]; then
+  echo "Installing Notchi..."
+  gh release download --repo sk-ruban/notchi --pattern '*.dmg' -D /tmp --clobber 2>/dev/null \
+    && hdiutil attach /tmp/Notchi-*.dmg -nobrowse -quiet \
+    && cp -R "/Volumes/Notchi/Notchi.app" /Applications/ \
+    && hdiutil detach "/Volumes/Notchi" -quiet \
+    && rm /tmp/Notchi-*.dmg \
+    && echo "  Notchi installed" \
+    || echo "  Notchi install failed"
 fi
 
 # Remove files that block symlink creation (created by tools or restore)
@@ -163,9 +181,8 @@ fi
 
 echo ""
 echo "=== Next steps ==="
-echo "  1. GitHub CLI auth:  gh auth login"
-echo "  2. Sourcery auth:    sourcery login"
-echo "  3. Kanata:           Grant accessibility permissions in System Preferences"
-echo "  4. Karabiner:        Grant input monitoring permissions in System Preferences"
+echo "  1. Sourcery auth:    sourcery login"
+echo "  2. Kanata:           Grant accessibility permissions in System Preferences"
+echo "  3. Karabiner:        Grant input monitoring permissions in System Preferences"
 echo ""
 echo "Done! Restart your shell."
