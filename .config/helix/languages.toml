@@ -19,6 +19,10 @@ run = "onType"
 problems = { shortenToSingleLine = false }
 nodePath = ""
 
+[language-server.flint]
+command = "fnm"
+args = ["exec", "--", "npx", "flint", "lsp"]
+
 [language-server.basedpyright]
 command = "uv"
 args = ["run", "basedpyright-langserver", "--stdio"]
@@ -27,13 +31,14 @@ args = ["run", "basedpyright-langserver", "--stdio"]
 command = "uv"
 args = ["run", "ruff", "server"]
 
-# JavaScript/TypeScript - Biome for formatting, ESLint for linting
+# JavaScript/TypeScript - Biome for formatting, ESLint + Flint for linting
 
 [[language]]
 name = "javascript"
 language-servers = [
   { name = "typescript-language-server", except-features = ["format"] },
   "vscode-eslint-language-server",
+  { name = "flint", only-features = ["diagnostics", "code-action"] },
   "biome",
 ]
 
@@ -42,6 +47,7 @@ name = "typescript"
 language-servers = [
   { name = "typescript-language-server", except-features = ["format"] },
   "vscode-eslint-language-server",
+  { name = "flint", only-features = ["diagnostics", "code-action"] },
   "biome",
 ]
 
@@ -50,6 +56,7 @@ name = "jsx"
 language-servers = [
   { name = "typescript-language-server", except-features = ["format"] },
   "vscode-eslint-language-server",
+  { name = "flint", only-features = ["diagnostics", "code-action"] },
   "biome",
 ]
 
@@ -58,6 +65,7 @@ name = "tsx"
 language-servers = [
   { name = "typescript-language-server", except-features = ["format"] },
   "vscode-eslint-language-server",
+  { name = "flint", only-features = ["diagnostics", "code-action"] },
   "biome",
 ]
 
