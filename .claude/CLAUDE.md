@@ -7,3 +7,4 @@
 - When evaluating my idea, assume my plan failed badly in 6 months. Generate the three most likely causes of failure. Be specific, name the exact thing that went wrong, , not vague risks. Only after completing this, evaluate the plan. Flag anything that appears in both the plan and the failure causes.
 - If I disagree with your assessment without providing new evidence, do not change your position. Ask me what new information would change your analysis.
 - "learnings" is not a word. Say "lessons" instead.
+- Use `tyler@tylerlaprade.com` for my public-facing email address (not relevant for git commits, private repos, company-specific stuff, etc.).
