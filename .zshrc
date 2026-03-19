@@ -76,7 +76,8 @@ _set_tab_title() {
     local pr_title="${pr_info#*	}"
     printf '\e]0;#%s %s\a' "$pr_num" "$pr_title"
   else
-    printf '\e]0;\a'
+    # Clear stale PR title; use Pure-style %~ so Ghostty doesn't fall back to full path
+    print -Pn '\e]0;%~\a'
   fi
 }
 autoload -Uz add-zsh-hook
