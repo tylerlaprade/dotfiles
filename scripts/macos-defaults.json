@@ -574,14 +574,6 @@
       "type": "int",
       "value": 0
     },
-    "adprivacydMaxSegmentSendInterval": {
-      "type": "string",
-      "value": "259200"
-    },
-    "adprivacydSegmentInterval": {
-      "type": "string",
-      "value": "86087"
-    },
     "allowApplePersonalizedAdvertising": {
       "type": "bool",
       "value": false
@@ -804,77 +796,13 @@
     }
   },
   "com.apple.HIToolbox": {
-    "AppleCurrentKeyboardLayoutInputSourceID": {
-      "type": "string",
-      "value": "com.apple.keylayout.US"
-    },
     "AppleDictationAutoEnable": {
       "type": "int",
       "value": 1
     },
-    "AppleEnabledInputSources": {
-      "type": "plist",
-      "value": [
-        {
-          "InputSourceKind": "Keyboard Layout",
-          "KeyboardLayout ID": 0,
-          "KeyboardLayout Name": "U.S."
-        },
-        {
-          "Bundle ID": "com.apple.CharacterPaletteIM",
-          "InputSourceKind": "Non Keyboard Input Method"
-        },
-        {
-          "Bundle ID": "com.apple.PressAndHold",
-          "InputSourceKind": "Non Keyboard Input Method"
-        },
-        {
-          "InputSourceKind": "Keyboard Layout",
-          "KeyboardLayout ID": -1,
-          "KeyboardLayout Name": "Unicode Hex Input"
-        },
-        {
-          "Bundle ID": "com.apple.inputmethod.ironwood",
-          "InputSourceKind": "Non Keyboard Input Method"
-        }
-      ]
-    },
     "AppleFnUsageType": {
       "type": "int",
       "value": 1
-    },
-    "AppleInputSourceHistory": {
-      "type": "plist",
-      "value": [
-        {
-          "InputSourceKind": "Keyboard Layout",
-          "KeyboardLayout ID": 0,
-          "KeyboardLayout Name": "U.S."
-        },
-        {
-          "InputSourceKind": "Keyboard Layout",
-          "KeyboardLayout ID": -1,
-          "KeyboardLayout Name": "Unicode Hex Input"
-        }
-      ]
-    },
-    "AppleSelectedInputSources": {
-      "type": "plist",
-      "value": [
-        {
-          "Bundle ID": "com.apple.PressAndHold",
-          "InputSourceKind": "Non Keyboard Input Method"
-        },
-        {
-          "Bundle ID": "com.amazon.inputmethod.codewhisperer",
-          "InputSourceKind": "Non Keyboard Input Method"
-        },
-        {
-          "InputSourceKind": "Keyboard Layout",
-          "KeyboardLayout ID": 0,
-          "KeyboardLayout Name": "U.S."
-        }
-      ]
     }
   },
   "com.apple.Maps": {
@@ -920,10 +848,6 @@
     "LastSuspendTime": {
       "type": "float",
       "value": 774304210.358307
-    },
-    "MapsNotificationAuthPromptCount": {
-      "type": "int",
-      "value": 1
     },
     "MigratedARPConsentPreference": {
       "type": "bool",
@@ -1925,10 +1849,6 @@
       "type": "bool",
       "value": true
     },
-    "LastHeartbeatDateString.daily": {
-      "type": "string",
-      "value": "2026-03-17T19:56:50Z"
-    },
     "NSStatusItem Preferred Position Battery": {
       "type": "int",
       "value": 325
@@ -2380,10 +2300,6 @@
     "InvitationNotificationsDisabled": {
       "type": "bool",
       "value": true
-    },
-    "LastCheckForIgnoredPseudoEvents": {
-      "type": "float",
-      "value": 691341034.812666
     },
     "NSDontMakeMainWindowKey": {
       "type": "string",
@@ -3237,10 +3153,6 @@
     "__NSEnableTSMDocumentWindowLevel": {
       "type": "bool",
       "value": true
-    },
-    "last-analytics-stamp": {
-      "type": "float",
-      "value": 794935861.597496
     },
     "menuExtras": {
       "type": "plist",
@@ -5800,50 +5712,15 @@
       "type": "string",
       "value": "{{294, 189}, {1270, 691}}"
     },
-    "MSAppCenter310AnalyticsUserDefaultsMigratedKey": {
-      "type": "bool",
-      "value": true
-    },
-    "MSAppCenter310AppCenterUserDefaultsMigratedKey": {
-      "type": "bool",
-      "value": true
-    },
-    "MSAppCenter310CrashesUserDefaultsMigratedKey": {
-      "type": "bool",
-      "value": true
-    },
-    "MSAppCenterInstallId": {
-      "type": "string",
-      "value": "B35F0D03-3891-40C4-B662-F938FEF01883"
-    },
     "NSConstraintBasedLayoutVisualizeMutuallyExclusiveConstraints": {
       "type": "bool",
       "value": false
-    },
-    "NSSplitView Subview Frames NSColorPanelSplitView": {
-      "type": "plist",
-      "value": [
-        "0.000000, 0.000000, 224.000000, 258.000000, NO, NO",
-        "0.000000, 259.000000, 224.000000, 48.000000, NO, NO"
-      ]
     },
     "NSToolbar Configuration com.apple.NSColorPanel": {
       "type": "plist",
       "value": {
         "TB Is Shown": 1
       }
-    },
-    "NSWindow Frame ConnectionWindow": {
-      "type": "string",
-      "value": "399 290 1003 536 0 0 1800 1131 "
-    },
-    "NSWindow Frame NSColorPanel": {
-      "type": "string",
-      "value": "0 136 224 278 0 0 1800 1131 "
-    },
-    "NSWindow Frame NSFontPanel": {
-      "type": "string",
-      "value": "1285 156 445 239 0 0 1800 1131 "
     },
     "SQLProAutocompletePreferences-InsertionKeys": {
       "type": "int",
@@ -6128,8 +6005,8 @@
       "value": "2"
     },
     "vimKeysEnabled": {
-      "type": "bool",
-      "value": true
+      "type": "string",
+      "value": "true"
     },
     "windowDisplayDelay": {
       "type": "string",
@@ -6144,19 +6021,6 @@
     "CustomGhosttyIconBuild": {
       "type": "string",
       "value": "14263"
-    },
-    "NSWindow Frame SUUpdateAlert": {
-      "type": "string",
-      "value": "446 414 620 398 0 0 1512 950 "
-    },
-    "NSWindowLastPosition": {
-      "type": "plist",
-      "value": [
-        0.0,
-        0.0,
-        1512.0,
-        913.0
-      ]
     },
     "SUAutomaticallyUpdate": {
       "type": "bool",
@@ -6810,10 +6674,6 @@
       "type": "string",
       "value": "1"
     },
-    "CheckUpdateTimestamp": {
-      "type": "string",
-      "value": "2026-3-13 18:49:25"
-    },
     "EnableAutoTrackBillableHours": {
       "type": "string",
       "value": "false"
@@ -6871,22 +6731,6 @@
     "NSScrollViewShouldScrollUnderTitlebar": {
       "type": "bool",
       "value": false
-    },
-    "NSWindow Frame NSNavPanelAutosaveName": {
-      "type": "string",
-      "value": "356 331 800 448 0 0 1512 950 "
-    },
-    "NSWindow Frame ZOOM Main Window": {
-      "type": "string",
-      "value": "214 90 1236 797 0 0 1512 950 "
-    },
-    "PresAppKeyHash": {
-      "type": "int",
-      "value": -5435478161300104768
-    },
-    "PresMeetingAppKeyHash": {
-      "type": "int",
-      "value": -1575124829783214272
     },
     "User Select Language Identify": {
       "type": "string",
@@ -7073,10 +6917,6 @@
     "kZMSidebarViewType": {
       "type": "int",
       "value": 0
-    },
-    "kZMUserDedaultWindowOriginFrame": {
-      "type": "string",
-      "value": "{{534, 217}, {444, 660}}"
     },
     "kZMUserDefaultMainWindowCompressed": {
       "type": "bool",

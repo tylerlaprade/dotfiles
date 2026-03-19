@@ -41,6 +41,7 @@ def load_existing_snapshot():
 apple_whitelist = {}  # domain -> key blacklist patterns
 domain_blacklist = set()  # domains to exclude
 key_blacklists = {}  # domain -> key blacklist patterns (for non-Apple overrides)
+global_key_blacklist = []  # patterns applied to all domains
 
 with open(CONF_PATH) as f:
     for line in f:
@@ -58,7 +59,10 @@ with open(CONF_PATH) as f:
             domain_part = line
             patterns = []
 
-        if domain_part.startswith("+"):
+        if domain_part == "*":
+            # Global key blacklist (applies to all domains)
+            global_key_blacklist.extend(patterns)
+        elif domain_part.startswith("+"):
             # Apple domain whitelist
             apple_whitelist[domain_part[1:]] = patterns
         elif domain_part.startswith("!"):
@@ -191,7 +195,7 @@ def export_domain(domain, blacklist, existing_snapshot):
 existing_snapshot = load_existing_snapshot()
 snapshot = {}
 for domain, blacklist in sorted(domains_to_export.items()):
-    result = export_domain(domain, blacklist, existing_snapshot)
+    result = export_domain(domain, global_key_blacklist + blacklist, existing_snapshot)
     if result:
         snapshot[result[0]] = result[1]
 
