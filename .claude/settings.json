@@ -123,7 +123,7 @@
       {
         "hooks" : [
           {
-            "command" : "\/Users\/tyler\/Code\/dotfiles\/scripts\/sync-dotfiles.sh",
+            "command" : "~\/Code\/dotfiles\/scripts\/sync-dotfiles.sh",
             "type" : "command"
           }
         ],
