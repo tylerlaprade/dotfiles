@@ -22,11 +22,5 @@
       "source": "github",
       "repo": "vercel-labs/agent-browser"
     }
-  },
-  "swarm": {
-    "source": {
-      "source": "directory",
-      "path": "/Users/tyler/Code/condor/plugins/swarm"
-    }
   }
 }
