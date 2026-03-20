@@ -825,10 +825,6 @@
       "type": "int",
       "value": 1725976286
     },
-    "CloudKitAccountInfoCache": {
-      "type": "plist-file",
-      "file": "macos-plists/com.apple.Maps.CloudKitAccountInfoCache.plist"
-    },
     "DistanceUnits": {
       "type": "string",
       "value": "Imperial"
@@ -2407,10 +2403,6 @@
       "type": "int",
       "value": 1773437050
     },
-    "CloudKitAccountInfoCache": {
-      "type": "plist-file",
-      "file": "macos-plists/com.apple.imagent.CloudKitAccountInfoCache.plist"
-    },
     "IMChatVocabularyUpdaterDidPerformInitialUpdateKey": {
       "type": "bool",
       "value": true
@@ -2441,10 +2433,6 @@
     }
   },
   "com.apple.ncprefs": {
-    "apps": {
-      "type": "plist-file",
-      "file": "macos-plists/com.apple.ncprefs.apps.plist"
-    },
     "content_visibility": {
       "type": "int",
       "value": 2
@@ -6850,22 +6838,6 @@
       "type": "string",
       "value": ""
     },
-    "kIM_PersistentMeetingsChatGuideTip_REDACTED_ZOOM_JID@xmpp.zoom.us": {
-      "type": "int",
-      "value": 1
-    },
-    "kIM_ReminderMessageGuideTip_REDACTED_ZOOM_JID@xmpp.zoom.us": {
-      "type": "int",
-      "value": 1
-    },
-    "kIM_ScheduleChannleMeetingGuideTip_REDACTED_ZOOM_JID@xmpp.zoom.us": {
-      "type": "int",
-      "value": 1
-    },
-    "kIM_VideoMessageVirtualBgTip_REDACTED_ZOOM_JID@xmpp.zoom.us": {
-      "type": "int",
-      "value": 1
-    },
     "kWorkVivoTabName": {
       "type": "string",
       "value": ""
@@ -6929,64 +6901,6 @@
     "kZPSettingMyVideoDeprecatedKey": {
       "type": "bool",
       "value": true
-    },
-    "REDACTED_ZOOM_JID@xmpp.zoom.usZMUserDefaultIsWorkFlowNewShown": {
-      "type": "bool",
-      "value": true
-    },
-    "REDACTED_ZOOM_JID@xmpp.zoom.us_favoriteArrayV3": {
-      "type": "plist",
-      "value": [
-        ":thumbsup:=\ud83d\udc4d",
-        ":fearful:=\ud83d\ude28",
-        ":man_red_haired:=\ud83d\udc68\u200d\ud83e\uddb0;:man_red_haired_tone1:=\ud83d\udc68\ud83c\udffb\u200d\ud83e\uddb0;:man_red_haired_tone2:=\ud83d\udc68\ud83c\udffc\u200d\ud83e\uddb0;:man_red_haired_tone3:=\ud83d\udc68\ud83c\udffd\u200d\ud83e\uddb0;:man_red_haired_tone4:=\ud83d\udc68\ud83c\udffe\u200d\ud83e\uddb0;:man_red_haired_tone5:=\ud83d\udc68\ud83c\udfff\u200d\ud83e\uddb0",
-        ":heart:=\u2764\ufe0f",
-        ":older_man:=\ud83d\udc74;:older_man_tone1:=\ud83d\udc74\ud83c\udffb;:older_man_tone2:=\ud83d\udc74\ud83c\udffc;:older_man_tone3:=\ud83d\udc74\ud83c\udffd;:older_man_tone4:=\ud83d\udc74\ud83c\udffe;:older_man_tone5:=\ud83d\udc74\ud83c\udfff",
-        ":astonished:=\ud83d\ude32",
-        ":joy:=\ud83d\ude02",
-        ":sob:=\ud83d\ude2d",
-        ":raised_hands:=\ud83d\ude4c;:raised_hands_tone1:=\ud83d\ude4c\ud83c\udffb;:raised_hands_tone2:=\ud83d\ude4c\ud83c\udffc;:raised_hands_tone3:=\ud83d\ude4c\ud83c\udffd;:raised_hands_tone4:=\ud83d\ude4c\ud83c\udffe;:raised_hands_tone5:=\ud83d\ude4c\ud83c\udfff",
-        ":smile:=\ud83d\ude04",
-        ":100:=\ud83d\udcaf",
-        ":pray:=\ud83d\ude4f;:pray_tone1:=\ud83d\ude4f\ud83c\udffb;:pray_tone2:=\ud83d\ude4f\ud83c\udffc;:pray_tone3:=\ud83d\ude4f\ud83c\udffd;:pray_tone4:=\ud83d\ude4f\ud83c\udffe;:pray_tone5:=\ud83d\ude4f\ud83c\udfff",
-        ":white_check_mark:=\u2705",
-        ":two_hearts:=\ud83d\udc95",
-        ":sunglasses:=\ud83d\ude0e",
-        ":skull_crossbones:=\u2620\ufe0f"
-      ]
-    },
-    "REDACTED_ZOOM_JID@xmpp.zoom.us_favoriteArrayV4": {
-      "type": "plist",
-      "value": [
-        "\ud83d\ude2f",
-        "\u2764\ufe0f",
-        "\ud83c\udf89",
-        "\ud83d\udc4d",
-        "\ud83d\udc4f",
-        "\ud83d\ude32",
-        "\ud83d\ude02",
-        "\ud83d\ude05",
-        "\ud83d\ude33",
-        "\ud83d\udd2a",
-        "\ud83d\udcaa",
-        "\ud83c\udfc3\u200d\u2642\ufe0f\u200d\u27a1\ufe0f",
-        "\ud83d\ude43",
-        "\ud83d\udcaf",
-        "\ud83d\udc4b",
-        "\ud83d\ude35"
-      ]
-    },
-    "REDACTED_ZOOM_JID@xmpp.zoom.uskZMUserDefaultIsDocsNewShown": {
-      "type": "bool",
-      "value": true
-    },
-    "REDACTED_ZOOM_JID@xmpp.zoom.uskZMUserDefaultSelectedTabIdentifier": {
-      "type": "string",
-      "value": "Clips"
-    },
-    "REDACTED_ZOOM_JID@xmpp.zoom.uskZMUserDefaultSelectedTabType": {
-      "type": "int",
-      "value": 8192
     }
   }
 }

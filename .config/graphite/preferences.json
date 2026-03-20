@@ -15,10 +15,6 @@
       "value": "false"
     },
     {
-      "key": "gti.install-uuid",
-      "value": "REDACTED_GRAPHITE_UUID"
-    },
-    {
       "key": "gti.is-onboarded",
       "value": "true"
     },
