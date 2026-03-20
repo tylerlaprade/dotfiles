@@ -44,6 +44,14 @@ for dir in "$DOTFILES"/.config/*/; do
   link_tree "$dir" "$HOME/.config/$(basename "$dir")"
 done
 
+# Helix languages.toml — secret-aware bidirectional sync (has Sourcery token)
+helix_lang_local="$HOME/.config/helix/languages.toml"
+helix_lang_repo="$DOTFILES/.config/helix/languages.toml"
+if [[ -L "$helix_lang_local" ]]; then
+  rm "$helix_lang_local"
+fi
+"$DOTFILES/scripts/sync-helix-languages.py" "$helix_lang_repo" "$helix_lang_local"
+
 # ~/.claude/* (skip machine-local files)
 mkdir -p "$HOME/.claude"
 for item in "$DOTFILES"/.claude/*; do
@@ -164,6 +172,8 @@ if [[ -f "$claude_json_prefs" && -f "$claude_json_local" ]]; then
 elif [[ -f "$claude_json_prefs" && ! -f "$claude_json_local" ]]; then
   cp "$claude_json_prefs" "$claude_json_local"
 fi
+# Upgrade global uv tools (sourcery, etc.)
+uv tool upgrade --all >/dev/null 2>&1 || true
 
 # macOS defaults — read current values and update snapshot
 if [[ -z "${SKIP_DEFAULTS_SYNC:-}" ]]; then

@@ -31,6 +31,11 @@ args = ["run", "basedpyright-langserver", "--stdio"]
 command = "uv"
 args = ["run", "ruff", "server"]
 
+[language-server.sourcery]
+command = "sourcery"
+args = ["lsp"]
+config = { token = "SOURCERY_TOKEN", extension_version = "helix.lsp", editor_version = "helix" }
+
 # JavaScript/TypeScript - Biome for formatting, ESLint + Flint for linting
 
 [[language]]
@@ -39,6 +44,7 @@ language-servers = [
   { name = "typescript-language-server", except-features = ["format"] },
   "vscode-eslint-language-server",
   { name = "flint", only-features = ["diagnostics", "code-action"] },
+  { name = "sourcery", only-features = ["diagnostics", "code-action"] },
   "biome",
 ]
 
@@ -48,6 +54,7 @@ language-servers = [
   { name = "typescript-language-server", except-features = ["format"] },
   "vscode-eslint-language-server",
   { name = "flint", only-features = ["diagnostics", "code-action"] },
+  { name = "sourcery", only-features = ["diagnostics", "code-action"] },
   "biome",
 ]
 
@@ -57,6 +64,7 @@ language-servers = [
   { name = "typescript-language-server", except-features = ["format"] },
   "vscode-eslint-language-server",
   { name = "flint", only-features = ["diagnostics", "code-action"] },
+  { name = "sourcery", only-features = ["diagnostics", "code-action"] },
   "biome",
 ]
 
@@ -66,6 +74,7 @@ language-servers = [
   { name = "typescript-language-server", except-features = ["format"] },
   "vscode-eslint-language-server",
   { name = "flint", only-features = ["diagnostics", "code-action"] },
+  { name = "sourcery", only-features = ["diagnostics", "code-action"] },
   "biome",
 ]
 
@@ -73,7 +82,7 @@ language-servers = [
 
 [[language]]
 name = "python"
-language-servers = ["basedpyright", "ruff"]
+language-servers = ["basedpyright", "ruff", { name = "sourcery", only-features = ["diagnostics", "code-action"] }]
 
 # JSON
 [[language]]

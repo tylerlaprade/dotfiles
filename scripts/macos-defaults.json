@@ -90,7 +90,7 @@
     },
     "com.apple.keyboard.fnState": {
       "type": "bool",
-      "value": true
+      "value": false
     },
     "com.apple.sound.beep.feedback": {
       "type": "int",
@@ -812,7 +812,7 @@
     },
     "AnnouncementsLastUpdated": {
       "type": "float",
-      "value": 691340965.323503
+      "value": 691340992.0
     },
     "CKPerBootTasks": {
       "type": "plist",
@@ -843,7 +843,7 @@
     },
     "LastSuspendTime": {
       "type": "float",
-      "value": 774304210.358307
+      "value": 774304192.0
     },
     "MigratedARPConsentPreference": {
       "type": "bool",
@@ -1121,6 +1121,10 @@
     "StatusMenuVisible": {
       "type": "bool",
       "value": true
+    },
+    "VoiceTriggerUserEnabled": {
+      "type": "bool",
+      "value": true
     }
   },
   "com.apple.Spotlight": {
@@ -1335,7 +1339,7 @@
     },
     "startTime": {
       "type": "float",
-      "value": 795130537.791286
+      "value": 795130560.0
     },
     "useCount": {
       "type": "int",
@@ -1377,7 +1381,7 @@
     },
     "ProfileCurrentVersion": {
       "type": "float",
-      "value": 2.09
+      "value": 2.0899999141693115
     },
     "SecureKeyboardEntry": {
       "type": "bool",
@@ -1743,15 +1747,6 @@
           "On Device Search": false,
           "Voice Commands": false
         },
-        "pt-PT": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
         "ru-RU": {
           "Auto Punctuation": false,
           "Continuous Listening": false,
@@ -1862,8 +1857,8 @@
       "value": 441
     },
     "NSStatusItem Preferred Position FocusModes": {
-      "type": "int",
-      "value": 217
+      "type": "float",
+      "value": 329.0
     },
     "NSStatusItem Preferred Position ScreenMirroring": {
       "type": "int",
@@ -2187,6 +2182,14 @@
       "type": "string",
       "value": "Name"
     },
+    "FXDetachedDesktopProviderID": {
+      "type": "string",
+      "value": ""
+    },
+    "FXDetachedDocumentsProviderID": {
+      "type": "string",
+      "value": ""
+    },
     "FXPreferredViewStyle": {
       "type": "string",
       "value": "icnv"
@@ -2369,7 +2372,7 @@
     },
     "first shown minute of day": {
       "type": "float",
-      "value": 258.3170254403131
+      "value": 258.3170166015625
     },
     "iCal version": {
       "type": "int",
@@ -3148,536 +3151,121 @@
     }
   },
   "com.apple.universalaccess": {
-    "FontSizeCategory": {
-      "type": "plist",
-      "value": {
-        "com.apple.MobileSMS": "UseGlobal",
-        "com.apple.Notes": "UseGlobal",
-        "com.apple.finder": "UseGlobal",
-        "com.apple.iBooksX": "UseGlobal",
-        "com.apple.iCal": "UseGlobal",
-        "com.apple.mail": "UseGlobal",
-        "com.apple.news": "UseGlobal",
-        "com.apple.stocks": "UseGlobal",
-        "com.apple.weather": "UseGlobal",
-        "global": "DEFAULT",
-        "version": "3.0"
-      }
-    },
     "History": {
       "type": "plist",
       "value": {
         "MouseKeys": [
           {
-            "Date": "2026-02-19 18:49:25",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2026-02-19 18:49:36",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2026-03-02 17:36:51",
+            "Date": "2026-03-17 08:40:27",
             "Reason": "LoadingPrefsA",
             "State": false
           },
           {
-            "Date": "2026-03-02 17:36:53",
+            "Date": "2026-03-17 08:40:27",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-02 17:36:53",
+            "Date": "2026-03-17 08:40:27",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-02 17:36:53",
+            "Date": "2026-03-17 08:40:27",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-02 17:36:53",
+            "Date": "2026-03-17 08:40:27",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-03 10:39:29",
+            "Date": "2026-03-17 08:40:28",
             "Reason": "LoadingPrefsA",
             "State": false
           },
           {
-            "Date": "2026-03-03 10:39:29",
+            "Date": "2026-03-17 08:40:28",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-03 10:39:29",
+            "Date": "2026-03-17 08:40:28",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-03 10:39:29",
+            "Date": "2026-03-17 08:40:28",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-03 10:39:29",
+            "Date": "2026-03-17 08:40:28",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-03 12:20:00",
+            "Date": "2026-03-17 08:40:29",
             "Reason": "LoadingPrefsA",
             "State": false
           },
           {
-            "Date": "2026-03-03 12:20:01",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-03 12:20:01",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-03 12:20:01",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-03 12:20:01",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-03 17:45:16",
+            "Date": "2026-03-17 08:40:36",
             "Reason": "LoadingPrefsA",
             "State": false
           },
           {
-            "Date": "2026-03-03 17:45:16",
+            "Date": "2026-03-17 08:40:36",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-03 17:45:16",
+            "Date": "2026-03-17 08:40:36",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-03 17:45:16",
+            "Date": "2026-03-17 08:40:36",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-03 17:45:16",
+            "Date": "2026-03-17 08:40:36",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-03 17:46:02",
+            "Date": "2026-03-17 08:40:37",
             "Reason": "LoadingPrefsA",
             "State": false
           },
           {
-            "Date": "2026-03-03 17:46:02",
+            "Date": "2026-03-17 11:53:14",
             "Reason": "LoadingPrefsA",
             "State": false
           },
           {
-            "Date": "2026-03-03 17:46:02",
+            "Date": "2026-03-17 11:53:15",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-03 17:46:02",
+            "Date": "2026-03-17 11:53:15",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-03 17:46:02",
+            "Date": "2026-03-17 11:53:15",
             "Reason": "SessionChangedIsDisabled",
             "State": false
           },
           {
-            "Date": "2026-03-03 17:46:02",
+            "Date": "2026-03-17 11:53:15",
             "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-03 17:46:03",
-            "Reason": "LoadingPrefsA",
-            "State": false
-          },
-          {
-            "Date": "2026-03-03 17:46:03",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-03 17:46:04",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-03 17:46:04",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-03 17:46:04",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-12 14:52:13",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2026-03-12 14:52:19",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 15:33:11",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2026-03-13 15:33:14",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 17:26:29",
-            "Reason": "LoadingPrefsA",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 17:26:30",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 17:26:30",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 17:26:30",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 17:27:02",
-            "Reason": "LoadingPrefsA",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 17:27:02",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 17:27:02",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 17:27:02",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 17:27:02",
-            "Reason": "LoadingPrefsA",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 17:27:03",
-            "Reason": "LoadingPrefsA",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 17:27:03",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 17:27:03",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 17:27:05",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          }
-        ],
-        "MouseKeysState": [
-          {
-            "Date": "2024-12-18 13:56:34",
-            "Reason": "Settings",
-            "State": true
-          },
-          {
-            "Date": "2024-12-18 13:56:56",
-            "Reason": "FailedActivationDialog",
-            "State": false
-          },
-          {
-            "Date": "2024-12-18 13:57:18",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2024-12-18 13:57:20",
-            "Reason": "Settings",
-            "State": false
-          },
-          {
-            "Date": "2024-12-18 13:57:21",
-            "Reason": "Settings",
-            "State": true
-          },
-          {
-            "Date": "2024-12-18 13:57:25",
-            "Reason": "FailedActivationDialog",
-            "State": false
-          },
-          {
-            "Date": "2024-12-18 13:57:28",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2024-12-18 14:00:34",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2024-12-18 14:01:21",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2024-12-18 14:04:13",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2024-12-18 14:06:08",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2024-12-18 14:07:49",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2024-12-18 14:08:15",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2024-12-18 14:08:20",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2024-12-18 14:29:03",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2024-12-18 14:29:06",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2024-12-18 14:38:50",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2024-12-18 14:38:53",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2024-12-18 14:39:37",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2024-12-18 14:39:43",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2024-12-18 14:43:58",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2024-12-18 14:46:12",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2024-12-18 15:19:26",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2024-12-18 15:19:29",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2024-12-19 09:46:26",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2024-12-19 09:46:29",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2024-12-19 10:58:46",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2024-12-19 10:59:46",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2025-01-06 10:17:49",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2025-01-06 10:17:52",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2026-02-19 18:49:25",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2026-02-19 18:49:36",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2026-03-12 14:52:13",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2026-03-12 14:52:19",
-            "Reason": "OptionKey",
-            "State": false
-          },
-          {
-            "Date": "2026-03-13 15:33:11",
-            "Reason": "OptionKey",
-            "State": true
-          },
-          {
-            "Date": "2026-03-13 15:33:14",
-            "Reason": "OptionKey",
             "State": false
           }
         ]
-      }
-    },
-    "UserAssignableHotKeys": {
-      "type": "plist",
-      "value": [
-        {
-          "enabled": false,
-          "key": 120,
-          "modifier": 8650752,
-          "sybmolichotkey": 7
-        },
-        {
-          "enabled": false,
-          "key": 99,
-          "modifier": 8650752,
-          "sybmolichotkey": 8
-        },
-        {
-          "enabled": false,
-          "key": 118,
-          "modifier": 8650752,
-          "sybmolichotkey": 9
-        },
-        {
-          "enabled": false,
-          "key": 96,
-          "modifier": 8650752,
-          "sybmolichotkey": 10
-        },
-        {
-          "enabled": false,
-          "key": 97,
-          "modifier": 8650752,
-          "sybmolichotkey": 11
-        }
-      ]
-    },
-    "alternateMouseButtonsEnabled": {
-      "type": "bool",
-      "value": false
-    },
-    "alternateMouseButtonsPlaySound": {
-      "type": "bool",
-      "value": false
-    },
-    "alternateMouseButtonsShowVisualFeedback": {
-      "type": "bool",
-      "value": true
-    },
-    "closeViewCustomHotkeyKey": {
-      "type": "plist",
-      "value": {
-        "AX_ZOOM_FREEZE_PANNING": {
-          "charCode": 65535,
-          "keyCode": 65535,
-          "modifiers": 0
-        },
-        "AX_ZOOM_MONITOR_SELECTION": {
-          "charCode": 65535,
-          "keyCode": 65535,
-          "modifiers": 0
-        },
-        "AX_ZOOM_TEMP_DETACH": {
-          "charCode": 65535,
-          "keyCode": 65535,
-          "modifiers": 1310720
-        },
-        "AX_ZOOM_TEMP_TOGGLE": {
-          "charCode": 65535,
-          "keyCode": 65535,
-          "modifiers": 786432
-        },
-        "AX_ZOOM_TOGGLE_FS_AND_PIP": {
-          "charCode": 102,
-          "keyCode": 3,
-          "modifiers": 1572864
-        }
       }
     },
     "closeViewHotkeysEnabled": {
@@ -3692,108 +3280,6 @@
       "type": "int",
       "value": 1
     },
-    "closeViewZoomFactorBeforeTermination": {
-      "type": "int",
-      "value": 1
-    },
-    "com.apple.custommenu.apps": {
-      "type": "plist",
-      "value": [
-        "NSGlobalDomain"
-      ]
-    },
-    "customFonts": {
-      "type": "bool",
-      "value": false
-    },
-    "grayscale": {
-      "type": "bool",
-      "value": false
-    },
-    "headMouseEnabled": {
-      "type": "bool",
-      "value": false
-    },
-    "headMouseExpressionConfiguration": {
-      "type": "plist-file",
-      "file": "macos-plists/com.apple.universalaccess.headMouseExpressionConfiguration.plist"
-    },
-    "headMouseMode": {
-      "type": "int",
-      "value": 2
-    },
-    "headMousePauseResumeSwitchEnabled": {
-      "type": "bool",
-      "value": true
-    },
-    "headMouseRecalibrateSwitchEnabled": {
-      "type": "bool",
-      "value": false
-    },
-    "headMouseSensitivity": {
-      "type": "float",
-      "value": 0.5
-    },
-    "headMouseTolerance": {
-      "type": "float",
-      "value": 0.5
-    },
-    "hoverTextActivationLockMode": {
-      "type": "int",
-      "value": 0
-    },
-    "hoverTextBorderColor": {
-      "type": "plist",
-      "value": {}
-    },
-    "hoverTextCustomBackgroundColor": {
-      "type": "plist",
-      "value": {}
-    },
-    "hoverTextCustomCursorColor": {
-      "type": "plist",
-      "value": {}
-    },
-    "hoverTextCustomFontColor": {
-      "type": "plist",
-      "value": {}
-    },
-    "hoverTextElementHighlightColor": {
-      "type": "plist",
-      "value": {}
-    },
-    "hoverTextEnabled": {
-      "type": "bool",
-      "value": false
-    },
-    "hoverTextFontStyle": {
-      "type": "int",
-      "value": 1
-    },
-    "hoverTextModifier": {
-      "type": "int",
-      "value": 2
-    },
-    "hoverTextShowWhenTyping": {
-      "type": "bool",
-      "value": false
-    },
-    "hudNotifiedConstrast": {
-      "type": "int",
-      "value": 0
-    },
-    "keyboardAccessEnabled": {
-      "type": "bool",
-      "value": false
-    },
-    "keyboardAccessFocusRingTimeout": {
-      "type": "int",
-      "value": 15
-    },
-    "keyboardAccessPassthroughMode": {
-      "type": "bool",
-      "value": false
-    },
     "liveSpeechEnabled": {
       "type": "bool",
       "value": false
@@ -3806,27 +3292,7 @@
       "type": "bool",
       "value": false
     },
-    "mouseDriverInitialDelay": {
-      "type": "float",
-      "value": 0.3333333432674408
-    },
-    "mouseDriverMaxSpeed": {
-      "type": "int",
-      "value": 400
-    },
-    "selectedTab": {
-      "type": "int",
-      "value": 14
-    },
     "sessionChange": {
-      "type": "bool",
-      "value": false
-    },
-    "showToolbarButtonShapes": {
-      "type": "bool",
-      "value": false
-    },
-    "showWindowTitlebarIcons": {
       "type": "bool",
       "value": false
     },
@@ -3837,108 +3303,6 @@
     "slowKeyDelay": {
       "type": "int",
       "value": 250
-    },
-    "spokenContentPreferredVoiceForLanguage": {
-      "type": "plist",
-      "value": {
-        "en": "com.apple.voice.compact.en-US.Samantha"
-      }
-    },
-    "spokenContentSpeakingRateForVoice": {
-      "type": "plist",
-      "value": {
-        "com.apple.voice.compact.en-US.Samantha": 175.0
-      }
-    },
-    "spokenContentSpeakingVolumeForVoice": {
-      "type": "plist",
-      "value": {
-        "com.apple.voice.compact.en-US.Samantha": 1.0
-      }
-    },
-    "stickyKey": {
-      "type": "bool",
-      "value": false
-    },
-    "switchAutoScanElementInterval": {
-      "type": "float",
-      "value": 0.5
-    },
-    "switchAutoScanPanelInterval": {
-      "type": "float",
-      "value": 0.5
-    },
-    "switchCoalescePressesDuration": {
-      "type": "int",
-      "value": 0
-    },
-    "switchFirstElementDelay": {
-      "type": "int",
-      "value": 0
-    },
-    "switchHideUITimeout": {
-      "type": "int",
-      "value": 15
-    },
-    "switchHoldBeforeRepeatDuration": {
-      "type": "int",
-      "value": 3
-    },
-    "switchMinimumPressDuration": {
-      "type": "int",
-      "value": 0
-    },
-    "switchSweepingCursorSpeed": {
-      "type": "int",
-      "value": 5
-    },
-    "systemTranscriptionTranscriptionViewBackgroundColor": {
-      "type": "plist",
-      "value": {}
-    },
-    "systemTranscriptionTranscriptionViewFontColor": {
-      "type": "plist",
-      "value": {}
-    },
-    "useMouseKeysShortcutKeys": {
-      "type": "bool",
-      "value": false
-    },
-    "useStickyKeysShortcutKeys": {
-      "type": "bool",
-      "value": false
-    },
-    "userSwitches": {
-      "type": "plist",
-      "value": [
-        {
-          "switchAction": 0,
-          "switchActionType": 1,
-          "switchCustomName": "Scrunch Nose",
-          "switchCustomNameIsLocalized": false,
-          "switchExpression": 6,
-          "switchType": 1,
-          "switchUUIDString": "24364A5F-EA78-4CF8-B3C0-126DFF3E77BC"
-        },
-        {
-          "switchAction": 1,
-          "switchActionType": 1,
-          "switchCustomName": "Eye Blink",
-          "switchCustomNameIsLocalized": false,
-          "switchExpression": 5,
-          "switchType": 1,
-          "switchUUIDString": "4EA36F9A-9296-417E-B257-D76B428F45DF"
-        },
-        {
-          "switchAction": 0,
-          "switchActionType": 0,
-          "switchCustomName": "Stick Out Tongue",
-          "switchCustomNameIsLocalized": false,
-          "switchExpression": 4,
-          "switchType": 1,
-          "switchUUIDString": "C142243A-81F4-4708-B7EF-32224393CD76"
-        }
-      ]
     }
   },
   "com.apple.visualintelligence": {
@@ -4038,7 +3402,7 @@
     },
     "NSWindow Frame NSNavPanelAutosaveName": {
       "type": "string",
-      "value": "356 249 800 448 0 0 1512 950 "
+      "value": "403 318 923 448 0 0 1728 1085 "
     },
     "NSWindow Frame SUAutomaticUpdateAlert": {
       "type": "string",
@@ -4907,7 +4271,7 @@
     },
     "NoSyncLastTipTime": {
       "type": "float",
-      "value": 691342317.66722
+      "value": 691342336.0
     },
     "NoSyncLaunchExperienceControllerRunCount": {
       "type": "int",
@@ -4915,7 +4279,7 @@
     },
     "NoSyncNextAnnoyanceTime": {
       "type": "float",
-      "value": 686844443.249809
+      "value": 686844416.0
     },
     "NoSyncPermissionToShowTip": {
       "type": "bool",
@@ -5407,7 +4771,7 @@
     },
     "NoSyncTipOfTheDayEligibilityBeganTime": {
       "type": "float",
-      "value": 686522917.293469
+      "value": 686522944.0
     },
     "NoSyncTipsDisabled": {
       "type": "bool",
@@ -5848,6 +5212,10 @@
       "type": "bool",
       "value": false
     },
+    "NSNavPanelExpandedSizeForOpenMode": {
+      "type": "string",
+      "value": "{800, 448}"
+    },
     "NSStatusItem Preferred Position Item-0": {
       "type": "int",
       "value": 476
@@ -5856,6 +5224,14 @@
       "type": "string",
       "value": "997 59 478 281 0 0 1512 950 "
     },
+    "NSWindow Frame NSNavPanelAutosaveName": {
+      "type": "string",
+      "value": "464 477 800 448 0 0 1728 1085 "
+    },
+    "NSWindow Frame PermissionsWindow": {
+      "type": "string",
+      "value": "603 502 521 415 0 0 1728 1085 "
+    },
     "NSWindow Frame SUAutomaticUpdateAlert": {
       "type": "string",
       "value": "448 574 616 184 0 0 1512 950 "
@@ -5863,6 +5239,10 @@
     "NSWindow Frame SUStatusFrame": {
       "type": "string",
       "value": "556 611 400 135 0 0 1512 950 "
+    },
+    "NSWindow Frame SettingsWindow": {
+      "type": "string",
+      "value": "2663 346 918 534 1728 37 1920 1080 "
     },
     "SUAutomaticallyUpdate": {
       "type": "bool",
@@ -5903,6 +5283,10 @@
     "cursorFollowFocusEnabled": {
       "type": "string",
       "value": "false"
+    },
+    "exceptions": {
+      "type": "string",
+      "value": "[{\"hide\":\"1\",\"bundleIdentifier\":\"com.McAfee.McAfeeSafariHost\",\"ignore\":\"0\"},{\"hide\":\"1\",\"bundleIdentifier\":\"com.apple.finder\",\"ignore\":\"0\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.microsoft.rdc.macos\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.teamviewer.TeamViewer\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"org.virtualbox.app.VirtualBoxVM\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.parallels.\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.citrix.XenAppViewer\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.citrix.receiver.icaviewer.mac\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.nicesoftware.dcvviewer\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.vmware.fusion\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.apple.ScreenSharing\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.utmapp.UTM\",\"ignore\":\"2\"},{\"hide\":\"1\",\"bundleIdentifier\":\"com.granola.app\",\"ignore\":\"0\"},{\"hide\":\"1\",\"bundleIdentifier\":\"com.superultra.Homerow\",\"ignore\":\"0\"}]"
     },
     "fadeOutAnimation": {
       "type": "string",
@@ -5948,6 +5332,14 @@
       "type": "string",
       "value": "\u21e7"
     },
+    "settingsWindowShownOnFirstLaunch": {
+      "type": "string",
+      "value": "true"
+    },
+    "shortcutCount": {
+      "type": "string",
+      "value": "3"
+    },
     "showHiddenWindows": {
       "type": "string",
       "value": "2"
@@ -5972,6 +5364,10 @@
       "type": "int",
       "value": 1
     },
+    "showWindowlessApps10": {
+      "type": "string",
+      "value": "1"
+    },
     "showWindowlessApps2": {
       "type": "int",
       "value": 1
@@ -5993,8 +5389,8 @@
       "value": "2"
     },
     "vimKeysEnabled": {
-      "type": "string",
-      "value": "true"
+      "type": "bool",
+      "value": true
     },
     "windowDisplayDelay": {
       "type": "string",
@@ -6201,7 +5597,7 @@
     },
     "SparkleLastUpdateCheck": {
       "type": "float",
-      "value": 1769483797.169095
+      "value": 1769483776.0
     },
     "autoRestoreWorkspacesEnabled": {
       "type": "bool",
@@ -6515,7 +5911,7 @@
     },
     "default.fontSize": {
       "type": "float",
-      "value": 28.10903532608696
+      "value": 28.10903549194336
     },
     "mouse.displayOption": {
       "type": "int",
@@ -6621,6 +6017,18 @@
     "NSWindow Frame NSNavPanelAutosaveName": {
       "type": "string",
       "value": "500 339 800 408 0 0 1800 1131 "
+    }
+  },
+  "us.zoom.ZoomHybridConf": {
+    "AppleLanguages": {
+      "type": "plist",
+      "value": [
+        "en-US"
+      ]
+    },
+    "User Select Language Identify": {
+      "type": "string",
+      "value": "follow system language"
     }
   },
   "us.zoom.ZoomPresence": {
@@ -6750,7 +6158,7 @@
     },
     "ZMJoinMeetingFlowAnchor": {
       "type": "string",
-      "value": "{{0, 0}, {1512, 949}}"
+      "value": "{{0, 0}, {1728, 1084}}"
     },
     "ZMPTClientSidebarWidth": {
       "type": "int",

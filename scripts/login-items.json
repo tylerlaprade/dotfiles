@@ -1,7 +1,11 @@
 [
   {
-    "name": "Hyperkey",
-    "path": "/Applications/Hyperkey.app"
+    "name": "Notchi",
+    "path": "/Applications/Notchi.app"
+  },
+  {
+    "name": "Google Calendar",
+    "path": "/Users/Tyler Laprade/Applications/Brave Browser Apps.localized/Google Calendar.app"
   },
   {
     "name": "Discord",
@@ -12,12 +16,16 @@
     "path": "/Applications/Granola.app"
   },
   {
+    "name": "Claude",
+    "path": "/Applications/Claude.app"
+  },
+  {
     "name": "Graphite",
     "path": "/Applications/Graphite.app"
   },
   {
-    "name": "Google Calendar",
-    "path": "~/Applications/Brave Browser Apps.localized/Google Calendar.app"
+    "name": "Hyperkey",
+    "path": "/Applications/Hyperkey.app"
   },
   {
     "name": "Slack",

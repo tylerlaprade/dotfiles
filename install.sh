@@ -71,9 +71,9 @@ if ! command -v bun &>/dev/null; then
   pid_bun=$!
 fi
 
-# Sourcery
+# Sourcery (AI code review — "sourcery" not "sourcery-cli", which is stale/x86-only)
 echo "  [sourcery] starting..."
-(uv tool install sourcery-cli >"$LOGDIR/sourcery.log" 2>&1 && echo "  [sourcery] done" || echo "  [sourcery] FAILED") &
+(uv tool install --force sourcery >"$LOGDIR/sourcery.log" 2>&1 && echo "  [sourcery] done" || echo "  [sourcery] FAILED") &
 pid_sourcery=$!
 
 # Claude Code CLI (native installer, auto-updates)
