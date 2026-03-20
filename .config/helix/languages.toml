@@ -90,7 +90,7 @@ language-servers = [
 
 [[language]]
 name = "python"
-language-servers = ["basedpyright", "ruff", { name = "sourcery", only-features = ["diagnostics", "code-action"] }, { name = "codebook", only-features = ["diagnostics", "code-action"] }]
+language-servers = [{ name = "basedpyright", except-features = ["format"] }, "ruff", { name = "sourcery", only-features = ["diagnostics", "code-action"] }, { name = "codebook", only-features = ["diagnostics", "code-action"] }]
 
 # JSON
 [[language]]
