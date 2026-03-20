@@ -1,0 +1,10 @@
+{
+  "autoUpdates": true,
+  "preferredNotifChannel": "terminal_bell",
+  "autoConnectIde": true,
+  "fallbackAvailableWarningThreshold": 0.2,
+  "hasOpusPlanDefault": false,
+  "codeDiffFooterEnabled": true,
+  "prStatusFooterEnabled": true,
+  "showSpinnerTree": false
+}

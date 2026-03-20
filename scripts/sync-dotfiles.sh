@@ -101,7 +101,7 @@ fi
 # ~/.*rc, ~/.gitconfig, etc.
 for item in "$DOTFILES"/.[!.]*; do
   local_name="$(basename "$item")"
-  [[ "$local_name" == ".git" || "$local_name" == ".config" || "$local_name" == ".claude" || "$local_name" == ".codex" || "$local_name" == ".vscode" ]] && continue
+  [[ "$local_name" == ".git" || "$local_name" == ".config" || "$local_name" == ".claude" || "$local_name" == ".claude.json" || "$local_name" == ".codex" || "$local_name" == ".vscode" ]] && continue
   if [[ -d "$item" && ! -L "$item" ]]; then
     link_tree "$item" "$HOME/$local_name"
   else
@@ -154,6 +154,15 @@ elif [[ -f "$gt_prefs" && ! -f "$gt_config" ]]; then
   mkdir -p "$(dirname "$gt_config")"
   cp "$gt_prefs" "$gt_config"
   echo "ℹ️  Copied Graphite preferences. Run 'gt auth' to add your auth token."
+fi
+
+# ~/.claude.json — bidirectional preferences sync (machine state stays local)
+claude_json_prefs="$DOTFILES/.claude.json"
+claude_json_local="$HOME/.claude.json"
+if [[ -f "$claude_json_prefs" && -f "$claude_json_local" ]]; then
+  "$DOTFILES/scripts/sync-claude-json.py" "$claude_json_prefs" "$claude_json_local"
+elif [[ -f "$claude_json_prefs" && ! -f "$claude_json_local" ]]; then
+  cp "$claude_json_prefs" "$claude_json_local"
 fi
 
 # macOS defaults — read current values and update snapshot
