@@ -22,3 +22,5 @@
 	rebase = true
 [url "git@github.com:"]
 	insteadOf = https://github.com/
+[remote]
+	pushDefault = fork
