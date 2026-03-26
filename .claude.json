@@ -1,5 +1,5 @@
 {
   "autoUpdates": false,
-  "preferredNotifChannel": "terminal_bell",
-  "autoUpdatesProtectedForNative": true
+  "autoUpdatesProtectedForNative": true,
+  "deepLinkTerminal": "Ghostty"
 }
