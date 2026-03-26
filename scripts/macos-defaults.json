@@ -1856,10 +1856,6 @@
       "type": "int",
       "value": 441
     },
-    "NSStatusItem Preferred Position FocusModes": {
-      "type": "float",
-      "value": 329.0
-    },
     "NSStatusItem Preferred Position ScreenMirroring": {
       "type": "int",
       "value": 403
@@ -1925,10 +1921,6 @@
       "value": true
     },
     "NSStatusItem VisibleCC Clock": {
-      "type": "bool",
-      "value": true
-    },
-    "NSStatusItem VisibleCC FocusModes": {
       "type": "bool",
       "value": true
     },
@@ -2333,26 +2325,6 @@
     "TabbedWindowGroups": {
       "type": "plist",
       "value": []
-    },
-    "defaultCalendarChangedReason": {
-      "type": "string",
-      "value": "EventKit (<ClientIdentity: 0x77ac45500>, applicationIdentifier: [com.apple.calendar], bundleIdentifier: [com.apple.iCal], clientName: [Calendar], pid: [57150], teamIdentifier: [0000000000])"
-    },
-    "defaultCalendarChangedTimestamp": {
-      "type": "int",
-      "value": 794241799
-    },
-    "defaultCalendarDatabaseID": {
-      "type": "int",
-      "value": 0
-    },
-    "defaultCalendarID": {
-      "type": "string",
-      "value": "2EE6361B-7780-498B-9AAB-96CB64110BB9"
-    },
-    "defaultCalendarStoreUID": {
-      "type": "int",
-      "value": 6
     },
     "display birthdays calendar": {
       "type": "bool",
@@ -3420,17 +3392,9 @@
       "type": "bool",
       "value": true
     },
-    "SUHasLaunchedBefore": {
-      "type": "bool",
-      "value": true
-    },
     "SUScheduledCheckInterval": {
       "type": "int",
       "value": 10800
-    },
-    "SUUpdateRelaunchingMarker": {
-      "type": "bool",
-      "value": false
     }
   },
   "com.generalarcade.flycut": {
@@ -4798,10 +4762,6 @@
       "type": "string",
       "value": "https://iterm2.com/appcasts/final_modern.xml?shard=95"
     },
-    "SUHasLaunchedBefore": {
-      "type": "bool",
-      "value": true
-    },
     "SUSendProfileInfo": {
       "type": "bool",
       "value": false
@@ -4809,14 +4769,6 @@
     "SUSkippedVersion": {
       "type": "string",
       "value": "3.4.19"
-    },
-    "SUUpdateGroupIdentifier": {
-      "type": "int",
-      "value": 4269750602
-    },
-    "SUUpdateRelaunchingMarker": {
-      "type": "bool",
-      "value": false
     },
     "iTerm Version": {
       "type": "string",
@@ -5146,14 +5098,6 @@
       "type": "bool",
       "value": true
     },
-    "SUHasLaunchedBefore": {
-      "type": "bool",
-      "value": true
-    },
-    "SUUpdateGroupIdentifier": {
-      "type": "int",
-      "value": 3542062055
-    },
     "capsLockKeycode": {
       "type": "int",
       "value": 224
@@ -5220,39 +5164,11 @@
       "type": "int",
       "value": 476
     },
-    "NSWindow Frame NSFontPanel": {
-      "type": "string",
-      "value": "997 59 478 281 0 0 1512 950 "
-    },
-    "NSWindow Frame NSNavPanelAutosaveName": {
-      "type": "string",
-      "value": "464 477 800 448 0 0 1728 1085 "
-    },
-    "NSWindow Frame PermissionsWindow": {
-      "type": "string",
-      "value": "603 502 521 415 0 0 1728 1085 "
-    },
-    "NSWindow Frame SUAutomaticUpdateAlert": {
-      "type": "string",
-      "value": "448 574 616 184 0 0 1512 950 "
-    },
-    "NSWindow Frame SUStatusFrame": {
-      "type": "string",
-      "value": "556 611 400 135 0 0 1512 950 "
-    },
-    "NSWindow Frame SettingsWindow": {
-      "type": "string",
-      "value": "2663 346 918 534 1728 37 1920 1080 "
-    },
     "SUAutomaticallyUpdate": {
       "type": "bool",
       "value": true
     },
     "SUEnableAutomaticChecks": {
-      "type": "bool",
-      "value": true
-    },
-    "SUHasLaunchedBefore": {
       "type": "bool",
       "value": true
     },
@@ -5414,17 +5330,9 @@
       "type": "bool",
       "value": true
     },
-    "SUHasLaunchedBefore": {
-      "type": "bool",
-      "value": true
-    },
     "SUSendProfileInfo": {
       "type": "bool",
       "value": false
-    },
-    "SUUpdateGroupIdentifier": {
-      "type": "int",
-      "value": 4106989386
     }
   },
   "com.pvncher.repoprompt": {
@@ -5579,14 +5487,6 @@
       "type": "string",
       "value": "1.5.67"
     },
-    "SUHasLaunchedBefore": {
-      "type": "bool",
-      "value": true
-    },
-    "SUUpdateGroupIdentifier": {
-      "type": "int",
-      "value": 3676807388
-    },
     "SidebarTerminalHeight": {
       "type": "int",
       "value": 260
@@ -5689,14 +5589,6 @@
       "type": "bool",
       "value": true
     },
-    "SUHasLaunchedBefore": {
-      "type": "bool",
-      "value": true
-    },
-    "SUUpdateRelaunchingMarker": {
-      "type": "bool",
-      "value": true
-    },
     "WebAutomaticSpellingCorrectionEnabled": {
       "type": "bool",
       "value": false
@@ -5760,14 +5652,6 @@
     "SUEnableAutomaticChecks": {
       "type": "bool",
       "value": true
-    },
-    "SUHasLaunchedBefore": {
-      "type": "bool",
-      "value": true
-    },
-    "SUUpdateGroupIdentifier": {
-      "type": "int",
-      "value": 3989351276
     },
     "chain-clicks": {
       "type": "bool",
@@ -5881,17 +5765,9 @@
       "type": "bool",
       "value": true
     },
-    "SUHasLaunchedBefore": {
-      "type": "bool",
-      "value": true
-    },
     "SUSendProfileInfo": {
       "type": "bool",
       "value": true
-    },
-    "SUUpdateGroupIdentifier": {
-      "type": "int",
-      "value": 1040748677
     },
     "alwaysShowPrefs": {
       "type": "bool",

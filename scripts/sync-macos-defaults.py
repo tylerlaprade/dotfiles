@@ -28,14 +28,27 @@ if not os.path.exists(CONF_PATH):
     sys.exit(0)
 
 
-def load_existing_snapshot():
-    if not os.path.exists(SNAPSHOT_PATH):
-        return {}
+def load_committed_snapshot():
+    """Load the last-committed snapshot from git as the stability baseline.
+
+    Comparing against git HEAD (not the on-disk file) prevents drift: if a
+    prior sync already wrote a noisy float, the on-disk file has the noisy
+    value and stabilize_number can't help.  Git HEAD is the clean baseline.
+    """
     try:
-        with open(SNAPSHOT_PATH) as f:
-            return json.load(f)
+        rel = os.path.relpath(SNAPSHOT_PATH, subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, cwd=SCRIPT_DIR,
+        ).stdout.strip())
+        raw = subprocess.run(
+            ["git", "show", f"HEAD:{rel}"],
+            capture_output=True, text=True, cwd=SCRIPT_DIR,
+        )
+        if raw.returncode == 0:
+            return json.loads(raw.stdout)
     except Exception:
-        return {}
+        pass
+    return {}
 
 # Parse conf
 apple_whitelist = {}  # domain -> key blacklist patterns
@@ -192,7 +205,7 @@ def export_domain(domain, blacklist, existing_snapshot):
     return None
 
 
-existing_snapshot = load_existing_snapshot()
+existing_snapshot = load_committed_snapshot()
 snapshot = {}
 for domain, blacklist in sorted(domains_to_export.items()):
     result = export_domain(domain, global_key_blacklist + blacklist, existing_snapshot)
