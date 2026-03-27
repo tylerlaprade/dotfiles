@@ -58,26 +58,7 @@ for item in "$DOTFILES"/.claude/*; do
   local_name="$(basename "$item")"
   [[ "$local_name" == "settings.local.json" ]] && continue
   if [[ "$local_name" == "plugins" ]]; then
-    # Merge marketplace sources from repo into local file (don't symlink —
-    # the plugins system adds machine-specific fields we don't want in the repo).
-    mkdir -p "$HOME/.claude/plugins"
-    local_mkts="$HOME/.claude/plugins/known_marketplaces.json"
-    repo_mkts="$DOTFILES/.claude/plugins/known_marketplaces.json"
-    if [[ -L "$local_mkts" ]]; then
-      rm "$local_mkts"
-    fi
-    manifest="$HOME/.claude/plugins/.synced-marketplaces"
-    actions=$("$DOTFILES/scripts/sync-claude-plugins.py" "$repo_mkts" "$local_mkts" "$manifest")
-    if [[ -n "$actions" ]]; then
-      while IFS= read -r action; do
-        case "$action" in
-          install\ *)
-            claude plugin marketplace add "${action#install }" 2>/dev/null || true ;;
-          remove\ *)
-            claude plugin marketplace remove "${action#remove }" 2>/dev/null || true ;;
-        esac
-      done <<< "$actions"
-    fi
+    continue  # managed by extraKnownMarketplaces in settings.json
   elif [[ -d "$item" && ! -L "$item" ]]; then
     link_tree "$item" "$HOME/.claude/$local_name"
   else
