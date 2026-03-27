@@ -162,7 +162,7 @@
       "source": {
         "source": "github",
         "repo": "EveryInc/compound-engineering-plugin"
-      },
+      }
     }
   },
   "alwaysThinkingEnabled": true,
