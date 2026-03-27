@@ -44,6 +44,7 @@ args = ["serve"]
 
 [[language]]
 name = "javascript"
+auto-format = true
 language-servers = [
   { name = "typescript-language-server", except-features = ["format"] },
   "vscode-eslint-language-server",
@@ -55,6 +56,7 @@ language-servers = [
 
 [[language]]
 name = "typescript"
+auto-format = true
 language-servers = [
   { name = "typescript-language-server", except-features = ["format"] },
   "vscode-eslint-language-server",
@@ -66,6 +68,7 @@ language-servers = [
 
 [[language]]
 name = "jsx"
+auto-format = true
 language-servers = [
   { name = "typescript-language-server", except-features = ["format"] },
   "vscode-eslint-language-server",
@@ -77,6 +80,7 @@ language-servers = [
 
 [[language]]
 name = "tsx"
+auto-format = true
 language-servers = [
   { name = "typescript-language-server", except-features = ["format"] },
   "vscode-eslint-language-server",
@@ -90,11 +94,13 @@ language-servers = [
 
 [[language]]
 name = "python"
+auto-format = true
 language-servers = [{ name = "basedpyright", except-features = ["format"] }, "ruff", { name = "sourcery", only-features = ["diagnostics", "code-action"] }, { name = "codebook", only-features = ["diagnostics", "code-action"] }]
 
 # JSON
 [[language]]
 name = "json"
+auto-format = true
 language-servers = ["vscode-json-language-server"]
 
 [language-server.vscode-json-language-server]
@@ -148,42 +154,50 @@ args = ["--stdio"]
 # Rust
 [[language]]
 name = "rust"
+auto-format = true
 language-servers = ["rust-analyzer", { name = "codebook", only-features = ["diagnostics", "code-action"] }]
 formatter = { command = "rustfmt" }
 
 # Shell
 [[language]]
 name = "bash"
+auto-format = true
 language-servers = ["bash-language-server", { name = "codebook", only-features = ["diagnostics", "code-action"] }]
 formatter = { command = "shfmt", args = ["-i", "2"] }
 
 # TOML
 [[language]]
 name = "toml"
+auto-format = true
 language-servers = ["taplo", { name = "codebook", only-features = ["diagnostics", "code-action"] }]
 formatter = { command = "taplo", args = ["format", "-"] }
 
 # YAML
 [[language]]
 name = "yaml"
+auto-format = true
 language-servers = ["yaml-language-server", { name = "codebook", only-features = ["diagnostics", "code-action"] }]
 
 # Markdown
 [[language]]
 name = "markdown"
+auto-format = true
 language-servers = [{ name = "codebook", only-features = ["diagnostics", "code-action"] }]
 formatter = { command = "markdownlint-cli2", args = ["--fix"] }
 
 # CSS / SCSS
 [[language]]
 name = "css"
+auto-format = true
 language-servers = ["vscode-css-language-server", { name = "stylelint-lsp", only-features = ["diagnostics"] }, { name = "codebook", only-features = ["diagnostics", "code-action"] }]
 
 [[language]]
 name = "scss"
+auto-format = true
 language-servers = ["vscode-css-language-server", { name = "stylelint-lsp", only-features = ["diagnostics"] }, { name = "codebook", only-features = ["diagnostics", "code-action"] }]
 
 # HTML
 [[language]]
 name = "html"
+auto-format = true
 language-servers = ["vscode-html-language-server", { name = "codebook", only-features = ["diagnostics", "code-action"] }]
