@@ -9,6 +9,10 @@ echo "=== Dotfiles Setup ==="
 sudo -v
 while true; do sudo -n true; sleep 50; kill -0 "$$" || exit; done 2>/dev/null &
 
+# Share sudo timestamp across all subshells (macOS default is per-tty)
+sudo sh -c 'echo "Defaults !tty_tickets" > /etc/sudoers.d/dotfiles-install'
+trap 'sudo rm -f /etc/sudoers.d/dotfiles-install' EXIT
+
 # 1. Homebrew (needed for Xcode CLT + git, and as fallback)
 if ! command -v brew &>/dev/null; then
   echo "Installing Homebrew..."
