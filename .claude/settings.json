@@ -118,7 +118,7 @@
       {
         "hooks" : [
           {
-            "command" : "~\/Code\/dotfiles\/scripts\/sync-dotfiles.sh",
+            "command" : "~\/Code\/dotfiles\/scripts\/sync\/sync-dotfiles.sh",
             "type" : "command"
           }
         ],

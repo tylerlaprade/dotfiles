@@ -45,7 +45,7 @@ mkdir -p "$LOGDIR"
 
 # Use experimental wrapper only if --experimental flag is passed
 if [[ " $* " == *" --experimental "* ]] && { command -v wax &>/dev/null || command -v zb &>/dev/null; }; then
-  source "$DOTFILES/scripts/brew-wrapper.sh"
+  source "$DOTFILES/scripts/bin/brew-wrapper.sh"
 fi
 
 # Protect tracked shell configs from installers that append to them
@@ -162,7 +162,7 @@ done
 # Symlink dotfiles (needs uv from brew)
 # Skip macOS defaults capture on install — we want to apply, not overwrite
 echo "Syncing dotfiles..."
-SKIP_DEFAULTS_SYNC=1 "$DOTFILES/scripts/sync-dotfiles.sh"
+SKIP_DEFAULTS_SYNC=1 "$DOTFILES/scripts/sync/sync-dotfiles.sh"
 
 # Keep logs around for inspection — they're in $TMPDIR and will be cleaned by the OS
 echo "  Install logs: $LOGDIR"
@@ -171,13 +171,13 @@ echo "  Install logs: $LOGDIR"
 BACKUP="$HOME/Desktop/machine-backup.zip"
 if [[ -f "$BACKUP" ]]; then
   echo ""
-  "$DOTFILES/scripts/restore.sh" "$BACKUP"
+  "$DOTFILES/scripts/setup/restore.sh" "$BACKUP"
 fi
 
 # Apply macOS defaults
 echo ""
 echo "Applying macOS defaults..."
-"$DOTFILES/scripts/apply-macos-defaults.py"
+"$DOTFILES/scripts/setup/apply-macos-defaults.py"
 
 # /etc/hosts
 if ! grep -q "local.paqarina.dev" /etc/hosts 2>/dev/null; then

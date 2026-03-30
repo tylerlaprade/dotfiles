@@ -4,7 +4,7 @@ set -e
 BACKUP_DIR="$HOME/Desktop/machine-backup"
 ARCHIVE="$HOME/Desktop/machine-backup.zip"
 
-DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 echo "=== Pre-Wipe Backup ==="
 
@@ -16,7 +16,7 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "  ✗ Dotfiles repo has uncommitted changes. Commit or stash first."
   exit 1
 fi
-"$DOTFILES/scripts/sync-dotfiles.sh"
+"$DOTFILES/scripts/sync/sync-dotfiles.sh"
 git add -A
 git diff --cached --quiet || git commit -m "Pre-wipe sync"
 git push

@@ -2,7 +2,7 @@
 # Lightweight symlink sync — safe to run repeatedly.
 # Called from Claude Code SessionStart hook to keep links current.
 
-DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 link() {
   local src="$1" dst="$2"
@@ -50,7 +50,7 @@ helix_lang_repo="$DOTFILES/.config/helix/languages.toml"
 if [[ -L "$helix_lang_local" ]]; then
   rm "$helix_lang_local"
 fi
-"$DOTFILES/scripts/sync-helix-languages.py" "$helix_lang_repo" "$helix_lang_local"
+"$DOTFILES/scripts/sync/sync-helix-languages.py" "$helix_lang_repo" "$helix_lang_local"
 
 # ~/.claude/* (skip machine-local files)
 mkdir -p "$HOME/.claude"
@@ -101,9 +101,9 @@ done
 # ~/Library/KeyBindings
 link_tree "$DOTFILES/.config/KeyBindings" "$HOME/Library/KeyBindings"
 
-# scripts -> ~/.local/bin
+# scripts/bin -> ~/.local/bin
 mkdir -p "$HOME/.local/bin"
-for script in "$DOTFILES"/scripts/*.sh; do
+for script in "$DOTFILES"/scripts/bin/*.sh; do
   link "$script" "$HOME/.local/bin/$(basename "$script" .sh)"
 done
 
@@ -129,7 +129,7 @@ if [[ -L "$local_settings" ]]; then
   rm "$local_settings"
 fi
 if [[ -f "$repo_settings" ]]; then
-  "$DOTFILES/scripts/sync-vscode-settings.py" "$repo_settings" "$local_settings" "$secrets_file"
+  "$DOTFILES/scripts/sync/sync-vscode-settings.py" "$repo_settings" "$local_settings" "$secrets_file"
 fi
 
 # Graphite — bidirectional preferences sync (authToken stays local)
@@ -137,7 +137,7 @@ gt_prefs="$DOTFILES/.config/graphite/preferences.json"
 gt_config="$HOME/.config/graphite/user_config"
 
 if [[ -f "$gt_prefs" && -f "$gt_config" ]]; then
-  "$DOTFILES/scripts/sync-graphite.py" "$gt_prefs" "$gt_config"
+  "$DOTFILES/scripts/sync/sync-graphite.py" "$gt_prefs" "$gt_config"
 elif [[ -f "$gt_prefs" && ! -f "$gt_config" ]]; then
   # Fresh machine, no config yet — just copy preferences (user needs to run gt auth first)
   mkdir -p "$(dirname "$gt_config")"
@@ -149,7 +149,7 @@ fi
 claude_json_prefs="$DOTFILES/.claude.json"
 claude_json_local="$HOME/.claude.json"
 if [[ -f "$claude_json_prefs" && -f "$claude_json_local" ]]; then
-  "$DOTFILES/scripts/sync-claude-json.py" "$claude_json_prefs" "$claude_json_local"
+  "$DOTFILES/scripts/sync/sync-claude-json.py" "$claude_json_prefs" "$claude_json_local"
 elif [[ -f "$claude_json_prefs" && ! -f "$claude_json_local" ]]; then
   cp "$claude_json_prefs" "$claude_json_local"
 fi
@@ -158,5 +158,5 @@ uv tool upgrade --all >/dev/null 2>&1 || true
 
 # macOS defaults — read current values and update snapshot
 if [[ -z "${SKIP_DEFAULTS_SYNC:-}" ]]; then
-  "$DOTFILES/scripts/sync-macos-defaults.py"
+  "$DOTFILES/scripts/sync/sync-macos-defaults.py"
 fi

@@ -69,7 +69,7 @@ fi
 
 section "~/.config entries not tracked by dotfiles"
 if [[ -d "$HOME/.config" ]]; then
-  DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
   for dir in "$HOME/.config/"*/; do
     name=$(basename "$dir")
     # Skip dirs that are tracked in the dotfiles repo or backed up by pre-wipe
@@ -87,7 +87,7 @@ if [[ -d "$HOME/.config" ]]; then
 fi
 
 section "Hidden dotfiles in ~ not tracked by dotfiles repo"
-DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # Things pre-wipe.sh already handles
 known=(.ssh .gnupg .aws .zshrc.local .zsh_history .psql_history .python_history .node_repl_history .claude)
 # Things in the dotfiles repo
