@@ -205,17 +205,21 @@
     },
     "AccessibilityEnabled": {
       "type": "bool",
-      "value": true
+      "value": false
     },
     "ApplicationAccessibilityEnabled": {
       "type": "int",
-      "value": 1
+      "value": 0
     },
     "AutomationEnabled": {
       "type": "int",
       "value": 0
     },
     "BrailleInputDeviceConnected": {
+      "type": "int",
+      "value": 0
+    },
+    "ButtonShapesEnabled": {
       "type": "int",
       "value": 0
     },
@@ -245,7 +249,7 @@
     },
     "GenericAccessibilityClientEnabled": {
       "type": "int",
-      "value": 1
+      "value": 0
     },
     "GrayscaleDisplay": {
       "type": "int",
@@ -1337,10 +1341,6 @@
       "type": "bool",
       "value": true
     },
-    "startTime": {
-      "type": "float",
-      "value": 795130560.0
-    },
     "useCount": {
       "type": "int",
       "value": 1
@@ -1381,7 +1381,7 @@
     },
     "ProfileCurrentVersion": {
       "type": "float",
-      "value": 2.0899999141693115
+      "value": 2.09
     },
     "SecureKeyboardEntry": {
       "type": "bool",
@@ -1446,389 +1446,6 @@
     "Dictation Enabled": {
       "type": "bool",
       "value": true
-    },
-    "Offline Dictation Status": {
-      "type": "plist",
-      "value": {
-        "ar-SA": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "da-DK": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "de-AT": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "de-CH": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "de-DE": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "en-AU": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "en-CA": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "en-GB": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "en-IE": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "en-IN": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "en-NZ": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "en-SG": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "en-US": {
-          "Auto Punctuation": true,
-          "Continuous Listening": true,
-          "Emoji Recognition": true,
-          "High Quality": true,
-          "Installed": true,
-          "On Device Search": true,
-          "Voice Commands": false
-        },
-        "en-ZA": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "es-CL": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "es-ES": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "es-MX": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "es-US": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "fi-FI": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "fr-BE": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "fr-CA": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "fr-CH": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "fr-FR": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "he-IL": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "it-CH": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "it-IT": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "ja-JP": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "ko-KR": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "ms-MY": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "nb-NO": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "nl-BE": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "nl-NL": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "pt-BR": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "ru-RU": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "sv-SE": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "th-TH": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "tr-TR": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "vi-VN": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": false,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "yue-CN": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "zh-CN": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "zh-HK": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        },
-        "zh-TW": {
-          "Auto Punctuation": false,
-          "Continuous Listening": false,
-          "Emoji Recognition": false,
-          "High Quality": true,
-          "Installed": false,
-          "On Device Search": false,
-          "Voice Commands": false
-        }
-      }
     },
     "Siri Data Sharing Opt-In Status": {
       "type": "int",
@@ -2374,10 +1991,6 @@
         "CKAccountInfoCacheReset"
       ]
     },
-    "CKStartupTime": {
-      "type": "int",
-      "value": 1773437050
-    },
     "IMChatVocabularyUpdaterDidPerformInitialUpdateKey": {
       "type": "bool",
       "value": true
@@ -2701,7 +2314,7 @@
         "176": {
           "enabled": false,
           "value": {
-            "type": "SAE1.0"
+            "type": "standard"
           }
         },
         "179": {
@@ -3123,123 +2736,6 @@
     }
   },
   "com.apple.universalaccess": {
-    "History": {
-      "type": "plist",
-      "value": {
-        "MouseKeys": [
-          {
-            "Date": "2026-03-17 08:40:27",
-            "Reason": "LoadingPrefsA",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:27",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:27",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:27",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:27",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:28",
-            "Reason": "LoadingPrefsA",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:28",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:28",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:28",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:28",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:29",
-            "Reason": "LoadingPrefsA",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:36",
-            "Reason": "LoadingPrefsA",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:36",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:36",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:36",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:36",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 08:40:37",
-            "Reason": "LoadingPrefsA",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 11:53:14",
-            "Reason": "LoadingPrefsA",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 11:53:15",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 11:53:15",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 11:53:15",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          },
-          {
-            "Date": "2026-03-17 11:53:15",
-            "Reason": "SessionChangedIsDisabled",
-            "State": false
-          }
-        ]
-      }
-    },
     "closeViewHotkeysEnabled": {
       "type": "bool",
       "value": false
@@ -3275,6 +2771,14 @@
     "slowKeyDelay": {
       "type": "int",
       "value": 250
+    },
+    "stickyKey": {
+      "type": "bool",
+      "value": false
+    },
+    "useStickyKeysShortcutKeys": {
+      "type": "bool",
+      "value": false
     }
   },
   "com.apple.visualintelligence": {
@@ -5144,10 +4648,6 @@
       "type": "bool",
       "value": true
     },
-    "MSAppCenterAppDidReceiveMemoryWarning": {
-      "type": "bool",
-      "value": true
-    },
     "MSAppCenterInstallId": {
       "type": "string",
       "value": "ED9259B5-FAFE-4481-A785-8B1543DD2902"
@@ -5193,8 +4693,8 @@
       "value": "2"
     },
     "cursorFollowFocus": {
-      "type": "int",
-      "value": 0
+      "type": "string",
+      "value": "2"
     },
     "cursorFollowFocusEnabled": {
       "type": "string",
@@ -5213,8 +4713,8 @@
       "value": "false"
     },
     "hideShowAppShortcut": {
-      "type": "string",
-      "value": ""
+      "type": "plist-file",
+      "file": "macos-plists/com.lwouis.alt-tab-macos.hideShowAppShortcut.plist"
     },
     "hideSpaceNumberLabels": {
       "type": "string",
@@ -5232,10 +4732,6 @@
       "type": "string",
       "value": "2"
     },
-    "preferencesVersion": {
-      "type": "string",
-      "value": "8.3.4"
-    },
     "previewFadeInAnimation": {
       "type": "string",
       "value": "true"
@@ -5243,10 +4739,6 @@
     "previewFocusedWindow": {
       "type": "string",
       "value": "false"
-    },
-    "previousWindowShortcut": {
-      "type": "string",
-      "value": "\u21e7"
     },
     "settingsWindowShownOnFirstLaunch": {
       "type": "string",
@@ -5292,10 +4784,6 @@
       "type": "int",
       "value": 1
     },
-    "showWindowlessApps4": {
-      "type": "int",
-      "value": 1
-    },
     "titleTruncation": {
       "type": "string",
       "value": "1"
@@ -5305,8 +4793,8 @@
       "value": "2"
     },
     "vimKeysEnabled": {
-      "type": "bool",
-      "value": true
+      "type": "string",
+      "value": "true"
     },
     "windowDisplayDelay": {
       "type": "string",
@@ -6118,10 +5606,6 @@
       "type": "bool",
       "value": true
     },
-    "kIM_LastOpenedSession": {
-      "type": "string",
-      "value": ""
-    },
     "kWorkVivoTabName": {
       "type": "string",
       "value": ""
@@ -6165,18 +5649,6 @@
     "kZMShowPMCTransition": {
       "type": "int",
       "value": 4
-    },
-    "kZMSidebarStoreWidth": {
-      "type": "int",
-      "value": 0
-    },
-    "kZMSidebarViewType": {
-      "type": "int",
-      "value": 0
-    },
-    "kZMUserDefaultMainWindowCompressed": {
-      "type": "bool",
-      "value": true
     },
     "kZMUserDefaultSelectedTabType": {
       "type": "int",
