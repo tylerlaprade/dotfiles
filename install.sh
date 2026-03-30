@@ -139,7 +139,8 @@ if [[ ! -d "/Applications/Graphite.app" ]]; then
 fi
 
 # Notchi (Claude Code notch companion, not in Homebrew)
-if [[ ! -d "/Applications/Notchi.app" ]]; then
+has_notch=$(osascript -l JavaScript -e 'ObjC.import("AppKit"); $.NSScreen.mainScreen.safeAreaInsets.top > 0 ? "true" : "false"' 2>/dev/null || echo "false")
+if [[ "$has_notch" == "true" && ! -d "/Applications/Notchi.app" ]]; then
   echo "Installing Notchi..."
   gh release download --repo sk-ruban/notchi --pattern '*.dmg' -D /tmp --clobber 2>/dev/null \
     && hdiutil attach /tmp/Notchi-*.dmg -nobrowse -quiet \

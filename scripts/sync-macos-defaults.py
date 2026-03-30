@@ -218,6 +218,7 @@ with open(SNAPSHOT_PATH, "w") as f:
 
 # Capture pmset (power management) settings
 PMSET_PATH = os.path.join(SCRIPT_DIR, "pmset.json")
+PMSET_BLACKLIST = {"powermode", "lowpowermode", "SleepServices"}
 pmset_snapshot = {}
 for source, flag in [("battery", "-b"), ("ac", "-c")]:
     raw = subprocess.run(["pmset", "-g", "custom"], capture_output=True, text=True)
@@ -237,6 +238,8 @@ for source, flag in [("battery", "-b"), ("ac", "-c")]:
                 # Value is always last token, key is everything before it
                 val = parts[-1]
                 key = " ".join(parts[:-1])
+                if key in PMSET_BLACKLIST:
+                    continue
                 try:
                     pmset_snapshot[current_source][key] = int(val)
                 except ValueError:
@@ -247,19 +250,48 @@ with open(PMSET_PATH, "w") as f:
     json.dump(pmset_snapshot, f, indent=2)
     f.write("\n")
 
-# Capture login items
+# Capture login items — merge with committed to preserve items from other machines
 LOGIN_ITEMS_PATH = os.path.join(SCRIPT_DIR, "login-items.json")
 raw = subprocess.run(
     ["osascript", "-e", 'tell application "System Events" to get the {name, path} of every login item'],
     capture_output=True, text=True
 )
+current_items = []
 if raw.returncode == 0 and raw.stdout.strip():
     # Output is "name1, name2, path1, path2" — split in half
     parts = [p.strip() for p in raw.stdout.strip().split(", ")]
     half = len(parts) // 2
     names = parts[:half]
     paths = parts[half:]
-    items = [{"name": n, "path": p} for n, p in zip(names, paths)]
-    with open(LOGIN_ITEMS_PATH, "w") as f:
-        json.dump(items, f, indent=2)
-        f.write("\n")
+    home = os.path.expanduser("~")
+    current_items = [
+        {"name": n, "path": p.replace(home, "~", 1) if p.startswith(home) else p}
+        for n, p in zip(names, paths)
+    ]
+
+# Merge with committed items so apps from other machines aren't lost
+committed_items = []
+try:
+    rel = os.path.relpath(LOGIN_ITEMS_PATH, subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        capture_output=True, text=True, cwd=SCRIPT_DIR,
+    ).stdout.strip())
+    raw_git = subprocess.run(
+        ["git", "show", f"HEAD:{rel}"],
+        capture_output=True, text=True, cwd=SCRIPT_DIR,
+    )
+    if raw_git.returncode == 0:
+        committed_items = json.loads(raw_git.stdout)
+except Exception:
+    pass
+
+seen_names = {item["name"] for item in current_items}
+merged = list(current_items)
+for item in committed_items:
+    if item["name"] not in seen_names:
+        merged.append(item)
+        seen_names.add(item["name"])
+
+with open(LOGIN_ITEMS_PATH, "w") as f:
+    json.dump(merged, f, indent=2)
+    f.write("\n")

@@ -1,5 +1,5 @@
 {
-  "autoUpdates": false,
-  "autoUpdatesProtectedForNative": true,
+  "autoUpdates": true,
+  "showSpinnerTree": false,
   "deepLinkTerminal": "Ghostty"
 }

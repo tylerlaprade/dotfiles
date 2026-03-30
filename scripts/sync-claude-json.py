@@ -33,6 +33,9 @@ LOCAL_ONLY_KEYS = {
     "hasAvailableSubscription", "recommendedSubscription",
     "lastOnboardingVersion", "lastPlanModeUse", "lastReleaseNotesSeen",
     "changelogLastFetched",
+    "autoUpdatesProtectedForNative",
+    "fallbackAvailableWarningThreshold",
+    "hasOpusPlanDefault",
 }
 
 LOCAL_ONLY_PATTERNS = [

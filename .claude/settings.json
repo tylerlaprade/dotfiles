@@ -11,11 +11,11 @@
     "plugin-dev@claude-plugins-official" : false,
     "pr-review-toolkit@claude-plugins-official" : false,
     "ralph-loop@claude-plugins-official" : false,
+    "rust-analyzer-lsp@claude-plugins-official" : true,
     "skill-creator@claude-plugins-official" : false,
     "slack@claude-plugins-official" : false,
     "superpowers@claude-plugins-official" : false,
-    "typescript-lsp@claude-plugins-official" : true,
-    "rust-analyzer-lsp@claude-plugins-official" : true
+    "typescript-lsp@claude-plugins-official" : true
   },
   "env" : {
     "CLAUDE_CODE_MAX_OUTPUT_TOKENS" : "64000",
