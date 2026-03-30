@@ -252,7 +252,6 @@ with open(PMSET_PATH, "w") as f:
 
 # Capture login items — merge with on-disk file to preserve items from other machines
 LOGIN_ITEMS_PATH = os.path.join(SCRIPT_DIR, "login-items.json")
-LOGIN_ITEMS_BLACKLIST = {"Steam", "Visual Studio Code", "Google Chrome"}
 raw = subprocess.run(
     ["osascript", "-e", 'tell application "System Events" to get the {name, path} of every login item'],
     capture_output=True, text=True
@@ -268,7 +267,6 @@ if raw.returncode == 0 and raw.stdout.strip():
     current_items = [
         {"name": n, "path": p.replace(home, "~", 1) if p.startswith(home) else p}
         for n, p in zip(names, paths)
-        if n not in LOGIN_ITEMS_BLACKLIST
     ]
 
 # Merge with on-disk file so intentional removals stick and
