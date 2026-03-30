@@ -797,26 +797,6 @@
       "type": "bool",
       "value": true
     },
-    "engagementCount-com.apple.Spotlight": {
-      "type": "int",
-      "value": 126
-    },
-    "engagementCount-com.apple.Spotlight.suggestions": {
-      "type": "int",
-      "value": 0
-    },
-    "engagementCount-com.apple.mail": {
-      "type": "int",
-      "value": 0
-    },
-    "engagementCountForDate-com.apple.Spotlight": {
-      "type": "int",
-      "value": 2
-    },
-    "engagementDate-com.apple.Spotlight": {
-      "type": "string",
-      "value": "2026-03-27"
-    },
     "lastVisibleScreenRect": {
       "type": "string",
       "value": "{{0, 0}, {1440, 900}}"
@@ -1004,7 +984,7 @@
   "com.apple.controlcenter": {
     "NSStatusItem Visible AudioVideoModule": {
       "type": "bool",
-      "value": false
+      "value": true
     },
     "NSStatusItem Visible Battery": {
       "type": "bool",
@@ -2290,6 +2270,44 @@
     "NSTreatUnknownArgumentsAsOpen": {
       "type": "string",
       "value": "NO"
+    }
+  },
+  "com.knollsoft.Hyperkey": {
+    "SUEnableAutomaticChecks": {
+      "type": "bool",
+      "value": true
+    },
+    "capsLockKeycode": {
+      "type": "int",
+      "value": 224
+    },
+    "capsLockRemapped": {
+      "type": "int",
+      "value": 1
+    },
+    "executeQuickHyperKey": {
+      "type": "int",
+      "value": 1
+    },
+    "hideMenuBarIcon": {
+      "type": "bool",
+      "value": true
+    },
+    "hyperFlags": {
+      "type": "int",
+      "value": 1966080
+    },
+    "lastVersion": {
+      "type": "string",
+      "value": "56"
+    },
+    "launchOnLogin": {
+      "type": "bool",
+      "value": true
+    },
+    "quickHyperKeycode": {
+      "type": "int",
+      "value": 53
     }
   },
   "com.lwouis.alt-tab-macos": {

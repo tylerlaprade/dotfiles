@@ -250,8 +250,9 @@ with open(PMSET_PATH, "w") as f:
     json.dump(pmset_snapshot, f, indent=2)
     f.write("\n")
 
-# Capture login items — merge with committed to preserve items from other machines
+# Capture login items — merge with on-disk file to preserve items from other machines
 LOGIN_ITEMS_PATH = os.path.join(SCRIPT_DIR, "login-items.json")
+LOGIN_ITEMS_BLACKLIST = {"Steam", "Visual Studio Code", "Google Chrome"}
 raw = subprocess.run(
     ["osascript", "-e", 'tell application "System Events" to get the {name, path} of every login item'],
     capture_output=True, text=True
@@ -267,27 +268,22 @@ if raw.returncode == 0 and raw.stdout.strip():
     current_items = [
         {"name": n, "path": p.replace(home, "~", 1) if p.startswith(home) else p}
         for n, p in zip(names, paths)
+        if n not in LOGIN_ITEMS_BLACKLIST
     ]
 
-# Merge with committed items so apps from other machines aren't lost
-committed_items = []
+# Merge with on-disk file so intentional removals stick and
+# items from other machines aren't lost.
+existing_items = []
 try:
-    rel = os.path.relpath(LOGIN_ITEMS_PATH, subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
-        capture_output=True, text=True, cwd=SCRIPT_DIR,
-    ).stdout.strip())
-    raw_git = subprocess.run(
-        ["git", "show", f"HEAD:{rel}"],
-        capture_output=True, text=True, cwd=SCRIPT_DIR,
-    )
-    if raw_git.returncode == 0:
-        committed_items = json.loads(raw_git.stdout)
+    if os.path.exists(LOGIN_ITEMS_PATH):
+        with open(LOGIN_ITEMS_PATH) as f:
+            existing_items = json.load(f)
 except Exception:
     pass
 
 seen_names = {item["name"] for item in current_items}
 merged = list(current_items)
-for item in committed_items:
+for item in existing_items:
     if item["name"] not in seen_names:
         merged.append(item)
         seen_names.add(item["name"])

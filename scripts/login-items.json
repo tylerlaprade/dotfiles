@@ -1,7 +1,11 @@
 [
   {
+    "name": "Hyperkey",
+    "path": "/Applications/Hyperkey.app"
+  },
+  {
     "name": "Google Calendar",
-    "path": "/Users/Tyler Laprade/Applications/Brave Browser Apps.localized/Google Calendar.app"
+    "path": "~/Applications/Brave Browser Apps.localized/Google Calendar.app"
   },
   {
     "name": "Notchi",
@@ -22,10 +26,6 @@
   {
     "name": "Graphite",
     "path": "/Applications/Graphite.app"
-  },
-  {
-    "name": "Hyperkey",
-    "path": "/Applications/Hyperkey.app"
   },
   {
     "name": "Slack",
