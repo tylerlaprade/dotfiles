@@ -64,7 +64,7 @@ pid_brew=$!
 # Cargo crates
 if command -v cargo &>/dev/null; then
   echo "  [cargo] starting..."
-  (cargo install cargo-binstall 2>/dev/null; cargo binstall -y cargo-insta cargo-workspaces codebook-lsp 2>/dev/null; echo "  [cargo] done") &
+  (cargo install cargo-binstall 2>/dev/null; cargo binstall -y cargo-insta cargo-workspaces 2>/dev/null; echo "  [cargo] done") &
   pid_cargo=$!
 fi
 

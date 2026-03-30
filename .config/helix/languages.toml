@@ -36,9 +36,9 @@ command = "sourcery"
 args = ["lsp"]
 config = { token = "SOURCERY_TOKEN", extension_version = "helix.lsp", editor_version = "helix" }
 
-[language-server.codebook]
-command = "codebook-lsp"
-args = ["serve"]
+[language-server.cspell]
+command = "cspell-lsp"
+args = ["--stdio"]
 
 # JavaScript/TypeScript - Biome for formatting, ESLint + Flint for linting
 
@@ -50,7 +50,7 @@ language-servers = [
   "vscode-eslint-language-server",
   { name = "flint", only-features = ["diagnostics", "code-action"] },
   { name = "sourcery", only-features = ["diagnostics", "code-action"] },
-  { name = "codebook", only-features = ["diagnostics", "code-action"] },
+  { name = "cspell", only-features = ["diagnostics", "code-action"] },
   "biome",
 ]
 
@@ -62,7 +62,7 @@ language-servers = [
   "vscode-eslint-language-server",
   { name = "flint", only-features = ["diagnostics", "code-action"] },
   { name = "sourcery", only-features = ["diagnostics", "code-action"] },
-  { name = "codebook", only-features = ["diagnostics", "code-action"] },
+  { name = "cspell", only-features = ["diagnostics", "code-action"] },
   "biome",
 ]
 
@@ -74,7 +74,7 @@ language-servers = [
   "vscode-eslint-language-server",
   { name = "flint", only-features = ["diagnostics", "code-action"] },
   { name = "sourcery", only-features = ["diagnostics", "code-action"] },
-  { name = "codebook", only-features = ["diagnostics", "code-action"] },
+  { name = "cspell", only-features = ["diagnostics", "code-action"] },
   "biome",
 ]
 
@@ -86,7 +86,7 @@ language-servers = [
   "vscode-eslint-language-server",
   { name = "flint", only-features = ["diagnostics", "code-action"] },
   { name = "sourcery", only-features = ["diagnostics", "code-action"] },
-  { name = "codebook", only-features = ["diagnostics", "code-action"] },
+  { name = "cspell", only-features = ["diagnostics", "code-action"] },
   "biome",
 ]
 
@@ -95,7 +95,7 @@ language-servers = [
 [[language]]
 name = "python"
 auto-format = true
-language-servers = [{ name = "basedpyright", except-features = ["format"] }, "ruff", { name = "sourcery", only-features = ["diagnostics", "code-action"] }, { name = "codebook", only-features = ["diagnostics", "code-action"] }]
+language-servers = [{ name = "basedpyright", except-features = ["format"] }, "ruff", { name = "sourcery", only-features = ["diagnostics", "code-action"] }, { name = "cspell", only-features = ["diagnostics", "code-action"] }]
 
 # JSON
 [[language]]
@@ -155,49 +155,49 @@ args = ["--stdio"]
 [[language]]
 name = "rust"
 auto-format = true
-language-servers = ["rust-analyzer", { name = "codebook", only-features = ["diagnostics", "code-action"] }]
+language-servers = ["rust-analyzer", { name = "cspell", only-features = ["diagnostics", "code-action"] }]
 formatter = { command = "rustfmt" }
 
 # Shell
 [[language]]
 name = "bash"
 auto-format = true
-language-servers = ["bash-language-server", { name = "codebook", only-features = ["diagnostics", "code-action"] }]
+language-servers = ["bash-language-server", { name = "cspell", only-features = ["diagnostics", "code-action"] }]
 formatter = { command = "shfmt", args = ["-i", "2"] }
 
 # TOML
 [[language]]
 name = "toml"
 auto-format = true
-language-servers = ["taplo", { name = "codebook", only-features = ["diagnostics", "code-action"] }]
+language-servers = ["taplo", { name = "cspell", only-features = ["diagnostics", "code-action"] }]
 formatter = { command = "taplo", args = ["format", "-"] }
 
 # YAML
 [[language]]
 name = "yaml"
 auto-format = true
-language-servers = ["yaml-language-server", { name = "codebook", only-features = ["diagnostics", "code-action"] }]
+language-servers = ["yaml-language-server", { name = "cspell", only-features = ["diagnostics", "code-action"] }]
 
 # Markdown
 [[language]]
 name = "markdown"
 auto-format = true
-language-servers = [{ name = "codebook", only-features = ["diagnostics", "code-action"] }]
+language-servers = [{ name = "cspell", only-features = ["diagnostics", "code-action"] }]
 formatter = { command = "markdownlint-cli2", args = ["--fix"] }
 
 # CSS / SCSS
 [[language]]
 name = "css"
 auto-format = true
-language-servers = ["vscode-css-language-server", { name = "stylelint-lsp", only-features = ["diagnostics"] }, { name = "codebook", only-features = ["diagnostics", "code-action"] }]
+language-servers = ["vscode-css-language-server", { name = "stylelint-lsp", only-features = ["diagnostics"] }, { name = "cspell", only-features = ["diagnostics", "code-action"] }]
 
 [[language]]
 name = "scss"
 auto-format = true
-language-servers = ["vscode-css-language-server", { name = "stylelint-lsp", only-features = ["diagnostics"] }, { name = "codebook", only-features = ["diagnostics", "code-action"] }]
+language-servers = ["vscode-css-language-server", { name = "stylelint-lsp", only-features = ["diagnostics"] }, { name = "cspell", only-features = ["diagnostics", "code-action"] }]
 
 # HTML
 [[language]]
 name = "html"
 auto-format = true
-language-servers = ["vscode-html-language-server", { name = "codebook", only-features = ["diagnostics", "code-action"] }]
+language-servers = ["vscode-html-language-server", { name = "cspell", only-features = ["diagnostics", "code-action"] }]
