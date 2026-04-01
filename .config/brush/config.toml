@@ -1,0 +1,6 @@
+[ui]
+syntax-highlighting = true
+
+[experimental]
+zsh-hooks = true
+terminal-shell-integration = true
