@@ -79,7 +79,7 @@ if [[ -n "$pr_num" ]]; then
 else
   branch="$full_branch"
   [[ ${#branch} -gt 120 ]] && branch="${branch:0:60}...${branch: -57}"
-  color=$([[ -n "$dirty" ]] && echo 93 || echo 92)
+  branch_color="38;5;242"
 fi
 
 # Output with ANSI colors
@@ -87,10 +87,11 @@ printf "\e[37m%s\e[0m " "$repo_name"
 if [[ -n "$pr_num" ]]; then
   printf '\e]8;;%s\e\\' "$gt_url"
   printf "\e[${pr_color}m#%s\e[0m" "$pr_num"
-  printf '\e]8;;\e\\'
   [[ -n "$display_title" ]] && printf " \e[37m%s\e[0m" "$display_title"
+  printf '\e]8;;\e\\'
 else
-  printf "\e[${color}m%s\e[0m" "${branch}${dirty}"
+  printf "\e[${branch_color}m%s\e[0m" "$branch"
+  [[ -n "$dirty" ]] && printf "\e[38;5;218m%s\e[0m" "$dirty"
 fi
-printf "\e[96m %s%s\e[0m%s" "$arrows" "$stash" "$indicators"
+printf "\e[36m %s%s\e[0m%s" "$arrows" "$stash" "$indicators"
 [[ -n "$gt_display" ]] && printf " \e[90m%s\e[0m" "$gt_display"
