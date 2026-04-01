@@ -1,4 +1,5 @@
 - Always following existing patterns from the codebase you're working in.
+- Never do a "belt-and-suspenders" approach.
 - I use Brave browser
 - I use Ghostty, managing many Claude sessions in many workspaces in many tabs at once
 - When submitting a PR with Graphite, always use the `-mp` flags. Exclude the `-p` only if I specifically ask for a draft.
