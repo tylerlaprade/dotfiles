@@ -8,8 +8,7 @@ current_time=$(TZ="America/New_York" date +"%-I:%M %p")
 echo "${git_status} · ${current_time}"
 
 # Keep Ghostty tab title current (zsh hooks don't fire during TUI apps)
+# Only override title when there's a PR; otherwise let Claude Code's own title persist
 if [[ "$git_status" =~ (#[0-9]+\ .*) ]]; then
   printf '\e]0;%s\a' "${BASH_REMATCH[1]}" > /dev/tty 2>/dev/null
-else
-  printf '\e]0;\a' > /dev/tty 2>/dev/null
 fi
