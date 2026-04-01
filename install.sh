@@ -27,26 +27,16 @@ if ! command -v rustup &>/dev/null; then
   source "$HOME/.cargo/env"
 fi
 
-# 3. Experimental package managers (wax + zerobrew)
+# 3. Wax (fast Homebrew-compatible package manager)
 if command -v cargo &>/dev/null && ! command -v wax &>/dev/null; then
   echo "Installing wax..."
   cargo install waxpkg 2>/dev/null || true
 fi
 export PATH="$HOME/.local/bin:$PATH"
-if ! command -v zb &>/dev/null; then
-  echo "Installing zerobrew..."
-  curl -fsSL https://zerobrew.rs/install | bash -s -- --no-modify-path 2>/dev/null || true
-  export PATH="$HOME/.local/bin:$PATH"
-fi
 
 # 4. Everything else in parallel
 LOGDIR="${TMPDIR:-/tmp}/dotfiles-install-$$"
 mkdir -p "$LOGDIR"
-
-# Use experimental wrapper only if --experimental flag is passed
-if [[ " $* " == *" --experimental "* ]] && { command -v wax &>/dev/null || command -v zb &>/dev/null; }; then
-  source "$DOTFILES/scripts/bin/brew-wrapper.sh"
-fi
 
 # Protect tracked shell configs from installers that append to them
 shell_configs=("$HOME/.zshrc" "$HOME/.zshenv" "$HOME/.zprofile")

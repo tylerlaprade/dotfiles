@@ -12,8 +12,7 @@ fi
 export EDITOR="hx"
 export GPG_TTY=$(tty)
 
-# Experimental: intercept brew commands → run wax + zerobrew in parallel
-[[ -f "$HOME/.local/bin/brew-wrapper" ]] && source "$HOME/.local/bin/brew-wrapper"
+alias brew="wax"
 [[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
 
 # Mac sends Ctrl+U when Cmd+Backspace is pressed
