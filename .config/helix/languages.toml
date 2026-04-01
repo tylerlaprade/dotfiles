@@ -161,8 +161,8 @@ language-servers = [
 
 # JSON
 [[language]]
-name = "jsonc"
-file-types = ["json", "jsonc"]
+name = "json"
+language-id = "jsonc"
 auto-format = true
 language-servers = ["vscode-json-language-server"]
 
