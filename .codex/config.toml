@@ -8,6 +8,9 @@ sandbox_mode = "workspace-write"
 [projects."/Users/Tyler Laprade/Code/dotfiles"]
 trust_level = "trusted"
 
+[projects."/Users/Tyler Laprade/Code/condor"]
+trust_level = "trusted"
+
 [notice.model_migrations]
 "gpt-5.3-codex" = "gpt-5.4"
 
