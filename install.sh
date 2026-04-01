@@ -169,11 +169,6 @@ echo ""
 echo "Applying macOS defaults..."
 "$DOTFILES/scripts/setup/apply-macos-defaults.py"
 
-# /etc/hosts
-if ! grep -q "local.paqarina.dev" /etc/hosts 2>/dev/null; then
-  sudo sh -c 'echo "127.0.0.1       local.paqarina.dev" >> /etc/hosts'
-fi
-
 echo ""
 echo "=== Next steps ==="
 echo "  1. Sourcery auth:    sourcery login"
