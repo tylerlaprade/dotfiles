@@ -6,10 +6,31 @@ cd "$(echo "$input" | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 tokens=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
 pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0 | round')
 
-RED='\033[31m'
-YELLOW='\033[33m'
-GREEN='\033[32m'
 RESET='\033[0m'
+
+# Tomorrow Night gradient: green → yellow → red with asymptotic red tail
+# Sets global r, g, b. Args: value green_end yellow_point red_point [asymptotic_k]
+tn_gradient() {
+  local val=$1 green_end=$2 yellow_pt=$3 red_pt=$4 k=${5:-80}
+  if [ "$val" -le "$green_end" ]; then
+    r=181 g=189 b=104
+  elif [ "$val" -le "$yellow_pt" ]; then
+    local t=$(( (val - green_end) * 100 / (yellow_pt - green_end) ))
+    r=$(( 181 + (240 - 181) * t / 100 ))
+    g=$(( 189 + (198 - 189) * t / 100 ))
+    b=$(( 104 + (116 - 104) * t / 100 ))
+  elif [ "$val" -le "$red_pt" ]; then
+    local t=$(( (val - yellow_pt) * 100 / (red_pt - yellow_pt) ))
+    r=$(( 240 + (204 - 240) * t / 100 ))
+    g=$(( 198 + (102 - 198) * t / 100 ))
+    b=$(( 116 + (102 - 116) * t / 100 ))
+  else
+    local t=$(( (val - red_pt) * 100 / (val - red_pt + k) ))
+    r=$(( 204 + (255 - 204) * t / 100 ))
+    g=$(( 102 - 102 * t / 100 ))
+    b=$(( 102 - 102 * t / 100 ))
+  fi
+}
 
 ctx_info=""
 if [ "$tokens" -gt 0 ] 2>/dev/null; then
@@ -61,60 +82,27 @@ format_rate() {
   local time_elapsed=$(( window_secs - time_remaining ))
   [ "$time_elapsed" -lt 60 ] && time_elapsed=60
 
-  # Absolute usage gradient for percentage (Ghostty Tomorrow Night palette)
-  # Old thresholds: green <75%, yellow 75-90%, red 90%+
-  # Gradient: green(181,189,104) → yellow(240,198,116) → red(204,102,102)
-  #   0-60%: flat green
-  #  60-85%: green → yellow
-  # 85-100%: yellow → red
-  #   100%+: red (employer paying)
-  local r g b
-  if [ "$pct" -le 60 ]; then
-    r=181 g=189 b=104
-  elif [ "$pct" -le 85 ]; then
-    local t=$(( (pct - 60) * 100 / 25 ))
-    r=$(( 181 + (240 - 181) * t / 100 ))
-    g=$(( 189 + (198 - 189) * t / 100 ))
-    b=$(( 104 + (116 - 104) * t / 100 ))
-  elif [ "$pct" -lt 100 ]; then
-    local t=$(( (pct - 85) * 100 / 15 ))
-    r=$(( 240 + (204 - 240) * t / 100 ))
-    g=$(( 198 + (102 - 198) * t / 100 ))
-    b=$(( 116 + (102 - 116) * t / 100 ))
-  else
-    r=204 g=102 b=102
-  fi
+  # Absolute usage gradient for percentage
+  #   0-55%: flat green, 55-80%: green→yellow, 80-100%: yellow→red, 100%+: asymptotic red
+  tn_gradient "$pct" 55 80 100
   local pct_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
   local info="${pct_color}${pct}%${RESET}"
 
-  # Pace gradient for reset time
-  # Excess = usage % - time elapsed %, i.e. how far ahead of sustainable pace
+  # Pace ratio for time remaining color (Ghostty Tomorrow Night palette)
+  # Sigmoid-like piecewise: steep transition around 0.8x, 1.0x is red
+  # green(181,189,104) → yellow(240,198,116) → red(204,102,102)
   local time_elapsed_pct=$(( time_elapsed * 100 / window_secs ))
-  local excess=$(( pct - time_elapsed_pct ))
-  [ "$excess" -lt 0 ] && excess=0
-
-  # Pace gradient for time remaining (Ghostty Tomorrow Night palette)
-  #   excess 0: green — on pace
-  #   excess 0-40: green → yellow
-  #   excess 40-80: yellow → red
-  #   excess 80+: red
-  local tr tg tb
-  if [ "$excess" -le 0 ]; then
-    tr=181 tg=189 tb=104
-  elif [ "$excess" -le 40 ]; then
-    local t=$(( excess * 100 / 40 ))
-    tr=$(( 181 + (240 - 181) * t / 100 ))
-    tg=$(( 189 + (198 - 189) * t / 100 ))
-    tb=$(( 104 + (116 - 104) * t / 100 ))
-  elif [ "$excess" -le 80 ]; then
-    local t=$(( (excess - 40) * 100 / 40 ))
-    tr=$(( 240 + (204 - 240) * t / 100 ))
-    tg=$(( 198 + (102 - 198) * t / 100 ))
-    tb=$(( 116 + (102 - 116) * t / 100 ))
+  local ratio
+  if [ "$time_elapsed_pct" -gt 0 ]; then
+    ratio=$(( pct * 100 / time_elapsed_pct ))
   else
-    tr=204 tg=102 tb=102
+    ratio=100
   fi
-  local time_color=$(printf '\033[38;2;%d;%d;%dm' "$tr" "$tg" "$tb")
+
+  # Pace gradient for time remaining
+  #   ≤0.75x: flat green, 0.75-0.98x: green→yellow, 0.98-1.25x: yellow→red, >1.25x: asymptotic red
+  tn_gradient "$ratio" 75 98 125
+  local time_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
 
   if [ "$time_remaining" -gt 0 ]; then
     local reset_str
