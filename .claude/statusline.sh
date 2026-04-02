@@ -3,7 +3,6 @@
 input=$(cat)
 cd "$(echo "$input" | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 
-# Context window degradation warning (absolute token thresholds)
 tokens=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
 pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0 | round')
 
@@ -14,15 +13,36 @@ RESET='\033[0m'
 
 ctx_info=""
 if [ "$tokens" -gt 0 ] 2>/dev/null; then
-  if [ "$tokens" -ge 180000 ]; then
-    ctx_info="${RED}Context ${pct}% !!!${RESET}"
-  elif [ "$tokens" -ge 150000 ]; then
-    ctx_info="${RED}Context ${pct}% !!${RESET}"
-  elif [ "$tokens" -ge 100000 ]; then
-    ctx_info="${YELLOW}Context ${pct}% !${RESET}"
+  # Smooth color gradient based on context degradation research:
+  #   0-25%: flat green (minimal degradation)
+  #  25-75%: green → yellow (gradual degradation)
+  #  75-95%: yellow → red (significant quality loss)
+  # 95-100%: intense red
+  if [ "$pct" -le 25 ]; then
+    r=0 g=200 b=0
+  elif [ "$pct" -le 75 ]; then
+    t=$(( (pct - 25) * 100 / 50 ))
+    r=$(( 255 * t / 100 ))
+    g=200
+    b=0
+  elif [ "$pct" -le 95 ]; then
+    t=$(( (pct - 75) * 100 / 20 ))
+    r=255
+    g=$(( 200 - 200 * t / 100 ))
+    b=0
   else
-    ctx_info="${GREEN}Context ${pct}%${RESET}"
+    r=255 g=0 b=0
   fi
+  bar_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
+
+  # Build 10-char progress bar
+  filled=$((pct * 10 / 100))
+  [ "$filled" -gt 10 ] && filled=10
+  empty=$((10 - filled))
+  bar=""
+  [ "$filled" -gt 0 ] && printf -v fill "%${filled}s" && bar="${fill// /▓}"
+  [ "$empty" -gt 0 ] && printf -v pad "%${empty}s" && bar="${bar}${pad// /░}"
+  ctx_info="Context ${bar_color}${bar} ${pct}%${RESET}"
 fi
 
 # Rate limit info
@@ -58,7 +78,8 @@ format_rate() {
 git_status=$(git-status-line --async-pr)
 current_time=$(TZ="America/New_York" date +"%-I:%M %p")
 
-parts=("$git_status")
+# Line 1: context bar · rates · time
+parts=()
 [ -n "$ctx_info" ] && parts+=("$ctx_info")
 rate=$(format_rate "$rate_5h" "$resets_5h")
 [ -n "$rate" ] && parts+=("5-hour $rate")
@@ -68,6 +89,9 @@ WHITE='\033[97m'
 parts+=("${WHITE}${current_time}${RESET}")
 
 echo -e "$(printf '%s' "${parts[0]}")$(printf ' · %s' "${parts[@]:1}")"
+
+# Line 2: git info
+echo -e "$git_status"
 
 # Keep Ghostty tab title current (zsh hooks don't fire during TUI apps)
 # Only override title when there's a PR; otherwise let Claude Code's own title persist

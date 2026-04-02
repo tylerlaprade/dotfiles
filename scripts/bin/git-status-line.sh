@@ -73,8 +73,6 @@ fi
 if [[ -n "$pr_num" ]]; then
   display_title="$pr_title"
   [[ ${#display_title} -gt 80 ]] && display_title="${display_title:0:77}..."
-  display_title="$pr_title"
-  [[ ${#display_title} -gt 80 ]] && display_title="${display_title:0:77}..."
   gt_url="https://app.graphite.dev/github/pr/${repo_full}/${pr_num}"
 else
   branch="$full_branch"
