@@ -51,27 +51,89 @@ rate_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty
 resets_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
 resets_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
-format_reset() {
-  [ -z "$1" ] && return
-  local reset_epoch=$1
-  local now=$(date +%s)
-  local diff=$(( reset_epoch - now ))
-  if [ "$diff" -lt 86400 ]; then
-    TZ="America/New_York" date -r "$reset_epoch" +"%-I:%M %p" 2>/dev/null
-  else
-    TZ="America/New_York" date -r "$reset_epoch" +"%a %-I:%M %p" 2>/dev/null
-  fi
-}
-
 format_rate() {
-  local pct=$1 resets=$2
+  local pct=$1 resets=$2 window_secs=$3
   [ -z "$pct" ] && return
-  local color=$GREEN
-  [ "$pct" -ge 75 ] 2>/dev/null && color=$YELLOW
-  [ "$pct" -ge 90 ] 2>/dev/null && color=$RED
-  local info="${color}${pct}%${RESET}"
-  local reset=$(format_reset "$resets")
-  [ -n "$reset" ] && info="${info} (resets ${reset})"
+
+  local now=$(date +%s)
+  local time_remaining=$(( resets - now ))
+  [ "$time_remaining" -lt 0 ] && time_remaining=0
+  local time_elapsed=$(( window_secs - time_remaining ))
+  [ "$time_elapsed" -lt 60 ] && time_elapsed=60
+
+  # Absolute usage gradient for percentage (Ghostty Tomorrow Night palette)
+  # Old thresholds: green <75%, yellow 75-90%, red 90%+
+  # Gradient: green(181,189,104) → yellow(240,198,116) → red(204,102,102)
+  #   0-60%: flat green
+  #  60-85%: green → yellow
+  # 85-100%: yellow → red
+  #   100%+: red (employer paying)
+  local r g b
+  if [ "$pct" -le 60 ]; then
+    r=181 g=189 b=104
+  elif [ "$pct" -le 85 ]; then
+    local t=$(( (pct - 60) * 100 / 25 ))
+    r=$(( 181 + (240 - 181) * t / 100 ))
+    g=$(( 189 + (198 - 189) * t / 100 ))
+    b=$(( 104 + (116 - 104) * t / 100 ))
+  elif [ "$pct" -lt 100 ]; then
+    local t=$(( (pct - 85) * 100 / 15 ))
+    r=$(( 240 + (204 - 240) * t / 100 ))
+    g=$(( 198 + (102 - 198) * t / 100 ))
+    b=$(( 116 + (102 - 116) * t / 100 ))
+  else
+    r=204 g=102 b=102
+  fi
+  local pct_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
+  local info="${pct_color}${pct}%${RESET}"
+
+  # Pace gradient for reset time
+  # Excess = usage % - time elapsed %, i.e. how far ahead of sustainable pace
+  local time_elapsed_pct=$(( time_elapsed * 100 / window_secs ))
+  local excess=$(( pct - time_elapsed_pct ))
+  [ "$excess" -lt 0 ] && excess=0
+
+  # Pace gradient for time remaining (Ghostty Tomorrow Night palette)
+  #   excess 0: green — on pace
+  #   excess 0-40: green → yellow
+  #   excess 40-80: yellow → red
+  #   excess 80+: red
+  local tr tg tb
+  if [ "$excess" -le 0 ]; then
+    tr=181 tg=189 tb=104
+  elif [ "$excess" -le 40 ]; then
+    local t=$(( excess * 100 / 40 ))
+    tr=$(( 181 + (240 - 181) * t / 100 ))
+    tg=$(( 189 + (198 - 189) * t / 100 ))
+    tb=$(( 104 + (116 - 104) * t / 100 ))
+  elif [ "$excess" -le 80 ]; then
+    local t=$(( (excess - 40) * 100 / 40 ))
+    tr=$(( 240 + (204 - 240) * t / 100 ))
+    tg=$(( 198 + (102 - 198) * t / 100 ))
+    tb=$(( 116 + (102 - 116) * t / 100 ))
+  else
+    tr=204 tg=102 tb=102
+  fi
+  local time_color=$(printf '\033[38;2;%d;%d;%dm' "$tr" "$tg" "$tb")
+
+  if [ "$time_remaining" -gt 0 ]; then
+    local reset_str
+    if [ "$time_remaining" -lt 86400 ]; then
+      reset_str=$(TZ="America/New_York" date -r "$resets" +"%-I:%M %p" 2>/dev/null)
+    else
+      reset_str=$(TZ="America/New_York" date -r "$resets" +"%a %-I:%M %p" 2>/dev/null)
+    fi
+    local hrs=$(( time_remaining / 3600 ))
+    local mins=$(( (time_remaining % 3600) / 60 ))
+    local remaining=""
+    if [ "$hrs" -gt 0 ]; then
+      remaining="${hrs}h ${mins}m"
+    else
+      remaining="${mins}m"
+    fi
+    [ -n "$reset_str" ] && info="${info} (resets in ${time_color}${remaining}${RESET} at ${reset_str})"
+  fi
+
   echo "$info"
 }
 
@@ -81,9 +143,9 @@ current_time=$(TZ="America/New_York" date +"%-I:%M %p")
 # Line 1: context bar · rates · time
 parts=()
 [ -n "$ctx_info" ] && parts+=("$ctx_info")
-rate=$(format_rate "$rate_5h" "$resets_5h")
+rate=$(format_rate "$rate_5h" "$resets_5h" 18000)
 [ -n "$rate" ] && parts+=("5-hour $rate")
-rate=$(format_rate "$rate_7d" "$resets_7d")
+rate=$(format_rate "$rate_7d" "$resets_7d" 604800)
 [ -n "$rate" ] && parts+=("7-day $rate")
 WHITE='\033[97m'
 parts+=("${WHITE}${current_time}${RESET}")
