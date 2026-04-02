@@ -56,14 +56,25 @@ if [ "$tokens" -gt 0 ] 2>/dev/null; then
   fi
   bar_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
 
-  # Build 10-char progress bar
+  # Build 10-char progress bar with smooth transition square
   filled=$((pct * 10 / 100))
   [ "$filled" -gt 10 ] && filled=10
-  empty=$((10 - filled))
+  frac=$((pct * 10 % 100))
+
   bar=""
-  [ "$filled" -gt 0 ] && printf -v fill "%${filled}s" && bar="${fill// /▓}"
-  [ "$empty" -gt 0 ] && printf -v pad "%${empty}s" && bar="${bar}${pad// /░}"
-  ctx_info="Context ${bar_color}${bar} ${pct}%${RESET}"
+  [ "$filled" -gt 0 ] && printf -v fill "%${filled}s" && bar="${bar_color}${fill// /▓}"
+
+  if [ "$filled" -lt 10 ]; then
+    if [ "$frac" -lt 50 ]; then
+      bar="${bar}${bar_color}░"
+    else
+      bar="${bar}${bar_color}▒"
+    fi
+
+    empty=$((9 - filled))
+    [ "$empty" -gt 0 ] && printf -v pad "%${empty}s" && bar="${bar}${pad// /░}"
+  fi
+  ctx_info="Context ${bar}${bar_color} ${pct}%${RESET}"
 fi
 
 # Rate limit info
