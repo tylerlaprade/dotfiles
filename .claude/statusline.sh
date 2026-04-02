@@ -5,7 +5,7 @@ cd "$(echo "$input" | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 
 # Context window degradation warning (absolute token thresholds)
 tokens=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
-pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
+pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0 | round')
 
 RED='\033[31m'
 YELLOW='\033[33m'
@@ -26,8 +26,8 @@ if [ "$tokens" -gt 0 ] 2>/dev/null; then
 fi
 
 # Rate limit info
-rate_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
-rate_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
+rate_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty | round')
+rate_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty | round')
 resets_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
 resets_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
