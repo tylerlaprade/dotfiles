@@ -101,6 +101,24 @@ done
 # ~/Library/KeyBindings
 link_tree "$DOTFILES/.config/KeyBindings" "$HOME/Library/KeyBindings"
 
+# Warn about macOS Application Support configs shadowing ~/.config/
+for app_dir in "$HOME/Library/Application Support"/*/; do
+  [[ -d "$app_dir" ]] || continue
+  app_basename="$(basename "$app_dir")"
+  app_tail="${app_basename##*.}"
+  for cfg_dir in "$DOTFILES"/.config/*/; do
+    cfg_name="$(basename "$cfg_dir")"
+    if [[ "${app_tail,,}" == "${cfg_name,,}" || "${app_basename,,}" == "${cfg_name,,}" ]]; then
+      for cfg_file in "$cfg_dir"/*; do
+        [[ -f "$cfg_file" ]] || continue
+        shadow="$app_dir/$(basename "$cfg_file")"
+        [[ -f "$shadow" && ! -L "$shadow" ]] && echo "⚠️  $shadow shadows ~/.config/$cfg_name/ — delete it to use the dotfiles version"
+      done
+      break
+    fi
+  done
+done
+
 # scripts/bin -> ~/.local/bin
 mkdir -p "$HOME/.local/bin"
 for script in "$DOTFILES"/scripts/bin/*.sh; do
