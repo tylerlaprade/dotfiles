@@ -27,6 +27,9 @@ skip-levels = 1
 [editor.file-picker]
 hidden = false
 
+[editor.soft-wrap]
+enable = true
+
 # Not yet in stable release
 # https://github.com/helix-editor/helix/pull/13133
 # [editor.inline-blame]
@@ -37,3 +40,5 @@ d = "delete_selection_noyank"
 c = "change_selection_noyank"
 A-d = "no_op"
 A-c = "no_op"
+C-j = "half_page_down"
+C-k = "half_page_up"
