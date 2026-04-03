@@ -3,7 +3,6 @@
 input=$(cat)
 cd "$(echo "$input" | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 
-tokens=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
 pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0 | round')
 
 RESET='\033[0m'
@@ -32,53 +31,50 @@ tn_gradient() {
   fi
 }
 
-ctx_info=""
-if [ "$tokens" -gt 0 ] 2>/dev/null; then
-  # Smooth color gradient based on context degradation research:
-  #   0-25%: flat green (minimal degradation)
-  #  25-60%: green → yellow (gradual degradation)
-  #  60-85%: yellow → red (significant quality loss)
-  #    85%+: asymptotic intense red
-  if [ "$pct" -le 25 ]; then
-    r=0 g=200 b=0
-  elif [ "$pct" -le 60 ]; then
-    t=$(( (pct - 25) * 100 / 35 ))
-    r=$(( 255 * t / 100 ))
-    g=200
-    b=0
-  elif [ "$pct" -le 85 ]; then
-    t=$(( (pct - 60) * 100 / 25 ))
-    r=255
-    g=$(( 200 - 200 * t / 100 ))
-    b=0
-  else
-    t=$(( (pct - 85) * 100 / (pct - 85 + 30) ))
-    r=255
-    g=0
-    b=0
-  fi
-  bar_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
-
-  # Build 10-char progress bar with smooth transition square
-  filled=$((pct * 10 / 100))
-  [ "$filled" -gt 10 ] && filled=10
-  frac=$((pct * 10 % 100))
-
-  bar=""
-  [ "$filled" -gt 0 ] && printf -v fill "%${filled}s" && bar="${bar_color}${fill// /▓}"
-
-  if [ "$filled" -lt 10 ]; then
-    if [ "$frac" -lt 50 ]; then
-      bar="${bar}${bar_color}░"
-    else
-      bar="${bar}${bar_color}▒"
-    fi
-
-    empty=$((9 - filled))
-    [ "$empty" -gt 0 ] && printf -v pad "%${empty}s" && bar="${bar}${pad// /░}"
-  fi
-  ctx_info="Context ${bar}${bar_color} ${pct}%${RESET}"
+# Smooth color gradient based on context degradation research:
+#   0-25%: flat green (minimal degradation)
+#  25-60%: green → yellow (gradual degradation)
+#  60-85%: yellow → red (significant quality loss)
+#    85%+: asymptotic intense red
+if [ "$pct" -le 25 ]; then
+  r=0 g=200 b=0
+elif [ "$pct" -le 60 ]; then
+  t=$(( (pct - 25) * 100 / 35 ))
+  r=$(( 255 * t / 100 ))
+  g=200
+  b=0
+elif [ "$pct" -le 85 ]; then
+  t=$(( (pct - 60) * 100 / 25 ))
+  r=255
+  g=$(( 200 - 200 * t / 100 ))
+  b=0
+else
+  t=$(( (pct - 85) * 100 / (pct - 85 + 30) ))
+  r=255
+  g=0
+  b=0
 fi
+bar_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
+
+# Build 10-char progress bar with smooth transition square
+filled=$((pct * 10 / 100))
+[ "$filled" -gt 10 ] && filled=10
+frac=$((pct * 10 % 100))
+
+bar=""
+[ "$filled" -gt 0 ] && printf -v fill "%${filled}s" && bar="${bar_color}${fill// /▓}"
+
+if [ "$filled" -lt 10 ]; then
+  if [ "$frac" -lt 50 ]; then
+    bar="${bar}${bar_color}░"
+  else
+    bar="${bar}${bar_color}▒"
+  fi
+
+  empty=$((9 - filled))
+  [ "$empty" -gt 0 ] && printf -v pad "%${empty}s" && bar="${bar}${pad// /░}"
+fi
+ctx_info="Context ${bar}${bar_color} ${pct}%${RESET}"
 
 # Rate limit info
 rate_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty | round')
@@ -147,7 +143,7 @@ current_time=$(TZ="America/New_York" date +"%-I:%M %p")
 
 # Line 1: context bar · rates · time
 parts=()
-[ -n "$ctx_info" ] && parts+=("$ctx_info")
+parts+=("$ctx_info")
 rate=$(format_rate "$rate_5h" "$resets_5h" 18000)
 [ -n "$rate" ] && parts+=("5-hour $rate")
 rate=$(format_rate "$rate_7d" "$resets_7d" 604800)
