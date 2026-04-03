@@ -99,7 +99,8 @@ format_rate() {
     # Absolute usage gradient: 0-55% green, 55-80% green→yellow, 80-100% yellow→red
     tn_gradient "$pct" 55 80 100
     local pct_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
-    info="${pct_color}${pct}%${RESET}"
+    local suffix="%"; [ "$pct" -ge 100 ] && suffix="%+"
+    info="${pct_color}${pct}${suffix}${RESET}"
   fi
 
   # Pace ratio for time remaining color (Ghostty Tomorrow Night palette)
@@ -155,7 +156,7 @@ if [ "${rate_5h:-0}" -ge 100 ]; then
     session_cost=$(printf "%.2f" "$raw_cost")
     cost_cents=$(echo "$input" | jq -r '(.cost.total_cost_usd // 0) * 100 | round')
     # Asymptotic red from 100%-red base: (204,102,102) → (255,0,0)
-    t=$(( cost_cents * 100 / (cost_cents + 1000) ))
+    t=$(( cost_cents * 100 / (cost_cents + 2000) ))
     r=$(( 204 + (255 - 204) * t / 100 ))
     g=$(( 102 - 102 * t / 100 ))
     b=$(( 102 - 102 * t / 100 ))
