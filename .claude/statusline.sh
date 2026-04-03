@@ -83,7 +83,7 @@ resets_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
 resets_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
 format_rate() {
-  local pct=$1 resets=$2 window_secs=$3
+  local pct=$1 resets=$2 window_secs=$3 display_override=$4 display_color=$5
   [ -z "$pct" ] && return
 
   local now=$(date +%s)
@@ -92,11 +92,15 @@ format_rate() {
   local time_elapsed=$(( window_secs - time_remaining ))
   [ "$time_elapsed" -lt 60 ] && time_elapsed=60
 
-  # Absolute usage gradient for percentage
-  #   0-55%: flat green, 55-80%: green→yellow, 80-100%: yellow→red, 100%+: asymptotic red
-  tn_gradient "$pct" 55 80 100
-  local pct_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
-  local info="${pct_color}${pct}%${RESET}"
+  local info
+  if [ -n "$display_override" ]; then
+    info="${display_color}${display_override}${RESET}"
+  else
+    # Absolute usage gradient: 0-55% green, 55-80% green→yellow, 80-100% yellow→red
+    tn_gradient "$pct" 55 80 100
+    local pct_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
+    info="${pct_color}${pct}%${RESET}"
+  fi
 
   # Pace ratio for time remaining color (Ghostty Tomorrow Night palette)
   # Sigmoid-like piecewise: steep transition around 0.8x, 1.0x is red
@@ -144,7 +148,22 @@ current_time=$(TZ="America/New_York" date +"%-I:%M %p")
 # Line 1: context bar · rates · time
 parts=()
 parts+=("$ctx_info")
-rate=$(format_rate "$rate_5h" "$resets_5h" 18000)
+cost_display="" cost_color=""
+if [ "${rate_5h:-0}" -ge 100 ]; then
+  raw_cost=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
+  if [ -n "$raw_cost" ]; then
+    session_cost=$(printf "%.2f" "$raw_cost")
+    cost_cents=$(echo "$input" | jq -r '(.cost.total_cost_usd // 0) * 100 | round')
+    # Asymptotic red from 100%-red base: (204,102,102) → (255,0,0)
+    t=$(( cost_cents * 100 / (cost_cents + 1000) ))
+    r=$(( 204 + (255 - 204) * t / 100 ))
+    g=$(( 102 - 102 * t / 100 ))
+    b=$(( 102 - 102 * t / 100 ))
+    cost_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
+    cost_display="\$${session_cost}"
+  fi
+fi
+rate=$(format_rate "$rate_5h" "$resets_5h" 18000 "$cost_display" "$cost_color")
 [ -n "$rate" ] && parts+=("5-hour $rate")
 rate=$(format_rate "$rate_7d" "$resets_7d" 604800)
 [ -n "$rate" ] && parts+=("7-day $rate")
