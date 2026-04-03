@@ -36,23 +36,26 @@ ctx_info=""
 if [ "$tokens" -gt 0 ] 2>/dev/null; then
   # Smooth color gradient based on context degradation research:
   #   0-25%: flat green (minimal degradation)
-  #  25-75%: green → yellow (gradual degradation)
-  #  75-95%: yellow → red (significant quality loss)
-  # 95-100%: intense red
+  #  25-60%: green → yellow (gradual degradation)
+  #  60-85%: yellow → red (significant quality loss)
+  #    85%+: asymptotic intense red
   if [ "$pct" -le 25 ]; then
     r=0 g=200 b=0
-  elif [ "$pct" -le 75 ]; then
-    t=$(( (pct - 25) * 100 / 50 ))
+  elif [ "$pct" -le 60 ]; then
+    t=$(( (pct - 25) * 100 / 35 ))
     r=$(( 255 * t / 100 ))
     g=200
     b=0
-  elif [ "$pct" -le 95 ]; then
-    t=$(( (pct - 75) * 100 / 20 ))
+  elif [ "$pct" -le 85 ]; then
+    t=$(( (pct - 60) * 100 / 25 ))
     r=255
     g=$(( 200 - 200 * t / 100 ))
     b=0
   else
-    r=255 g=0 b=0
+    t=$(( (pct - 85) * 100 / (pct - 85 + 30) ))
+    r=255
+    g=0
+    b=0
   fi
   bar_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
 
