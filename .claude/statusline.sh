@@ -74,7 +74,7 @@ if [ "$filled" -lt 10 ]; then
   empty=$((9 - filled))
   [ "$empty" -gt 0 ] && printf -v pad "%${empty}s" && bar="${bar}${pad// /░}"
 fi
-ctx_info="Context ${bar}${bar_color} ${pct}%${RESET}"
+ctx_info="${bar}${bar_color} ${pct}%${RESET}"
 
 # Rate limit info
 rate_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty | round')
@@ -165,9 +165,9 @@ if [ "${rate_5h:-0}" -ge 100 ]; then
   fi
 fi
 rate=$(format_rate "$rate_5h" "$resets_5h" 18000 "$cost_display" "$cost_color")
-[ -n "$rate" ] && parts+=("5-hour $rate")
+[ -n "$rate" ] && parts+=("5h $rate")
 rate=$(format_rate "$rate_7d" "$resets_7d" 604800)
-[ -n "$rate" ] && parts+=("7-day $rate")
+[ -n "$rate" ] && parts+=("7d $rate")
 WHITE='\033[97m'
 parts+=("${WHITE}${current_time}${RESET}")
 
