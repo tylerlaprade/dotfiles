@@ -125,10 +125,13 @@ format_rate() {
     else
       reset_str=$(TZ="America/New_York" date -r "$resets" +"%a %-I:%M %p" 2>/dev/null)
     fi
-    local hrs=$(( time_remaining / 3600 ))
+    local days=$(( time_remaining / 86400 ))
+    local hrs=$(( (time_remaining % 86400) / 3600 ))
     local mins=$(( (time_remaining % 3600) / 60 ))
     local remaining=""
-    if [ "$hrs" -gt 0 ]; then
+    if [ "$days" -gt 0 ]; then
+      remaining="${days}d ${hrs}h ${mins}m"
+    elif [ "$hrs" -gt 0 ]; then
       remaining="${hrs}h ${mins}m"
     else
       remaining="${mins}m"
