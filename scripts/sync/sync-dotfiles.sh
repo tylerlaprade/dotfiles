@@ -2,7 +2,11 @@
 # Lightweight symlink sync — safe to run repeatedly.
 # Called from Claude Code SessionStart hook to keep links current.
 
-DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+_source="${BASH_SOURCE[0]}"
+while [[ -L "$_source" ]]; do
+  _source="$(readlink "$_source")"
+done
+DOTFILES="$(cd "$(dirname "$_source")/../.." && pwd)"
 
 link() {
   local src="$1" dst="$2"
@@ -108,7 +112,10 @@ for app_dir in "$HOME/Library/Application Support"/*/; do
   app_tail="${app_basename##*.}"
   for cfg_dir in "$DOTFILES"/.config/*/; do
     cfg_name="$(basename "$cfg_dir")"
-    if [[ "${app_tail,,}" == "${cfg_name,,}" || "${app_basename,,}" == "${cfg_name,,}" ]]; then
+    app_tail_lower="$(echo "$app_tail" | tr '[:upper:]' '[:lower:]')"
+    app_base_lower="$(echo "$app_basename" | tr '[:upper:]' '[:lower:]')"
+    cfg_lower="$(echo "$cfg_name" | tr '[:upper:]' '[:lower:]')"
+    if [[ "$app_tail_lower" == "$cfg_lower" || "$app_base_lower" == "$cfg_lower" ]]; then
       for cfg_file in "$cfg_dir"/*; do
         [[ -f "$cfg_file" ]] || continue
         shadow="$app_dir/$(basename "$cfg_file")"
@@ -124,6 +131,9 @@ mkdir -p "$HOME/.local/bin"
 for script in "$DOTFILES"/scripts/bin/*.sh; do
   link "$script" "$HOME/.local/bin/$(basename "$script" .sh)"
 done
+
+# This script itself -> ~/.local/bin
+link "$DOTFILES/scripts/sync/sync-dotfiles.sh" "$HOME/.local/bin/sync-dotfiles"
 
 # VS Code — bidirectional sync with secrets splitting
 # The live settings file is NOT symlinked (secrets would leak to repo).
