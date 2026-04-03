@@ -3,7 +3,7 @@
 input=$(cat)
 cd "$(echo "$input" | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 
-pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0 | round')
+pct=$(echo "$input" | jq -r '.context_window | ((.used_percentage // 0) * (.context_window_size // 200000) / 200000) | round')
 
 RESET='\033[0m'
 
