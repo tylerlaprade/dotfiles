@@ -130,7 +130,7 @@ format_rate() {
     local mins=$(( (time_remaining % 3600) / 60 ))
     local remaining=""
     if [ "$days" -gt 0 ]; then
-      remaining="${days}d ${hrs}h ${mins}m"
+      remaining="${days}d ${hrs}h"
     elif [ "$hrs" -gt 0 ]; then
       remaining="${hrs}h ${mins}m"
     else
