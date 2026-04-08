@@ -1,177 +1,177 @@
 {
-  "$schema" : "https:\/\/json.schemastore.org\/claude-code-settings.json",
-  "alwaysThinkingEnabled" : true,
-  "enabledPlugins" : {
-    "code-simplifier@claude-plugins-official" : false,
-    "compound-engineering@compound-engineering-plugin" : false,
-    "context7@claude-plugins-official" : false,
-    "feature-dev@claude-plugins-official" : false,
-    "hookify@claude-plugins-official" : false,
-    "plugin-dev@claude-plugins-official" : false,
-    "pr-review-toolkit@claude-plugins-official" : false,
-    "ralph-loop@claude-plugins-official" : false,
-    "rust-analyzer-lsp@claude-plugins-official" : false,
-    "skill-creator@claude-plugins-official" : false,
-    "slack@claude-plugins-official" : false,
-    "superpowers@claude-plugins-official" : false,
-    "typescript-lsp@claude-plugins-official" : false
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "CLAUDE_CODE_EFFORT_LEVEL": "max",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
+    "MAX_THINKING_TOKENS": "63999"
   },
-  "env" : {
-    "CLAUDE_CODE_EFFORT_LEVEL" : "max",
-    "CLAUDE_CODE_MAX_OUTPUT_TOKENS" : "64000",
-    "MAX_THINKING_TOKENS" : "63999"
+  "permissions": {
+    "defaultMode": "plan"
   },
-  "extraKnownMarketplaces" : {
-    "agent-browser" : {
-      "source" : {
-        "repo" : "vercel-labs\/agent-browser",
-        "source" : "github"
-      }
-    },
-    "basedpyright-lsp" : {
-      "source" : {
-        "repo" : "tylerlaprade\/basedpyright-lsp",
-        "source" : "github"
-      }
-    },
-    "claude-plugins-official" : {
-      "source" : {
-        "repo" : "anthropics\/claude-plugins-official",
-        "source" : "github"
-      }
-    },
-    "compound-engineering-plugin" : {
-      "source" : {
-        "repo" : "EveryInc\/compound-engineering-plugin",
-        "source" : "github"
-      }
-    }
-  },
-  "feedbackSurveyState" : {
-    "lastShownTime" : 9999999999999
-  },
-  "hooks" : {
-    "PermissionRequest" : [
+  "hooks": {
+    "PermissionRequest": [
       {
-        "hooks" : [
+        "matcher": "*",
+        "hooks": [
           {
-            "command" : "~\/.claude\/hooks\/notchi-hook.sh",
-            "type" : "command"
+            "type": "command",
+            "command": "~/.claude/hooks/notchi-hook.sh"
           }
-        ],
-        "matcher" : "*"
+        ]
       }
     ],
-    "PostToolUse" : [
+    "PostToolUse": [
       {
-        "hooks" : [
+        "matcher": "*",
+        "hooks": [
           {
-            "command" : "~\/.claude\/hooks\/notchi-hook.sh",
-            "type" : "command"
+            "type": "command",
+            "command": "~/.claude/hooks/notchi-hook.sh"
           }
-        ],
-        "matcher" : "*"
+        ]
       }
     ],
-    "PreCompact" : [
+    "PreCompact": [
       {
-        "hooks" : [
+        "matcher": "auto",
+        "hooks": [
           {
-            "command" : "~\/.claude\/hooks\/notchi-hook.sh",
-            "type" : "command"
+            "type": "command",
+            "command": "~/.claude/hooks/notchi-hook.sh"
           }
-        ],
-        "matcher" : "auto"
+        ]
       },
       {
-        "hooks" : [
+        "matcher": "manual",
+        "hooks": [
           {
-            "command" : "~\/.claude\/hooks\/notchi-hook.sh",
-            "type" : "command"
-          }
-        ],
-        "matcher" : "manual"
-      }
-    ],
-    "PreToolUse" : [
-      {
-        "hooks" : [
-          {
-            "command" : "~\/.claude\/hooks\/notchi-hook.sh",
-            "type" : "command"
-          }
-        ],
-        "matcher" : "*"
-      }
-    ],
-    "SessionEnd" : [
-      {
-        "hooks" : [
-          {
-            "command" : "~\/.claude\/hooks\/notchi-hook.sh",
-            "type" : "command"
+            "type": "command",
+            "command": "~/.claude/hooks/notchi-hook.sh"
           }
         ]
       }
     ],
-    "SessionStart" : [
+    "PreToolUse": [
       {
-        "hooks" : [
+        "matcher": "*",
+        "hooks": [
           {
-            "command" : "~\/Code\/dotfiles\/scripts\/sync\/sync-dotfiles.sh",
-            "type" : "command"
+            "type": "command",
+            "command": "~/.claude/hooks/notchi-hook.sh"
           }
-        ],
-        "matcher" : "startup"
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/notchi-hook.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/Code/dotfiles/scripts/sync/sync-dotfiles.sh"
+          }
+        ]
       },
       {
-        "hooks" : [
+        "hooks": [
           {
-            "command" : "~\/.claude\/hooks\/notchi-hook.sh",
-            "type" : "command"
+            "type": "command",
+            "command": "~/.claude/hooks/notchi-hook.sh"
           }
         ]
       }
     ],
-    "Stop" : [
+    "Stop": [
       {
-        "hooks" : [
+        "hooks": [
           {
-            "command" : "~\/.claude\/hooks\/notchi-hook.sh",
-            "type" : "command"
+            "type": "command",
+            "command": "~/.claude/hooks/notchi-hook.sh"
           }
         ]
       }
     ],
-    "SubagentStop" : [
+    "SubagentStop": [
       {
-        "hooks" : [
+        "hooks": [
           {
-            "command" : "~\/.claude\/hooks\/notchi-hook.sh",
-            "type" : "command"
+            "type": "command",
+            "command": "~/.claude/hooks/notchi-hook.sh"
           }
         ]
       }
     ],
-    "UserPromptSubmit" : [
+    "UserPromptSubmit": [
       {
-        "hooks" : [
+        "hooks": [
           {
-            "command" : "~\/.claude\/hooks\/notchi-hook.sh",
-            "type" : "command"
+            "type": "command",
+            "command": "~/.claude/hooks/notchi-hook.sh"
           }
         ]
       }
     ]
   },
-  "permissions" : {
-    "defaultMode" : "plan"
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh"
   },
-  "promptSuggestionEnabled" : false,
-  "skipDangerousModePermissionPrompt" : true,
-  "statusLine" : {
-    "command" : "~\/.claude\/statusline.sh",
-    "type" : "command"
+  "enabledPlugins": {
+    "code-simplifier@claude-plugins-official": false,
+    "compound-engineering@compound-engineering-plugin": false,
+    "context7@claude-plugins-official": false,
+    "feature-dev@claude-plugins-official": false,
+    "hookify@claude-plugins-official": false,
+    "plugin-dev@claude-plugins-official": false,
+    "pr-review-toolkit@claude-plugins-official": false,
+    "ralph-loop@claude-plugins-official": false,
+    "rust-analyzer-lsp@claude-plugins-official": false,
+    "skill-creator@claude-plugins-official": false,
+    "slack@claude-plugins-official": false,
+    "superpowers@claude-plugins-official": false,
+    "typescript-lsp@claude-plugins-official": false
   },
-  "voiceEnabled" : true
+  "extraKnownMarketplaces": {
+    "agent-browser": {
+      "source": {
+        "source": "github",
+        "repo": "vercel-labs/agent-browser"
+      }
+    },
+    "basedpyright-lsp": {
+      "source": {
+        "source": "github",
+        "repo": "tylerlaprade/basedpyright-lsp"
+      }
+    },
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
+    },
+    "compound-engineering-plugin": {
+      "source": {
+        "source": "github",
+        "repo": "EveryInc/compound-engineering-plugin"
+      }
+    }
+  },
+  "alwaysThinkingEnabled": true,
+  "promptSuggestionEnabled": false,
+  "voiceEnabled": true,
+  "skipDangerousModePermissionPrompt": true,
+  "feedbackSurveyState": {
+    "lastShownTime": 9999999999999
+  }
 }
