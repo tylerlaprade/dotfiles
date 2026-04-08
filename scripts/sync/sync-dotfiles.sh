@@ -69,6 +69,9 @@ for item in "$DOTFILES"/.claude/*; do
     link "$item" "$HOME/.claude/$local_name"
   fi
 done
+# Normalize settings.json to match Claude Code's native JSON serializer so
+# TUI setting toggles don't create formatting-only diffs.
+"$DOTFILES/scripts/sync/format-claude-settings.py" "$DOTFILES/.claude/settings.json"
 
 # ~/.codex/* (keep runtime state local)
 mkdir -p "$HOME/.codex"
