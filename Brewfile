@@ -1,6 +1,7 @@
 tap "withgraphite/tap"
 brew "bat"
 brew "bottom"
+brew "brush", args: ["HEAD"]
 brew "cosign"
 brew "difftastic"
 brew "direnv"
