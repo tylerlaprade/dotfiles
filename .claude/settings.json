@@ -130,7 +130,6 @@
   },
   "enabledPlugins": {
     "code-simplifier@claude-plugins-official": false,
-    "compound-engineering@compound-engineering-plugin": false,
     "context7@claude-plugins-official": false,
     "feature-dev@claude-plugins-official": false,
     "hookify@claude-plugins-official": false,
@@ -161,17 +160,9 @@
         "source": "github",
         "repo": "anthropics/claude-plugins-official"
       }
-    },
-    "compound-engineering-plugin": {
-      "source": {
-        "source": "github",
-        "repo": "EveryInc/compound-engineering-plugin"
-      },
-      "autoUpdate": true
     }
   },
   "alwaysThinkingEnabled": true,
-  "effortLevel": "low",
   "promptSuggestionEnabled": false,
   "voiceEnabled": true,
   "skipDangerousModePermissionPrompt": true,
