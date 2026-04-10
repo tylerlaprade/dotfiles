@@ -21,8 +21,10 @@ from datetime import date, datetime
 from math import isclose
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CONF_PATH = os.path.join(SCRIPT_DIR, "macos-defaults.conf")
-SNAPSHOT_PATH = os.path.join(SCRIPT_DIR, "macos-defaults.json")
+REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
+SETUP_DIR = os.path.join(REPO_ROOT, "scripts", "setup")
+CONF_PATH = os.path.join(SETUP_DIR, "macos-defaults.conf")
+SNAPSHOT_PATH = os.path.join(SETUP_DIR, "macos-defaults.json")
 
 if not os.path.exists(CONF_PATH):
     sys.exit(0)
@@ -38,11 +40,11 @@ def load_committed_snapshot():
     try:
         rel = os.path.relpath(SNAPSHOT_PATH, subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True, text=True, cwd=SCRIPT_DIR,
+            capture_output=True, text=True, cwd=REPO_ROOT,
         ).stdout.strip())
         raw = subprocess.run(
             ["git", "show", f"HEAD:{rel}"],
-            capture_output=True, text=True, cwd=SCRIPT_DIR,
+            capture_output=True, text=True, cwd=REPO_ROOT,
         )
         if raw.returncode == 0:
             return json.loads(raw.stdout)
@@ -185,7 +187,7 @@ def export_domain(domain, blacklist, existing_snapshot):
         elif isinstance(val, (list, dict)):
             if has_bytes(val):
                 # Export as raw plist file (bytes can't go in JSON)
-                plist_dir = os.path.join(SCRIPT_DIR, "macos-plists")
+                plist_dir = os.path.join(SETUP_DIR, "macos-plists")
                 os.makedirs(plist_dir, exist_ok=True)
                 plist_file = os.path.join(plist_dir, f"{domain}.{key}.plist")
                 with open(plist_file, "wb") as pf:
@@ -217,7 +219,7 @@ with open(SNAPSHOT_PATH, "w") as f:
     f.write("\n")
 
 # Capture pmset (power management) settings
-PMSET_PATH = os.path.join(SCRIPT_DIR, "pmset.json")
+PMSET_PATH = os.path.join(SETUP_DIR, "pmset.json")
 PMSET_BLACKLIST = {"powermode", "lowpowermode", "SleepServices"}
 pmset_snapshot = {}
 for source, flag in [("battery", "-b"), ("ac", "-c")]:
@@ -251,7 +253,7 @@ with open(PMSET_PATH, "w") as f:
     f.write("\n")
 
 # Capture login items — merge with on-disk file to preserve items from other machines
-LOGIN_ITEMS_PATH = os.path.join(SCRIPT_DIR, "login-items.json")
+LOGIN_ITEMS_PATH = os.path.join(SETUP_DIR, "login-items.json")
 raw = subprocess.run(
     ["osascript", "-e", 'tell application "System Events" to get the {name, path} of every login item'],
     capture_output=True, text=True
