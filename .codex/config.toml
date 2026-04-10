@@ -1,9 +1,9 @@
 personality = "pragmatic"
 model = "gpt-5.4"
-approvals_reviewer = "guardian_subagent"
+approvals_reviewer = "user"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "medium"
 
 [projects."/Users/Tyler Laprade/Code/dotfiles"]
 trust_level = "trusted"
