@@ -1,9 +1,5 @@
 [
   {
-    "name": "Hyperkey",
-    "path": "/Applications/Hyperkey.app"
-  },
-  {
     "name": "Google Calendar",
     "path": "~/Applications/Brave Browser Apps.localized/Google Calendar.app"
   },
@@ -26,6 +22,10 @@
   {
     "name": "Graphite",
     "path": "/Applications/Graphite.app"
+  },
+  {
+    "name": "Hyperkey",
+    "path": "/Applications/Hyperkey.app"
   },
   {
     "name": "Slack",
