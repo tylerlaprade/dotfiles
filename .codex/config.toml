@@ -3,7 +3,6 @@ model = "gpt-5.4"
 approvals_reviewer = "guardian_subagent"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
-service_tier = "fast"
 model_reasoning_effort = "xhigh"
 
 [projects."/Users/Tyler Laprade/Code/dotfiles"]
