@@ -139,33 +139,16 @@ echo ""
 read -p "Remove backup directory? (archive kept) [y/N] " -r
 [[ "$REPLY" =~ ^[Yy]$ ]] && { chmod -RN "$RESTORE_DIR" 2>/dev/null; rm -rf "$RESTORE_DIR"; }
 
-# Login shell — set brush if installed
-if command -v brush &>/dev/null; then
-  brush_path="$(command -v brush)"
-  if ! grep -q "$brush_path" /etc/shells; then
-    echo ""
-    echo "--- Setting login shell to brush ---"
-    echo "  Adding $brush_path to /etc/shells (requires sudo)"
-    echo "$brush_path" | sudo tee -a /etc/shells >/dev/null
-  fi
-  current_shell=$(dscl . -read /Users/"$(whoami)" UserShell | awk '{print $2}')
-  if [[ "$current_shell" != "$brush_path" ]]; then
-    echo "  Changing login shell to brush"
-    chsh -s "$brush_path"
-  fi
-fi
-
 echo ""
 echo "=== Restore complete ==="
 echo ""
 echo "Remaining manual steps:"
-echo "  1. Log out and back in (so launchd picks up brush as login shell)"
-echo "  2. Verify Brave Sync pulled everything down"
-echo "  3. Run: $HOME/Code/dotfiles/scripts/setup/apply-macos-defaults.py"
-echo "  4. Grant accessibility permissions for Kanata"
-echo "  5. Grant input monitoring permissions for Karabiner"
-echo "  6. Add custom /etc/hosts entries:"
+echo "  1. Verify Brave Sync pulled everything down"
+echo "  2. Run: $HOME/Code/dotfiles/scripts/setup/apply-macos-defaults.py"
+echo "  3. Grant accessibility permissions for Kanata"
+echo "  4. Grant input monitoring permissions for Karabiner"
+echo "  5. Add custom /etc/hosts entries:"
 echo "     sudo sh -c 'echo \"127.0.0.1       local.paqarina.dev\" >> /etc/hosts'"
-echo "  7. Re-add login items: Hyperkey, Discord, Granola, Graphite, Google Calendar, Slack"
-echo "  8. Reinstall Google Calendar PWA in Brave (three dots > Install page as app):"
+echo "  6. Re-add login items: Hyperkey, Discord, Granola, Graphite, Google Calendar, Slack"
+echo "  7. Reinstall Google Calendar PWA in Brave (three dots > Install page as app):"
 echo "     https://calendar.google.com/calendar/r"
