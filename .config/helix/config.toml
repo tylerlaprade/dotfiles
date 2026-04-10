@@ -41,3 +41,9 @@ A-d = "no_op"
 A-c = "no_op"
 C-j = "half_page_down"
 C-k = "half_page_up"
+Cmd-c = "yank_main_selection_to_clipboard"
+Cmd-x = ["yank_main_selection_to_clipboard", "delete_selection_noyank"]
+
+[keys.select]
+Cmd-c = "yank_main_selection_to_clipboard"
+Cmd-x = ["yank_main_selection_to_clipboard", "delete_selection_noyank"]
