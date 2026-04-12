@@ -89,7 +89,7 @@ with open(CONF_PATH) as f:
             if domain_part in apple_whitelist:
                 apple_whitelist[domain_part].extend(patterns)
             else:
-                key_blacklists[domain_part] = patterns
+                key_blacklists.setdefault(domain_part, []).extend(patterns)
 
 # Get all domains
 raw = subprocess.run(["defaults", "domains"], capture_output=True, text=True)

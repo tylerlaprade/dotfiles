@@ -869,70 +869,6 @@
     }
   },
   "com.apple.controlcenter": {
-    "NSStatusItem Visible BentoBox": {
-      "type": "bool",
-      "value": true
-    },
-    "NSStatusItem Visible Display": {
-      "type": "bool",
-      "value": false
-    },
-    "NSStatusItem Visible Item-0": {
-      "type": "bool",
-      "value": false
-    },
-    "NSStatusItem Visible Item-1": {
-      "type": "bool",
-      "value": false
-    },
-    "NSStatusItem Visible Item-2": {
-      "type": "bool",
-      "value": false
-    },
-    "NSStatusItem Visible Item-3": {
-      "type": "bool",
-      "value": false
-    },
-    "NSStatusItem Visible Item-4": {
-      "type": "bool",
-      "value": false
-    },
-    "NSStatusItem Visible Item-5": {
-      "type": "bool",
-      "value": false
-    },
-    "NSStatusItem Visible Item-6": {
-      "type": "bool",
-      "value": false
-    },
-    "NSStatusItem Visible Item-7": {
-      "type": "bool",
-      "value": false
-    },
-    "NSStatusItem Visible Item-8": {
-      "type": "bool",
-      "value": false
-    },
-    "NSStatusItem Visible ScreenMirroring": {
-      "type": "bool",
-      "value": false
-    },
-    "NSStatusItem VisibleCC Battery": {
-      "type": "bool",
-      "value": true
-    },
-    "NSStatusItem VisibleCC BentoBox-0": {
-      "type": "bool",
-      "value": true
-    },
-    "NSStatusItem VisibleCC Clock": {
-      "type": "bool",
-      "value": true
-    },
-    "NSStatusItem VisibleCC WiFi": {
-      "type": "bool",
-      "value": true
-    },
     "RemoteLiveActivitiesEnabled": {
       "type": "bool",
       "value": true
@@ -1246,10 +1182,6 @@
       "value": {
         "MainWindow": []
       }
-    },
-    "InvitationNotificationsDisabled": {
-      "type": "bool",
-      "value": true
     },
     "NSDontMakeMainWindowKey": {
       "type": "string",
@@ -1960,10 +1892,6 @@
     }
   },
   "com.apple.systemuiserver": {
-    "NSStatusItem Visible Item-1": {
-      "type": "bool",
-      "value": false
-    },
     "__NSEnableTSMDocumentWindowLevel": {
       "type": "bool",
       "value": true
@@ -4173,39 +4101,7 @@
     }
   },
   "com.quip.Desktop": {
-    "SUAutomaticallyUpdate": {
-      "type": "bool",
-      "value": true
-    },
-    "SUEnableAutomaticChecks": {
-      "type": "bool",
-      "value": true
-    },
     "WebAutomaticSpellingCorrectionEnabled": {
-      "type": "bool",
-      "value": false
-    },
-    "browser-controller-default-window-content-rect": {
-      "type": "string",
-      "value": "{{743, 552}, {600, 355}}"
-    },
-    "browser-controller-last-window-user-id": {
-      "type": "string",
-      "value": "WXZAEA6QYBw"
-    },
-    "browser-controller-launch-state": {
-      "type": "plist",
-      "value": []
-    },
-    "silent-relaunch": {
-      "type": "bool",
-      "value": true
-    },
-    "silent-relaunch-application-active": {
-      "type": "bool",
-      "value": false
-    },
-    "silent-relaunch-application-background-mode": {
       "type": "bool",
       "value": false
     }
@@ -4315,18 +4211,6 @@
     }
   },
   "io.github.keycastr": {
-    "SUAutomaticallyUpdate": {
-      "type": "bool",
-      "value": true
-    },
-    "SUEnableAutomaticChecks": {
-      "type": "bool",
-      "value": true
-    },
-    "SUSendProfileInfo": {
-      "type": "bool",
-      "value": true
-    },
     "alwaysShowPrefs": {
       "type": "bool",
       "value": false
@@ -4416,48 +4300,10 @@
       "value": "/Applications/pgAdmin 4.app"
     }
   },
-  "us.zoom.updater.config": {
-    "AU2_BackgroundUpdateTimeInterval": {
-      "type": "string",
-      "value": "12"
-    },
-    "AU2_SetUpdateChannel": {
-      "type": "string",
-      "value": "1"
-    },
-    "EnableAutoTrackBillableHours": {
-      "type": "string",
-      "value": "false"
-    },
-    "EnableBillableHours": {
-      "type": "string",
-      "value": "true"
-    },
-    "IsPromptFirstUpdate": {
-      "type": "string",
-      "value": "false"
-    },
-    "SetUpdatingChannel": {
-      "type": "string",
-      "value": "1"
-    }
-  },
   "us.zoom.xos": {
     "BounceApplicationSetting": {
       "type": "int",
       "value": 2
-    },
-    "HasResetOrderTip": {
-      "type": "bool",
-      "value": true
-    },
-    "Hotkey Have Shown Tip": {
-      "type": "bool",
-      "value": true
-    },
-    "LottieTip": {
-      "type": "bool",
-      "value": true
     },
     "NSAllowContinuousSpellChecking": {
       "type": "bool",
@@ -4467,10 +4313,6 @@
       "type": "bool",
       "value": false
     },
-    "NSInitialToolTipDelay": {
-      "type": "int",
-      "value": 100
-    },
     "NSQuitAlwaysKeepsWindows": {
       "type": "bool",
       "value": false
@@ -4479,10 +4321,6 @@
       "type": "bool",
       "value": false
     },
-    "User Select Language Identify": {
-      "type": "string",
-      "value": "follow system language"
-    },
     "WebContinuousSpellCheckingEnabled": {
       "type": "bool",
       "value": true
@@ -4490,10 +4328,6 @@
     "WebKitDisplayImagesKey": {
       "type": "bool",
       "value": false
-    },
-    "ZMCustomOrderTabsFlags": {
-      "type": "bool",
-      "value": true
     },
     "ZMInputTextViewAutomaticSpellingCorrectionEnabled": {
       "type": "bool",
@@ -4507,141 +4341,7 @@
       "type": "bool",
       "value": true
     },
-    "ZMJoinMeetingFlowAnchor": {
-      "type": "string",
-      "value": "{{0, 0}, {1728, 1084}}"
-    },
-    "ZMPTClientSidebarWidth": {
-      "type": "int",
-      "value": 360
-    },
-    "ZoomAutoUpdateState": {
-      "type": "string",
-      "value": "ZoomAutoUpdateStateReady"
-    },
-    "ZoomAutoUpdateVersion": {
-      "type": "string",
-      "value": "6.7.2.72191"
-    },
-    "_NS_4445425547": {
-      "type": "bool",
-      "value": false
-    },
-    "_favoriteArray": {
-      "type": "plist",
-      "value": [
-        ":rage:=\ud83d\ude21",
-        ":heart:=\u2764\ufe0f",
-        ":thumbsup:=\ud83d\udc4d",
-        ":green_heart:=\ud83d\udc9a",
-        ":100:=\ud83d\udcaf",
-        ":partying_face:=\ud83e\udd73",
-        ":muscle:=\ud83d\udcaa;:muscle_tone1:=\ud83d\udcaa\ud83c\udffb;:muscle_tone2:=\ud83d\udcaa\ud83c\udffc;:muscle_tone3:=\ud83d\udcaa\ud83c\udffd;:muscle_tone4:=\ud83d\udcaa\ud83c\udffe;:muscle_tone5:=\ud83d\udcaa\ud83c\udfff",
-        ":thinking:=\ud83e\udd14",
-        ":fire:=\ud83d\udd25",
-        ":clap:=\ud83d\udc4f;:clap_tone1:=\ud83d\udc4f\ud83c\udffb;:clap_tone2:=\ud83d\udc4f\ud83c\udffc;:clap_tone3:=\ud83d\udc4f\ud83c\udffd;:clap_tone4:=\ud83d\udc4f\ud83c\udffe;:clap_tone5:=\ud83d\udc4f\ud83c\udfff",
-        ":disappointed:=\ud83d\ude1e",
-        ":people_hugging:=\ud83e\udec2",
-        ":pray:=\ud83d\ude4f;:pray_tone1:=\ud83d\ude4f\ud83c\udffb;:pray_tone2:=\ud83d\ude4f\ud83c\udffc;:pray_tone3:=\ud83d\ude4f\ud83c\udffd;:pray_tone4:=\ud83d\ude4f\ud83c\udffe;:pray_tone5:=\ud83d\ude4f\ud83c\udfff",
-        ":stuck_out_tongue:=\ud83d\ude1b",
-        ":upside_down:=\ud83d\ude43",
-        ":smile:=\ud83d\ude04"
-      ]
-    },
-    "_favoriteArrayV2": {
-      "type": "plist",
-      "value": [
-        ":heart:=\u2764\ufe0f",
-        ":white_check_mark:=\u2705",
-        ":two_hearts:=\ud83d\udc95",
-        ":sunglasses:=\ud83d\ude0e",
-        ":skull_crossbones:=\u2620\ufe0f",
-        ":thumbsup:=\ud83d\udc4d",
-        ":astonished:=\ud83d\ude32",
-        ":pinched_fingers:=\ud83e\udd0c;:pinched_fingers_tone1:=\ud83e\udd0c\ud83c\udffb;:pinched_fingers_tone2:=\ud83e\udd0c\ud83c\udffc;:pinched_fingers_tone3:=\ud83e\udd0c\ud83c\udffd;:pinched_fingers_tone4:=\ud83e\udd0c\ud83c\udffe;:pinched_fingers_tone5:=\ud83e\udd0c\ud83c\udfff",
-        ":clap:=\ud83d\udc4f;:clap_tone1:=\ud83d\udc4f\ud83c\udffb;:clap_tone2:=\ud83d\udc4f\ud83c\udffc;:clap_tone3:=\ud83d\udc4f\ud83c\udffd;:clap_tone4:=\ud83d\udc4f\ud83c\udffe;:clap_tone5:=\ud83d\udc4f\ud83c\udfff",
-        ":green_heart:=\ud83d\udc9a",
-        ":smirk:=\ud83d\ude0f",
-        ":rage:=\ud83d\ude21",
-        ":100:=\ud83d\udcaf",
-        ":partying_face:=\ud83e\udd73",
-        ":muscle:=\ud83d\udcaa;:muscle_tone1:=\ud83d\udcaa\ud83c\udffb;:muscle_tone2:=\ud83d\udcaa\ud83c\udffc;:muscle_tone3:=\ud83d\udcaa\ud83c\udffd;:muscle_tone4:=\ud83d\udcaa\ud83c\udffe;:muscle_tone5:=\ud83d\udcaa\ud83c\udfff",
-        ":thinking:=\ud83e\udd14"
-      ]
-    },
-    "_favoriteArrayV4": {
-      "type": "plist",
-      "value": [
-        "\u2764\ufe0f",
-        "\ud83d\ude02",
-        "\ud83d\ude03"
-      ]
-    },
-    "been dragged wall video": {
-      "type": "bool",
-      "value": true
-    },
-    "been pinned/spotlight video": {
-      "type": "bool",
-      "value": true
-    },
-    "kBOBroadcastBewBubble": {
-      "type": "bool",
-      "value": true
-    },
     "kCaptureWithoutChatWindow": {
-      "type": "bool",
-      "value": true
-    },
-    "kWorkVivoTabName": {
-      "type": "string",
-      "value": ""
-    },
-    "kZMAlreadyShowPMCTip": {
-      "type": "bool",
-      "value": true
-    },
-    "kZMHadShowFiveMinsCountDown": {
-      "type": "bool",
-      "value": false
-    },
-    "kZMHadShowOneDayCountDown": {
-      "type": "bool",
-      "value": false
-    },
-    "kZMHadShowOneHourCountDown": {
-      "type": "bool",
-      "value": false
-    },
-    "kZMHadShowSessionWarning": {
-      "type": "bool",
-      "value": false
-    },
-    "kZMMTViusalRefreshTipAlreadyShown": {
-      "type": "bool",
-      "value": true
-    },
-    "kZMMeetingChatTitleTipShowCount_Member": {
-      "type": "int",
-      "value": 3
-    },
-    "kZMScheduledOnboardingPopoverDismissedDefaultsKey": {
-      "type": "bool",
-      "value": true
-    },
-    "kZMShowNotificationCenter": {
-      "type": "bool",
-      "value": true
-    },
-    "kZMShowPMCTransition": {
-      "type": "int",
-      "value": 4
-    },
-    "kZMUserDefaultSelectedTabType": {
-      "type": "int",
-      "value": 0
-    },
-    "kZPSettingMyVideoDeprecatedKey": {
       "type": "bool",
       "value": true
     }
