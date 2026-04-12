@@ -14,9 +14,17 @@
     },
     "AppleKeyboardUIMode": {
       "type": "int",
-      "value": 3
+      "value": 0
+    },
+    "AppleMenuBarFontSize": {
+      "type": "string",
+      "value": "large"
     },
     "AppleMiniaturizeOnDoubleClick": {
+      "type": "bool",
+      "value": false
+    },
+    "AppleReduceDesktopTinting": {
       "type": "bool",
       "value": false
     },
@@ -34,7 +42,7 @@
     },
     "AppleWindowTabbingMode": {
       "type": "string",
-      "value": "always"
+      "value": "manual"
     },
     "InitialKeyRepeat": {
       "type": "int",
@@ -76,10 +84,6 @@
       "type": "bool",
       "value": true
     },
-    "com.apple.sound.beep.flash": {
-      "type": "int",
-      "value": 0
-    },
     "com.apple.springing.delay": {
       "type": "float",
       "value": 0.5
@@ -111,6 +115,10 @@
       "value": 0
     },
     "BrailleInputDeviceConnected": {
+      "type": "int",
+      "value": 0
+    },
+    "ButtonShapesEnabled": {
       "type": "int",
       "value": 0
     },
@@ -161,6 +169,14 @@
     "KeyRepeatInterval": {
       "type": "float",
       "value": 0.083333333
+    },
+    "PrefersHorizontalText": {
+      "type": "int",
+      "value": 0
+    },
+    "ReduceMotionAutoplayAnimatedImagesEnabled": {
+      "type": "int",
+      "value": 0
     },
     "ReduceMotionEnabled": {
       "type": "int",
@@ -450,16 +466,16 @@
           "RotorItem": "lt-LT"
         }
       ]
+    },
+    "kTTSVBAllowVoiceBankingAppUsage": {
+      "type": "bool",
+      "value": true
     }
   },
   "com.apple.AdLib": {
     "CKDPIDSyncState": {
       "type": "int",
       "value": 0
-    },
-    "allowApplePersonalizedAdvertising": {
-      "type": "bool",
-      "value": true
     },
     "allowIdentifierForAdvertising": {
       "type": "bool",
@@ -490,10 +506,6 @@
     "kAOSUIProfilePictureCropRect": {
       "type": "string",
       "value": "{{0, 0}, {500, 500}}"
-    },
-    "mostRecentTabIdentifier": {
-      "type": "string",
-      "value": "discover"
     }
   },
   "com.apple.AppleMultitouchMouse": {
@@ -540,8 +552,8 @@
   },
   "com.apple.AppleMultitouchTrackpad": {
     "Clicking": {
-      "type": "bool",
-      "value": false
+      "type": "int",
+      "value": 0
     },
     "DragLock": {
       "type": "int",
@@ -651,23 +663,19 @@
     }
   },
   "com.apple.HIToolbox": {
+    "AppleDictationAutoEnable": {
+      "type": "int",
+      "value": 1
+    },
     "AppleFnUsageType": {
       "type": "int",
       "value": 1
     }
   },
   "com.apple.Maps": {
-    "AnnouncementsETag": {
+    "DistanceUnits": {
       "type": "string",
-      "value": "\"aaa11310d67bbccc2420868f7571e62dad8cbe4c\""
-    },
-    "AnnouncementsLastUpdated": {
-      "type": "float",
-      "value": 716938304.0
-    },
-    "LastAnnouncementsURL": {
-      "type": "string",
-      "value": "https://gspe35-ssl.ls.apple.com/config/announcements?environment=prod&hardware=MacBookAir10,1&lang=en&os=osx&os_build=21G83&os_version=12.5.1"
+      "value": "Imperial"
     }
   },
   "com.apple.Photos": {
@@ -703,27 +711,23 @@
       "type": "int",
       "value": 0
     },
-    "LibraryFilterStateViewMode": {
-      "type": "int",
-      "value": 0
-    },
-    "PNUserDefaultPhotosAppLastLaunchDateKey": {
-      "type": "datetime",
-      "value": "2025-08-01T02:45:36"
-    },
     "PXRootSettingsHideWIPAlerts": {
       "type": "bool",
       "value": false
     },
-    "allPhotosLemonadePreferredIndividualItemsColumns": {
+    "allPhotosLibraryPreferredIndividualItemsColumns": {
       "type": "int",
       "value": 5
     }
   },
   "com.apple.Preview": {
-    "PVContactSheetThumbnailSize": {
-      "type": "int",
-      "value": 120
+    "IKImageView2_UseNSDocumentViewAlignCenter": {
+      "type": "bool",
+      "value": true
+    },
+    "PDFKit2_UseNSDocumentViewAlignCenter": {
+      "type": "bool",
+      "value": true
     },
     "PVPDFLastSidebarWidth": {
       "type": "int",
@@ -756,14 +760,6 @@
     "com.apple.AnnotationKit.userDefaultsVersion": {
       "type": "int",
       "value": 1
-    },
-    "com.apple.imagekit.lastresolution": {
-      "type": "int",
-      "value": 144
-    },
-    "com.apple.imagekit.lastselectedfiletype": {
-      "type": "string",
-      "value": "public.png"
     }
   },
   "com.apple.Siri": {
@@ -781,126 +777,13 @@
       "type": "string",
       "value": "Canned"
     },
-    "NSStatusItem Visible Item-0": {
-      "type": "bool",
-      "value": true
-    },
-    "SPMessageTracingWindowHideCount": {
-      "type": "int",
-      "value": 19
-    },
-    "SPMessageTracingWindowShowCount": {
-      "type": "int",
-      "value": 19
-    },
     "__NSEnableTSMDocumentWindowLevel": {
       "type": "bool",
       "value": true
     },
-    "lastVisibleScreenRect": {
-      "type": "string",
-      "value": "{{0, 0}, {1440, 900}}"
-    },
-    "lastWindowPosition": {
-      "type": "string",
-      "value": "{{420, 290}, {600, 430}}"
-    },
-    "orderedItems": {
-      "type": "plist",
-      "value": [
-        {
-          "enabled": true,
-          "name": "APPLICATIONS"
-        },
-        {
-          "enabled": true,
-          "name": "MENU_EXPRESSION"
-        },
-        {
-          "enabled": false,
-          "name": "CONTACT"
-        },
-        {
-          "enabled": true,
-          "name": "MENU_CONVERSION"
-        },
-        {
-          "enabled": true,
-          "name": "MENU_DEFINITION"
-        },
-        {
-          "enabled": false,
-          "name": "DOCUMENTS"
-        },
-        {
-          "enabled": true,
-          "name": "EVENT_TODO"
-        },
-        {
-          "enabled": false,
-          "name": "DIRECTORIES"
-        },
-        {
-          "enabled": false,
-          "name": "FONTS"
-        },
-        {
-          "enabled": true,
-          "name": "IMAGES"
-        },
-        {
-          "enabled": false,
-          "name": "MESSAGES"
-        },
-        {
-          "enabled": true,
-          "name": "MOVIES"
-        },
-        {
-          "enabled": true,
-          "name": "MUSIC"
-        },
-        {
-          "enabled": false,
-          "name": "MENU_OTHER"
-        },
-        {
-          "enabled": false,
-          "name": "PDF"
-        },
-        {
-          "enabled": true,
-          "name": "PRESENTATIONS"
-        },
-        {
-          "enabled": false,
-          "name": "MENU_SPOTLIGHT_SUGGESTIONS"
-        },
-        {
-          "enabled": true,
-          "name": "SPREADSHEETS"
-        },
-        {
-          "enabled": true,
-          "name": "SYSTEM_PREFS"
-        },
-        {
-          "enabled": true,
-          "name": "TIPS"
-        },
-        {
-          "enabled": true,
-          "name": "BOOKMARKS"
-        }
-      ]
-    },
     "showedFTE": {
       "type": "bool",
       "value": true
-    },
-    "useCount": {
-      "type": "int",
-      "value": 3
     },
     "version": {
       "type": "int",
@@ -912,9 +795,9 @@
       "type": "string",
       "value": "Basic"
     },
-    "DefaultProfilesVersion": {
-      "type": "int",
-      "value": 1
+    "FocusFollowsMouse": {
+      "type": "bool",
+      "value": true
     },
     "HasMigratedDefaults": {
       "type": "bool",
@@ -924,10 +807,6 @@
       "type": "string",
       "value": "Man Page"
     },
-    "ProfileCurrentVersion": {
-      "type": "float",
-      "value": 2.069999933242798
-    },
     "SecureKeyboardEntry": {
       "type": "bool",
       "value": false
@@ -935,18 +814,18 @@
     "Startup Window Settings": {
       "type": "string",
       "value": "Basic"
-    },
-    "TTAppPreferences Selected Tab": {
-      "type": "int",
-      "value": 0
     }
   },
   "com.apple.WindowManager": {
     "AppWindowGroupingBehavior": {
       "type": "int",
-      "value": 0
+      "value": 1
     },
     "AutoHide": {
+      "type": "bool",
+      "value": false
+    },
+    "EnableTiledWindowMargins": {
       "type": "bool",
       "value": false
     },
@@ -976,33 +855,25 @@
       "type": "bool",
       "value": true
     },
+    "Dictation Auto Punctuation Enabled": {
+      "type": "bool",
+      "value": true
+    },
+    "Dictation Enabled": {
+      "type": "bool",
+      "value": true
+    },
     "Siri Data Sharing Opt-In Status": {
       "type": "int",
       "value": 2
     }
   },
   "com.apple.controlcenter": {
-    "NSStatusItem Visible AudioVideoModule": {
-      "type": "bool",
-      "value": true
-    },
-    "NSStatusItem Visible Battery": {
-      "type": "bool",
-      "value": true
-    },
     "NSStatusItem Visible BentoBox": {
       "type": "bool",
       "value": true
     },
-    "NSStatusItem Visible Clock": {
-      "type": "bool",
-      "value": true
-    },
     "NSStatusItem Visible Display": {
-      "type": "bool",
-      "value": false
-    },
-    "NSStatusItem Visible FaceTime": {
       "type": "bool",
       "value": false
     },
@@ -1042,21 +913,37 @@
       "type": "bool",
       "value": false
     },
-    "NSStatusItem Visible NowPlaying": {
+    "NSStatusItem Visible ScreenMirroring": {
       "type": "bool",
       "value": false
     },
-    "NSStatusItem Visible UserSwitcher": {
+    "NSStatusItem VisibleCC Battery": {
       "type": "bool",
       "value": true
     },
-    "NSStatusItem Visible WiFi": {
+    "NSStatusItem VisibleCC BentoBox-0": {
+      "type": "bool",
+      "value": true
+    },
+    "NSStatusItem VisibleCC Clock": {
+      "type": "bool",
+      "value": true
+    },
+    "NSStatusItem VisibleCC WiFi": {
+      "type": "bool",
+      "value": true
+    },
+    "RemoteLiveActivitiesEnabled": {
       "type": "bool",
       "value": true
     }
   },
   "com.apple.dock": {
     "autohide": {
+      "type": "bool",
+      "value": true
+    },
+    "expose-group-apps": {
       "type": "bool",
       "value": true
     },
@@ -1082,11 +969,11 @@
     },
     "showAppExposeGestureEnabled": {
       "type": "bool",
-      "value": false
+      "value": true
     },
     "tilesize": {
-      "type": "float",
-      "value": 31.0
+      "type": "int",
+      "value": 65
     },
     "wvous-br-corner": {
       "type": "int",
@@ -1137,16 +1024,16 @@
   },
   "com.apple.driver.AppleBluetoothMultitouch.trackpad": {
     "Clicking": {
-      "type": "bool",
-      "value": false
+      "type": "int",
+      "value": 0
     },
     "DragLock": {
-      "type": "bool",
-      "value": false
+      "type": "int",
+      "value": 0
     },
     "Dragging": {
-      "type": "bool",
-      "value": false
+      "type": "int",
+      "value": 0
     },
     "TrackpadCornerSecondaryClick": {
       "type": "int",
@@ -1286,15 +1173,15 @@
     },
     "FXDetachedDesktopProviderID": {
       "type": "string",
-      "value": "com.apple.CloudDocs.iCloudDriveFileProvider/64826293-D580-46E0-B552-26464244C6D3"
+      "value": ""
     },
     "FXDetachedDocumentsProviderID": {
       "type": "string",
-      "value": "com.apple.CloudDocs.iCloudDriveFileProvider/64826293-D580-46E0-B552-26464244C6D3"
+      "value": ""
     },
     "FXPreferredViewStyle": {
       "type": "string",
-      "value": "Nlsv"
+      "value": "icnv"
     },
     "FXRemoveOldTrashItems": {
       "type": "bool",
@@ -1312,6 +1199,10 @@
       "type": "bool",
       "value": false
     },
+    "ShowPathbar": {
+      "type": "bool",
+      "value": false
+    },
     "ShowRemovableMediaOnDesktop": {
       "type": "bool",
       "value": true
@@ -1319,23 +1210,21 @@
     "ShowSidebar": {
       "type": "bool",
       "value": true
+    },
+    "ShowStatusBar": {
+      "type": "bool",
+      "value": false
+    },
+    "_FXSortFoldersFirst": {
+      "type": "bool",
+      "value": true
+    },
+    "_FXSortFoldersFirstOnDesktop": {
+      "type": "bool",
+      "value": true
     }
   },
   "com.apple.iCal": {
-    "AccountDisplayOrder": {
-      "type": "plist",
-      "value": [
-        "______NativeStorePersistentID_______",
-        "60A360A5-CFC0-4697-BF68-BC0484210F26",
-        "2759B4B9-0ECD-4445-871C-B13FC8821D6E",
-        "A43F479D-E960-43A5-9742-1AC438856C2E",
-        "189C2DA9-9327-44CE-AD76-E6F52E40CB86"
-      ]
-    },
-    "AllDayAreaHeight": {
-      "type": "float",
-      "value": 40.0
-    },
     "BirthdayEventsGenerationAttemptsToResetKey": {
       "type": "int",
       "value": 0
@@ -1352,36 +1241,15 @@
       "type": "string",
       "value": "16A1"
     },
-    "CalendarSidebarShown": {
-      "type": "bool",
-      "value": true
-    },
-    "CalendarSidebarView": {
-      "type": "int",
-      "value": 0
-    },
     "CollapsedTopLevelNodes": {
       "type": "plist",
       "value": {
         "MainWindow": []
       }
     },
-    "DelegatesInSeparateWindows": {
-      "type": "plist",
-      "value": {
-        "iCal": {
-          "inspectors": [
-            {
-              "state": {
-                "items": [
-                  "20251117T000000Z/FD0B4096-64AE-49A3-AF9D-53DDBCF242AC"
-                ]
-              },
-              "type": 1
-            }
-          ]
-        }
-      }
+    "InvitationNotificationsDisabled": {
+      "type": "bool",
+      "value": true
     },
     "NSDontMakeMainWindowKey": {
       "type": "string",
@@ -1394,14 +1262,6 @@
     "NotificationsLastLocale": {
       "type": "string",
       "value": "en_US"
-    },
-    "SelectedEvents": {
-      "type": "plist",
-      "value": {
-        "iCal": [
-          "20251117T000000Z/FD0B4096-64AE-49A3-AF9D-53DDBCF242AC"
-        ]
-      }
     },
     "ShowDeclinedEvents": {
       "type": "bool",
@@ -1419,13 +1279,13 @@
       "type": "bool",
       "value": true
     },
-    "first minute of day time range": {
+    "first day of week": {
       "type": "int",
       "value": 0
     },
-    "first shown minute of day": {
-      "type": "float",
-      "value": 402.638671875
+    "first minute of day time range": {
+      "type": "int",
+      "value": 0
     },
     "iCal version": {
       "type": "int",
@@ -1434,6 +1294,10 @@
     "migrationAttempts": {
       "type": "int",
       "value": 0
+    },
+    "number of hours displayed": {
+      "type": "int",
+      "value": 17
     },
     "view rects": {
       "type": "plist",
@@ -1505,9 +1369,29 @@
     }
   },
   "com.apple.screencapture": {
+    "captureDelay": {
+      "type": "int",
+      "value": 5
+    },
+    "captureHDR": {
+      "type": "bool",
+      "value": true
+    },
+    "location": {
+      "type": "string",
+      "value": "~/Documents/"
+    },
+    "showsClicks": {
+      "type": "bool",
+      "value": true
+    },
     "style": {
       "type": "string",
-      "value": "selection"
+      "value": "display"
+    },
+    "target": {
+      "type": "string",
+      "value": "file"
     },
     "video": {
       "type": "bool",
@@ -1518,10 +1402,6 @@
     "shown-first-time-ui": {
       "type": "bool",
       "value": true
-    },
-    "toolbarOrigin": {
-      "type": "string",
-      "value": "{573, 12}"
     }
   },
   "com.apple.symbolichotkeys": {
@@ -1551,7 +1431,7 @@
           }
         },
         "118": {
-          "enabled": false,
+          "enabled": true,
           "value": {
             "parameters": [
               65535,
@@ -1561,8 +1441,19 @@
             "type": "standard"
           }
         },
+        "119": {
+          "enabled": true,
+          "value": {
+            "parameters": [
+              65535,
+              19,
+              262144
+            ],
+            "type": "standard"
+          }
+        },
         "12": {
-          "enabled": false,
+          "enabled": true,
           "value": {
             "parameters": [
               65535,
@@ -1573,7 +1464,7 @@
           }
         },
         "13": {
-          "enabled": false,
+          "enabled": true,
           "value": {
             "parameters": [
               65535,
@@ -1620,7 +1511,7 @@
           }
         },
         "163": {
-          "enabled": false,
+          "enabled": true,
           "value": {
             "parameters": [
               65535,
@@ -1631,14 +1522,13 @@
           }
         },
         "164": {
-          "enabled": false,
+          "enabled": true,
           "value": {
             "parameters": [
-              65535,
-              65535,
-              0
+              1048576,
+              18446744073708503039
             ],
-            "type": "standard"
+            "type": "modifier"
           }
         },
         "17": {
@@ -1660,6 +1550,12 @@
               65535,
               0
             ],
+            "type": "standard"
+          }
+        },
+        "176": {
+          "enabled": false,
+          "value": {
             "type": "standard"
           }
         },
@@ -1726,6 +1622,17 @@
         },
         "22": {
           "enabled": false
+        },
+        "222": {
+          "enabled": true,
+          "value": {
+            "parameters": [
+              65535,
+              65535,
+              0
+            ],
+            "type": "standard"
+          }
         },
         "23": {
           "enabled": false,
@@ -2053,9 +1960,17 @@
     }
   },
   "com.apple.systemuiserver": {
+    "NSStatusItem Visible Item-1": {
+      "type": "bool",
+      "value": false
+    },
     "__NSEnableTSMDocumentWindowLevel": {
       "type": "bool",
       "value": true
+    },
+    "menuExtras": {
+      "type": "plist",
+      "value": []
     }
   },
   "com.apple.universalaccess": {
@@ -2071,29 +1986,15 @@
       "type": "int",
       "value": 1
     },
-    "closeViewZoomFactorBeforeTermination": {
-      "type": "float",
-      "value": 1.0
-    },
-    "com.apple.custommenu.apps": {
-      "type": "plist",
-      "value": [
-        "NSGlobalDomain"
-      ]
-    },
-    "customFonts": {
+    "liveSpeechEnabled": {
       "type": "bool",
       "value": false
-    },
-    "grayscale": {
-      "type": "bool",
-      "value": false
-    },
-    "hudNotifiedConstrast": {
-      "type": "float",
-      "value": 0.0
     },
     "login": {
+      "type": "bool",
+      "value": false
+    },
+    "mouseDriver": {
       "type": "bool",
       "value": false
     },
@@ -2101,37 +2002,21 @@
       "type": "bool",
       "value": false
     },
-    "switchAutoScanElementInterval": {
-      "type": "float",
-      "value": 0.5
+    "slowKey": {
+      "type": "bool",
+      "value": false
     },
-    "switchAutoScanPanelInterval": {
-      "type": "float",
-      "value": 0.5
+    "slowKeyDelay": {
+      "type": "int",
+      "value": 250
     },
-    "switchCoalescePressesDuration": {
-      "type": "float",
-      "value": 0.0
+    "stickyKey": {
+      "type": "bool",
+      "value": false
     },
-    "switchFirstElementDelay": {
-      "type": "float",
-      "value": 0.0
-    },
-    "switchHideUITimeout": {
-      "type": "float",
-      "value": 15.0
-    },
-    "switchHoldBeforeRepeatDuration": {
-      "type": "float",
-      "value": 3.0
-    },
-    "switchMinimumPressDuration": {
-      "type": "float",
-      "value": 0.0
-    },
-    "switchSweepingCursorSpeed": {
-      "type": "float",
-      "value": 5.0
+    "useStickyKeysShortcutKeys": {
+      "type": "bool",
+      "value": false
     }
   },
   "com.apple.visualintelligence": {
@@ -2222,36 +2107,1608 @@
       "value": 10800
     }
   },
-  "com.electron.replit": {
-    "AppleTextDirection": {
-      "type": "bool",
-      "value": true
+  "com.generalarcade.flycut": {
+    "ShortcutRecorder mainHotkey": {
+      "type": "plist",
+      "value": {
+        "keyCode": 9,
+        "modifierFlags": 1179648
+      }
     },
-    "NSForceRightToLeftWritingDirection": {
+    "loadOnStartup": {
       "type": "bool",
       "value": false
     },
-    "NSFullScreenMenuItemEverywhere": {
+    "previousSyncClippingsViaICloud": {
       "type": "bool",
       "value": false
     },
-    "NSTreatUnknownArgumentsAsOpen": {
-      "type": "string",
-      "value": "NO"
+    "store": {
+      "type": "plist",
+      "value": {
+        "displayLen": 40,
+        "displayNum": 10,
+        "favoritesList": [],
+        "favoritesRememberNum": 40,
+        "jcList": [
+          {
+            "AppBundleURL": "/Applications/Google Chrome.app",
+            "AppLocalizedName": "Google Chrome",
+            "Contents": "https://danger.systems/guides/getting_started.html",
+            "Position": 0,
+            "Timestamp": 1707258853,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Slack.app",
+            "AppLocalizedName": "Slack",
+            "Contents": "s",
+            "Position": 1,
+            "Timestamp": 1707258816,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Slack.app",
+            "AppLocalizedName": "Slack",
+            "Contents": "d",
+            "Position": 2,
+            "Timestamp": 1707258754,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Slack.app",
+            "AppLocalizedName": "Slack",
+            "Contents": "s",
+            "Position": 3,
+            "Timestamp": 1707258753,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Slack.app",
+            "AppLocalizedName": "Slack",
+            "Contents": "d",
+            "Position": 4,
+            "Timestamp": 1707258591,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "ltdExpensed",
+            "Position": 5,
+            "Timestamp": 1707257380,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Slack.app",
+            "AppLocalizedName": "Slack",
+            "Contents": "s",
+            "Position": 6,
+            "Timestamp": 1707256208,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Google Chrome.app",
+            "AppLocalizedName": "Google Chrome",
+            "Contents": "aipMonthlyExpenseValuesTotal",
+            "Position": 7,
+            "Timestamp": 1707255833,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/System/Applications/Messages.app",
+            "AppLocalizedName": "Messages",
+            "Contents": "s",
+            "Position": 8,
+            "Timestamp": 1707255530,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Google Chrome.app",
+            "AppLocalizedName": "Google Chrome",
+            "Contents": "https://www.youtube.com/watch?v=wv969vgqwDw",
+            "Position": 9,
+            "Timestamp": 1707255494,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Google Chrome.app",
+            "AppLocalizedName": "Google Chrome",
+            "Contents": "aipMonthlyExpenseValuesTotal",
+            "Position": 10,
+            "Timestamp": 1707255114,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Google Chrome.app",
+            "AppLocalizedName": "Google Chrome",
+            "Contents": "AgGridPercentEditor",
+            "Position": 11,
+            "Timestamp": 1707254941,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "\n      const getPrefixedColumnName = (colName: string) =>\n        columnPrefix ? `${columnPrefix}${capitalize(colName)}` : colName;",
+            "Position": 12,
+            "Timestamp": 1707254687,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "const doActivityDriverChange = async (\n        activityDriverTraceId: TraceId | undefined,\n        contractBudgetRecordTraceId: TraceId | undefined,\n        rowNode: IRowNode,\n        activityDriverData: apiJSON,\n        keyValues?: ActivityDriverKeyValuesRequestParams,\n      ) => {\n        if (activityDriverTraceId) {\n          await upsertActivityDriver({\n            trace_id: activityDriverTraceId,\n            ...activityDriverData,\n            key_values: keyValues,\n          });\n        } else {\n          const { trace_id } = await upsertActivityDriver({\n            ...activityDriverData,\n            key_values: keyValues,\n          }).unwrap();\n\n          await updateContractBudgetRecord({\n            trace_id: contractBudgetRecordTraceId,\n            activity_driver: trace_id,\n          });\n          rowNode.setDataValue(getPrefixedColumnName('activityDriverTraceId'), trace_id);\n        }\n      };",
+            "Position": 13,
+            "Timestamp": 1707254484,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "console.log('colId', colId);",
+            "Position": 14,
+            "Timestamp": 1707254323,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "\n      console.table(activityDriverRequestBody);",
+            "Position": 15,
+            "Timestamp": 1707254238,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "\n        console.table(activityDriverRequestBody);",
+            "Position": 16,
+            "Timestamp": 1707254054,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "<CroReconRow>",
+            "Position": 17,
+            "Timestamp": 1707253273,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "CroReconRow",
+            "Position": 18,
+            "Timestamp": 1707253245,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "aipMonthlyExpenseValuesTotal",
+            "Position": 19,
+            "Timestamp": 1707253175,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "\n    for aip_contract_row in aip_rows['rows'] if aip_rows else []:\n        _append_to_line_match_row(\n            aip_contract_row.get('recon_activity_group'),\n            aip_contract_row,\n            'aip_contract_rows',\n        )",
+            "Position": 20,
+            "Timestamp": 1707252046,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "    for line_matched_object in line_matched_objects:\n        if len(line_matched_object['aip_contract_rows']) == 0:\n            print('No AIP')",
+            "Position": 21,
+            "Timestamp": 1707251868,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "line_matched_object['aip_contract_rows']",
+            "Position": 22,
+            "Timestamp": 1707251729,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "'aip_contract_rows'",
+            "Position": 23,
+            "Timestamp": 1707251605,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "aip_contract_rows",
+            "Position": 24,
+            "Timestamp": 1707250933,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Discord.app",
+            "AppLocalizedName": "Discord",
+            "Contents": "s",
+            "Position": 25,
+            "Timestamp": 1707250413,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Google Chrome.app",
+            "AppLocalizedName": "Google Chrome",
+            "Contents": "\u00b1",
+            "Position": 26,
+            "Timestamp": 1707250223,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Google Chrome.app",
+            "AppLocalizedName": "Google Chrome",
+            "Contents": "\u00b1)",
+            "Position": 27,
+            "Timestamp": 1707250221,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Discord.app",
+            "AppLocalizedName": "Discord",
+            "Contents": "s",
+            "Position": 28,
+            "Timestamp": 1707250191,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "colDef: getGenericCellConfig(),\n          },",
+            "Position": 29,
+            "Timestamp": 1707247555,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Visual Studio Code.app",
+            "AppLocalizedName": "Code",
+            "Contents": "colDef: getGenericCellConfig(),",
+            "Position": 30,
+            "Timestamp": 1707247478,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Google Chrome.app",
+            "AppLocalizedName": "Google Chrome",
+            "Contents": "424415",
+            "Position": 31,
+            "Timestamp": 1707246592,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Google Chrome.app",
+            "AppLocalizedName": "Google Chrome",
+            "Contents": "jkl;uiop7890uiop",
+            "Position": 32,
+            "Timestamp": 1707245921,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Google Chrome.app",
+            "AppLocalizedName": "Google Chrome",
+            "Contents": "jlk;uiopuiop7890",
+            "Position": 33,
+            "Timestamp": 1707245909,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Google Chrome.app",
+            "AppLocalizedName": "Google Chrome",
+            "Contents": "jkl;jlk;uoip7890",
+            "Position": 34,
+            "Timestamp": 1707245869,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Google Chrome.app",
+            "AppLocalizedName": "Google Chrome",
+            "Contents": "jkl;uiop7890j;lk",
+            "Position": 35,
+            "Timestamp": 1707245860,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Google Chrome.app",
+            "AppLocalizedName": "Google Chrome",
+            "Contents": "jlk;uiop78907890",
+            "Position": 36,
+            "Timestamp": 1707245829,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Slack.app",
+            "AppLocalizedName": "Slack",
+            "Contents": "d",
+            "Position": 37,
+            "Timestamp": 1707244660,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/Applications/Slack.app",
+            "AppLocalizedName": "Slack",
+            "Contents": "s",
+            "Position": 38,
+            "Timestamp": 1707244627,
+            "Type": "NSStringPboardType"
+          },
+          {
+            "AppBundleURL": "/System/Applications/Messages.app",
+            "AppLocalizedName": "Messages",
+            "Contents": "d",
+            "Position": 39,
+            "Timestamp": 1707244317,
+            "Type": "NSStringPboardType"
+          }
+        ],
+        "rememberNum": 40,
+        "version": "0.7"
+      }
     }
   },
   "com.google.Chrome": {
-    "ILMediaBrowserImageSplitViewPosition": {
-      "type": "int",
-      "value": 140
-    },
-    "ILMediaBrowserMediaType": {
-      "type": "int",
-      "value": 1
-    },
     "LastRunAppBundlePath": {
       "type": "string",
       "value": "/Applications/Google Chrome.app"
+    },
+    "NSUserKeyEquivalents": {
+      "type": "plist",
+      "value": {}
+    },
+    "SGTRecentFileSearches": {
+      "type": "plist",
+      "value": [
+        {
+          "attributes": [
+            "kMDItemDisplayName",
+            "_kMDItemFileName",
+            "kMDItemPhotosTitle"
+          ],
+          "enforceStrictMatch": false,
+          "exactMatch": false,
+          "name": "edc",
+          "scope": 4,
+          "type": "com.apple.finder",
+          "values": [
+            "edc"
+          ]
+        }
+      ]
+    }
+  },
+  "com.googlecode.iterm2": {
+    "AppleAntiAliasingThreshold": {
+      "type": "int",
+      "value": 1
+    },
+    "ApplePressAndHoldEnabled": {
+      "type": "bool",
+      "value": false
+    },
+    "AppleScrollAnimationEnabled": {
+      "type": "int",
+      "value": 0
+    },
+    "AppleSmoothFixedFontsSizeThreshold": {
+      "type": "int",
+      "value": 1
+    },
+    "AppleWindowTabbingMode": {
+      "type": "string",
+      "value": "manual"
+    },
+    "Default Bookmark Guid": {
+      "type": "string",
+      "value": "FEF42BAC-2A14-4932-A368-586A7263573E"
+    },
+    "HotkeyMigratedFromSingleToMulti": {
+      "type": "bool",
+      "value": true
+    },
+    "NSOverlayScrollersFallBackForAccessoryViews": {
+      "type": "bool",
+      "value": false
+    },
+    "NSQuotedKeystrokeBinding": {
+      "type": "string",
+      "value": ""
+    },
+    "NSRepeatCountBinding": {
+      "type": "string",
+      "value": ""
+    },
+    "NSScrollAnimationEnabled": {
+      "type": "bool",
+      "value": false
+    },
+    "NSScrollViewShouldScrollUnderTitlebar": {
+      "type": "bool",
+      "value": false
+    },
+    "New Bookmarks": {
+      "type": "plist",
+      "value": [
+        {
+          "ASCII Anti Aliased": true,
+          "Ambiguous Double Width": false,
+          "Ansi 0 Color": {
+            "Blue Component": 0.0,
+            "Green Component": 0.0,
+            "Red Component": 0.0
+          },
+          "Ansi 1 Color": {
+            "Blue Component": 0.0,
+            "Green Component": 0.0,
+            "Red Component": 0.7333333492279053
+          },
+          "Ansi 10 Color": {
+            "Blue Component": 0.3333333432674408,
+            "Green Component": 1.0,
+            "Red Component": 0.3333333432674408
+          },
+          "Ansi 11 Color": {
+            "Blue Component": 0.3333333432674408,
+            "Green Component": 1.0,
+            "Red Component": 1.0
+          },
+          "Ansi 12 Color": {
+            "Blue Component": 1.0,
+            "Green Component": 0.3333333432674408,
+            "Red Component": 0.3333333432674408
+          },
+          "Ansi 13 Color": {
+            "Blue Component": 1.0,
+            "Green Component": 0.3333333432674408,
+            "Red Component": 1.0
+          },
+          "Ansi 14 Color": {
+            "Blue Component": 1.0,
+            "Green Component": 1.0,
+            "Red Component": 0.3333333432674408
+          },
+          "Ansi 15 Color": {
+            "Blue Component": 1.0,
+            "Green Component": 1.0,
+            "Red Component": 1.0
+          },
+          "Ansi 2 Color": {
+            "Blue Component": 0.0,
+            "Green Component": 0.7333333492279053,
+            "Red Component": 0.0
+          },
+          "Ansi 3 Color": {
+            "Blue Component": 0.0,
+            "Green Component": 0.7333333492279053,
+            "Red Component": 0.7333333492279053
+          },
+          "Ansi 4 Color": {
+            "Blue Component": 0.7333333492279053,
+            "Green Component": 0.0,
+            "Red Component": 0.0
+          },
+          "Ansi 5 Color": {
+            "Blue Component": 0.7333333492279053,
+            "Green Component": 0.0,
+            "Red Component": 0.7333333492279053
+          },
+          "Ansi 6 Color": {
+            "Blue Component": 0.7333333492279053,
+            "Green Component": 0.7333333492279053,
+            "Red Component": 0.0
+          },
+          "Ansi 7 Color": {
+            "Blue Component": 0.7333333492279053,
+            "Green Component": 0.7333333492279053,
+            "Red Component": 0.7333333492279053
+          },
+          "Ansi 8 Color": {
+            "Blue Component": 0.3333333432674408,
+            "Green Component": 0.3333333432674408,
+            "Red Component": 0.3333333432674408
+          },
+          "Ansi 9 Color": {
+            "Blue Component": 0.3333333432674408,
+            "Green Component": 0.3333333432674408,
+            "Red Component": 1.0
+          },
+          "BM Growl": true,
+          "Background Color": {
+            "Blue Component": 0.0,
+            "Green Component": 0.0,
+            "Red Component": 0.0
+          },
+          "Background Image Location": "",
+          "Blinking Cursor": false,
+          "Blur": false,
+          "Bold Color": {
+            "Blue Component": 1.0,
+            "Green Component": 1.0,
+            "Red Component": 1.0
+          },
+          "Character Encoding": 4,
+          "Close Sessions On End": true,
+          "Columns": 80,
+          "Command": "",
+          "Cursor Color": {
+            "Blue Component": 0.7333333492279053,
+            "Green Component": 0.7333333492279053,
+            "Red Component": 0.7333333492279053
+          },
+          "Cursor Text Color": {
+            "Blue Component": 1.0,
+            "Green Component": 1.0,
+            "Red Component": 1.0
+          },
+          "Custom Command": "No",
+          "Custom Directory": "No",
+          "Default Bookmark": "No",
+          "Description": "Default",
+          "Disable Window Resizing": true,
+          "Flashing Bell": false,
+          "Foreground Color": {
+            "Blue Component": 0.7333333492279053,
+            "Green Component": 0.7333333492279053,
+            "Red Component": 0.7333333492279053
+          },
+          "Guid": "FEF42BAC-2A14-4932-A368-586A7263573E",
+          "Horizontal Spacing": 1.0,
+          "Idle Code": 0,
+          "Jobs to Ignore": [
+            "rlogin",
+            "ssh",
+            "slogin",
+            "telnet"
+          ],
+          "Keyboard Map": {
+            "0x2d-0x40000": {
+              "Action": 11,
+              "Text": "0x1f"
+            },
+            "0x32-0x40000": {
+              "Action": 11,
+              "Text": "0x00"
+            },
+            "0x33-0x40000": {
+              "Action": 11,
+              "Text": "0x1b"
+            },
+            "0x34-0x40000": {
+              "Action": 11,
+              "Text": "0x1c"
+            },
+            "0x35-0x40000": {
+              "Action": 11,
+              "Text": "0x1d"
+            },
+            "0x36-0x40000": {
+              "Action": 11,
+              "Text": "0x1e"
+            },
+            "0x37-0x40000": {
+              "Action": 11,
+              "Text": "0x1f"
+            },
+            "0x38-0x40000": {
+              "Action": 11,
+              "Text": "0x7f"
+            },
+            "0xf700-0x220000": {
+              "Action": 10,
+              "Text": "[1;2A"
+            },
+            "0xf700-0x240000": {
+              "Action": 10,
+              "Text": "[1;5A"
+            },
+            "0xf700-0x260000": {
+              "Action": 10,
+              "Text": "[1;6A"
+            },
+            "0xf700-0x280000": {
+              "Action": 11,
+              "Text": "0x1b 0x1b 0x5b 0x41"
+            },
+            "0xf701-0x220000": {
+              "Action": 10,
+              "Text": "[1;2B"
+            },
+            "0xf701-0x240000": {
+              "Action": 10,
+              "Text": "[1;5B"
+            },
+            "0xf701-0x260000": {
+              "Action": 10,
+              "Text": "[1;6B"
+            },
+            "0xf701-0x280000": {
+              "Action": 11,
+              "Text": "0x1b 0x1b 0x5b 0x42"
+            },
+            "0xf702-0x220000": {
+              "Action": 10,
+              "Text": "[1;2D"
+            },
+            "0xf702-0x240000": {
+              "Action": 10,
+              "Text": "[1;5D"
+            },
+            "0xf702-0x260000": {
+              "Action": 10,
+              "Text": "[1;6D"
+            },
+            "0xf702-0x280000": {
+              "Action": 11,
+              "Text": "0x1b 0x1b 0x5b 0x44"
+            },
+            "0xf703-0x220000": {
+              "Action": 10,
+              "Text": "[1;2C"
+            },
+            "0xf703-0x240000": {
+              "Action": 10,
+              "Text": "[1;5C"
+            },
+            "0xf703-0x260000": {
+              "Action": 10,
+              "Text": "[1;6C"
+            },
+            "0xf703-0x280000": {
+              "Action": 11,
+              "Text": "0x1b 0x1b 0x5b 0x43"
+            },
+            "0xf704-0x20000": {
+              "Action": 10,
+              "Text": "[1;2P"
+            },
+            "0xf705-0x20000": {
+              "Action": 10,
+              "Text": "[1;2Q"
+            },
+            "0xf706-0x20000": {
+              "Action": 10,
+              "Text": "[1;2R"
+            },
+            "0xf707-0x20000": {
+              "Action": 10,
+              "Text": "[1;2S"
+            },
+            "0xf708-0x20000": {
+              "Action": 10,
+              "Text": "[15;2~"
+            },
+            "0xf709-0x20000": {
+              "Action": 10,
+              "Text": "[17;2~"
+            },
+            "0xf70a-0x20000": {
+              "Action": 10,
+              "Text": "[18;2~"
+            },
+            "0xf70b-0x20000": {
+              "Action": 10,
+              "Text": "[19;2~"
+            },
+            "0xf70c-0x20000": {
+              "Action": 10,
+              "Text": "[20;2~"
+            },
+            "0xf70d-0x20000": {
+              "Action": 10,
+              "Text": "[21;2~"
+            },
+            "0xf70e-0x20000": {
+              "Action": 10,
+              "Text": "[23;2~"
+            },
+            "0xf70f-0x20000": {
+              "Action": 10,
+              "Text": "[24;2~"
+            },
+            "0xf729-0x20000": {
+              "Action": 10,
+              "Text": "[1;2H"
+            },
+            "0xf729-0x40000": {
+              "Action": 10,
+              "Text": "[1;5H"
+            },
+            "0xf72b-0x20000": {
+              "Action": 10,
+              "Text": "[1;2F"
+            },
+            "0xf72b-0x40000": {
+              "Action": 10,
+              "Text": "[1;5F"
+            }
+          },
+          "Mouse Reporting": true,
+          "Name": "Default",
+          "Non Ascii Font": "Monaco 12",
+          "Non-ASCII Anti Aliased": true,
+          "Normal Font": "Monaco 12",
+          "Option Key Sends": 0,
+          "Prompt Before Closing 2": false,
+          "Right Option Key Sends": 0,
+          "Rows": 25,
+          "Screen": -1,
+          "Scrollback Lines": 1000,
+          "Selected Text Color": {
+            "Blue Component": 0.0,
+            "Green Component": 0.0,
+            "Red Component": 0.0
+          },
+          "Selection Color": {
+            "Blue Component": 1.0,
+            "Green Component": 0.8353000283241272,
+            "Red Component": 0.7098000049591064
+          },
+          "Send Code When Idle": false,
+          "Shortcut": "",
+          "Silence Bell": false,
+          "Sync Title": false,
+          "Tags": [],
+          "Terminal Type": "xterm-256color",
+          "Transparency": 0.0,
+          "Unlimited Scrollback": false,
+          "Use Bold Font": true,
+          "Use Bright Bold": true,
+          "Use Italic Font": true,
+          "Use Non-ASCII Font": false,
+          "Vertical Spacing": 1.0,
+          "Visual Bell": true,
+          "Window Type": 0,
+          "Working Directory": "/Users/tyler"
+        }
+      ]
+    },
+    "NoSyncAllAppVersions": {
+      "type": "plist",
+      "value": [
+        "3.4.16",
+        "3.4.18"
+      ]
+    },
+    "NoSyncHaveUsedCopyMode": {
+      "type": "bool",
+      "value": true
+    },
+    "NoSyncIgnoreSystemWindowRestoration": {
+      "type": "bool",
+      "value": true
+    },
+    "NoSyncInstallationId": {
+      "type": "string",
+      "value": "5E1987B2-2184-471B-B75E-546B4D6F53A1"
+    },
+    "NoSyncLastOSVersion": {
+      "type": "string",
+      "value": "Version 13.0.1 (Build 22A400)"
+    },
+    "NoSyncLastSystemPythonVersionRequirement": {
+      "type": "string",
+      "value": "1.17"
+    },
+    "NoSyncLastTipTime": {
+      "type": "float",
+      "value": 691342336.0
+    },
+    "NoSyncLaunchExperienceControllerRunCount": {
+      "type": "int",
+      "value": 7
+    },
+    "NoSyncNextAnnoyanceTime": {
+      "type": "float",
+      "value": 686844416.0
+    },
+    "NoSyncPermissionToShowTip": {
+      "type": "bool",
+      "value": true
+    },
+    "NoSyncRecordedVariables": {
+      "type": "plist",
+      "value": {
+        "0": [
+          {
+            "isTerminal": true,
+            "name": "",
+            "nonterminalContext": 0
+          }
+        ],
+        "1": [
+          {
+            "isTerminal": true,
+            "name": "presentationName",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "tmuxRole",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "lastCommand",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "profileName",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "showingAlternateScreen",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "id",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "termid",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "jobName",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "columns",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "tab.tmuxWindowTitle",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "processTitle",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "tmuxClientName",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "hostname",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "selectionLength",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "path",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "triggerName",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": false,
+            "name": "parentSession",
+            "nonterminalContext": 1
+          },
+          {
+            "isTerminal": true,
+            "name": "terminalIconName",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "tmuxWindowPane",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "tmuxStatusRight",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "mouseReportingMode",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "name",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": false,
+            "name": "iterm2",
+            "nonterminalContext": 4
+          },
+          {
+            "isTerminal": true,
+            "name": "tmuxPaneTitle",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "rows",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "tmuxWindowPaneIndex",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "tty",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "autoLogId",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "badge",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "username",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "logFilename",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "tab.tmuxWindowName",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": false,
+            "name": "tab",
+            "nonterminalContext": 2
+          },
+          {
+            "isTerminal": true,
+            "name": "tmuxStatusLeft",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "selection",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "bellCount",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "autoNameFormat",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "autoName",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "terminalWindowName",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "creationTimeString",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "commandLine",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "jobPid",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "pid",
+            "nonterminalContext": 0
+          }
+        ],
+        "16": [
+          {
+            "isTerminal": true,
+            "name": "style",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "frame",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentTab.currentSession.pid",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentTab.currentSession.termid",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": false,
+            "name": "currentTab",
+            "nonterminalContext": 2
+          },
+          {
+            "isTerminal": true,
+            "name": "currentTab.currentSession.processTitle",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentTab.currentSession",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentTab.window",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "id",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentTab.currentSession.name",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "titleOverride",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "number",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentTab.currentSession.commandLine",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentTab.currentSession.path",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentTab.currentSession.hostname",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentTab.currentSession.bellCount",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentTab.currentSession.tty",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentTab.currentSession.username",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": false,
+            "name": "iterm2",
+            "nonterminalContext": 4
+          },
+          {
+            "isTerminal": true,
+            "name": "titleOverrideFormat",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentTab.currentSession.jobName",
+            "nonterminalContext": 0
+          }
+        ],
+        "2": [
+          {
+            "isTerminal": false,
+            "name": "currentSession",
+            "nonterminalContext": 1
+          },
+          {
+            "isTerminal": true,
+            "name": "currentSession.commandLine",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": false,
+            "name": "title",
+            "nonterminalContext": 1
+          },
+          {
+            "isTerminal": true,
+            "name": "title",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "tmuxWindowTitle",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentSession.jobPid",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "tmuxWindowName",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": false,
+            "name": "window",
+            "nonterminalContext": 16
+          },
+          {
+            "isTerminal": true,
+            "name": "currentSession.tty",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentSession.jobName",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentSession.name",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentSession.processTitle",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "window",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "id",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "titleOverride",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentSession.username",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentSession.bellCount",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentSession.termid",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": false,
+            "name": "iterm2",
+            "nonterminalContext": 4
+          },
+          {
+            "isTerminal": true,
+            "name": "titleOverrideFormat",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentSession.hostname",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentSession.path",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentSession.pid",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "tmuxWindow",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "currentSession",
+            "nonterminalContext": 0
+          }
+        ],
+        "4": [
+          {
+            "isTerminal": true,
+            "name": "pid",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "localhostName",
+            "nonterminalContext": 0
+          },
+          {
+            "isTerminal": true,
+            "name": "effectiveTheme",
+            "nonterminalContext": 0
+          }
+        ]
+      }
+    },
+    "NoSyncRestoreWindowsCount": {
+      "type": "int",
+      "value": 0
+    },
+    "NoSyncTipOfTheDayEligibilityBeganTime": {
+      "type": "float",
+      "value": 686522944.0
+    },
+    "NoSyncTipsDisabled": {
+      "type": "bool",
+      "value": true
+    },
+    "NoSyncTipsToNotShow": {
+      "type": "plist",
+      "value": [
+        "000",
+        "0000",
+        "0001",
+        "0002"
+      ]
+    },
+    "SUEnableAutomaticChecks": {
+      "type": "bool",
+      "value": true
+    },
+    "SUFeedAlternateAppNameKey": {
+      "type": "string",
+      "value": "iTerm"
+    },
+    "SUFeedURL": {
+      "type": "string",
+      "value": "https://iterm2.com/appcasts/final_modern.xml?shard=95"
+    },
+    "SUSendProfileInfo": {
+      "type": "bool",
+      "value": false
+    },
+    "SUSkippedVersion": {
+      "type": "string",
+      "value": "3.4.19"
+    },
+    "iTerm Version": {
+      "type": "string",
+      "value": "3.4.18"
+    }
+  },
+  "com.hankinsoft.osx.SQLProPostgres": {
+    "ApplicationPreference-AutoBracketsAndQuotes": {
+      "type": "bool",
+      "value": false
+    },
+    "ApplicationPreference-AutoIndentEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-AutocompleteDelayV2": {
+      "type": "float",
+      "value": 1.25
+    },
+    "ApplicationPreference-AutocompleteEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-AutomaticReconnect": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-CSVFieldQualifier": {
+      "type": "string",
+      "value": "\""
+    },
+    "ApplicationPreference-CSVFieldSeperator": {
+      "type": "string",
+      "value": ","
+    },
+    "ApplicationPreference-CommentUncommentShortcutKeyEquivalent": {
+      "type": "string",
+      "value": "-"
+    },
+    "ApplicationPreference-CommentUncommentShortcutKeyEquivalentMask": {
+      "type": "int",
+      "value": 1048576
+    },
+    "ApplicationPreference-DarkThemeName": {
+      "type": "string",
+      "value": "Dark"
+    },
+    "ApplicationPreference-DisableAutosaveFiles": {
+      "type": "bool",
+      "value": false
+    },
+    "ApplicationPreference-DisableFeedback": {
+      "type": "bool",
+      "value": false
+    },
+    "ApplicationPreference-DisableSampleConnections": {
+      "type": "bool",
+      "value": false
+    },
+    "ApplicationPreference-DisplayColumnsInTreeView": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-EnableFreeTDSLogging": {
+      "type": "bool",
+      "value": false
+    },
+    "ApplicationPreference-EnableSyntaxHighlighting": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-EnableSystemTables": {
+      "type": "bool",
+      "value": false
+    },
+    "ApplicationPreference-EnableTableRowCounts": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-EnforceForeignKeys": {
+      "type": "bool",
+      "value": false
+    },
+    "ApplicationPreference-FindColumnShortcutKeyEquivalent": {
+      "type": "string",
+      "value": "B"
+    },
+    "ApplicationPreference-FindColumnShortcutKeyEquivalentMask": {
+      "type": "int",
+      "value": 1048576
+    },
+    "ApplicationPreference-FocusDatabaseTreeSearchShortcutKeyEquivalent": {
+      "type": "string",
+      "value": "f"
+    },
+    "ApplicationPreference-FocusDatabaseTreeSearchShortcutKeyEquivalentMask": {
+      "type": "int",
+      "value": 262144
+    },
+    "ApplicationPreference-FormatQueryShortcutKeyEquivalent": {
+      "type": "string",
+      "value": "K"
+    },
+    "ApplicationPreference-FormatQueryShortcutKeyEquivalentMask": {
+      "type": "int",
+      "value": 1179648
+    },
+    "ApplicationPreference-HideShowQueryResultShortcutKeyEquivalent": {
+      "type": "string",
+      "value": "K"
+    },
+    "ApplicationPreference-HideShowQueryResultShortcutKeyEquivalentMask": {
+      "type": "int",
+      "value": 1048576
+    },
+    "ApplicationPreference-LogHostCache": {
+      "type": "bool",
+      "value": false
+    },
+    "ApplicationPreference-LogPortChecker": {
+      "type": "bool",
+      "value": false
+    },
+    "ApplicationPreference-NextTabShortcutKeyEquivalent": {
+      "type": "string",
+      "value": "]"
+    },
+    "ApplicationPreference-NextTabShortcutKeyEquivalentMask": {
+      "type": "int",
+      "value": 1179648
+    },
+    "ApplicationPreference-PreviousTabShortcutKeyEquivalent": {
+      "type": "string",
+      "value": "["
+    },
+    "ApplicationPreference-PreviousTabShortcutKeyEquivalentMask": {
+      "type": "int",
+      "value": 1179648
+    },
+    "ApplicationPreference-QueryEditorLineWrap": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-QueryExecutionStyle": {
+      "type": "int",
+      "value": 0
+    },
+    "ApplicationPreference-QueryFormatterFunctionsAction": {
+      "type": "int",
+      "value": 1
+    },
+    "ApplicationPreference-QueryFormatterKeywordsAction": {
+      "type": "int",
+      "value": 1
+    },
+    "ApplicationPreference-QueryFormatterTablesAndColumnsAction": {
+      "type": "int",
+      "value": 3
+    },
+    "ApplicationPreference-QueryMenuKeyEquivalent": {
+      "type": "string",
+      "value": "E"
+    },
+    "ApplicationPreference-QueryMenuKeyEquivalentMask": {
+      "type": "int",
+      "value": 1179648
+    },
+    "ApplicationPreference-ResultGridFontName": {
+      "type": "string",
+      "value": "Helvetica"
+    },
+    "ApplicationPreference-ResultGridFontSize": {
+      "type": "int",
+      "value": 13
+    },
+    "ApplicationPreference-ResultGridRowPadding": {
+      "type": "int",
+      "value": 4
+    },
+    "ApplicationPreference-ResultsGridAlternateRowColors": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-ResultsGridAlwaysShowForeignKeys": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-ResultsGridBoolsAsTrueFalse": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-ResultsGridColorBools": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-ResultsGridHasHorizontalGrid": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-ResultsGridHasHorizontalVertical": {
+      "type": "bool",
+      "value": false
+    },
+    "ApplicationPreference-SQLiteAutoReloadDatabase": {
+      "type": "bool",
+      "value": false
+    },
+    "ApplicationPreference-SQLiteTimestampDisplayStyle": {
+      "type": "int",
+      "value": 1
+    },
+    "ApplicationPreference-ServerBasedResultsSorting": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-SetAsDefaultFileExtensionHandler": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-ShowLingNumber": {
+      "type": "bool",
+      "value": true
+    },
+    "ApplicationPreference-StartupRestoreStyleV2": {
+      "type": "int",
+      "value": 1
+    },
+    "ApplicationPreference-TabsAsSpacesCount": {
+      "type": "int",
+      "value": 0
+    },
+    "ApplicationPreference-ThemeName": {
+      "type": "string",
+      "value": "Dark"
+    },
+    "ApplicationPreference-ToggleResultsMessagesShortcutKeyEquivalentMask": {
+      "type": "int",
+      "value": 0
+    },
+    "ApplicationPreference-kEnableAutocompleteJoins": {
+      "type": "bool",
+      "value": true
+    },
+    "InternalLastWindowFrame": {
+      "type": "string",
+      "value": "{{294, 189}, {1270, 691}}"
+    },
+    "NSConstraintBasedLayoutVisualizeMutuallyExclusiveConstraints": {
+      "type": "bool",
+      "value": false
+    },
+    "SQLProAutocompletePreferences-InsertionKeys": {
+      "type": "int",
+      "value": 12
+    },
+    "com.hankinsoft.SQLProUnlock.notinitialized": {
+      "type": "string",
+      "value": "1676077295"
+    },
+    "document.LaunchCount": {
+      "type": "int",
+      "value": 1
+    },
+    "lastRateAppVersion": {
+      "type": "string",
+      "value": "1047881"
+    },
+    "lastRateDateTimestamp": {
+      "type": "string",
+      "value": "697770095"
+    },
+    "queryCompleteCount": {
+      "type": "string",
+      "value": "10"
     }
   },
   "com.hnc.Discord": {
@@ -2273,6 +3730,14 @@
     }
   },
   "com.knollsoft.Hyperkey": {
+    "NSStatusItem Visible Item-0": {
+      "type": "bool",
+      "value": false
+    },
+    "SUAutomaticallyUpdate": {
+      "type": "bool",
+      "value": true
+    },
     "SUEnableAutomaticChecks": {
       "type": "bool",
       "value": true
@@ -2297,6 +3762,10 @@
       "type": "int",
       "value": 1966080
     },
+    "keyRemap": {
+      "type": "int",
+      "value": 2
+    },
     "lastVersion": {
       "type": "string",
       "value": "56"
@@ -2319,13 +3788,9 @@
       "type": "bool",
       "value": true
     },
-    "MSAppCenterAppDidReceiveMemoryWarning": {
-      "type": "bool",
-      "value": true
-    },
     "MSAppCenterInstallId": {
       "type": "string",
-      "value": "B207CC36-8856-470B-A9E7-8DDD03324FEC"
+      "value": "ED9259B5-FAFE-4481-A785-8B1543DD2902"
     },
     "MSAppCenterNetworkRequestsAllowed": {
       "type": "bool",
@@ -2347,17 +3812,41 @@
       "type": "string",
       "value": "2"
     },
-    "appearanceVisibility": {
+    "appearanceStyle": {
       "type": "string",
       "value": "0"
+    },
+    "appearanceVisibility": {
+      "type": "string",
+      "value": "2"
+    },
+    "crashPolicy": {
+      "type": "string",
+      "value": "2"
+    },
+    "cursorFollowFocus": {
+      "type": "string",
+      "value": "2"
+    },
+    "cursorFollowFocusEnabled": {
+      "type": "string",
+      "value": "false"
+    },
+    "exceptions": {
+      "type": "string",
+      "value": "[{\"hide\":\"1\",\"bundleIdentifier\":\"com.McAfee.McAfeeSafariHost\",\"ignore\":\"0\"},{\"hide\":\"1\",\"bundleIdentifier\":\"com.apple.finder\",\"ignore\":\"0\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.microsoft.rdc.macos\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.teamviewer.TeamViewer\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"org.virtualbox.app.VirtualBoxVM\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.parallels.\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.citrix.XenAppViewer\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.citrix.receiver.icaviewer.mac\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.nicesoftware.dcvviewer\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.vmware.fusion\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.apple.ScreenSharing\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.utmapp.UTM\",\"ignore\":\"2\"},{\"hide\":\"1\",\"bundleIdentifier\":\"com.granola.app\",\"ignore\":\"0\"},{\"hide\":\"1\",\"bundleIdentifier\":\"com.superultra.Homerow\",\"ignore\":\"0\"}]"
+    },
+    "fadeOutAnimation": {
+      "type": "string",
+      "value": "true"
     },
     "hideAppBadges": {
       "type": "string",
       "value": "false"
     },
     "hideShowAppShortcut": {
-      "type": "string",
-      "value": ""
+      "type": "plist-file",
+      "file": "macos-plists/com.lwouis.alt-tab-macos.hideShowAppShortcut.plist"
     },
     "hideSpaceNumberLabels": {
       "type": "string",
@@ -2367,7 +3856,39 @@
       "type": "string",
       "value": "true"
     },
+    "hideWindowlessApps": {
+      "type": "string",
+      "value": "true"
+    },
     "menubarIcon": {
+      "type": "string",
+      "value": "2"
+    },
+    "previewFadeInAnimation": {
+      "type": "string",
+      "value": "true"
+    },
+    "previewFocusedWindow": {
+      "type": "string",
+      "value": "false"
+    },
+    "settingsWindowShownOnFirstLaunch": {
+      "type": "string",
+      "value": "true"
+    },
+    "shortcutCount": {
+      "type": "string",
+      "value": "3"
+    },
+    "showHiddenWindows": {
+      "type": "string",
+      "value": "2"
+    },
+    "showMinimizedWindows": {
+      "type": "string",
+      "value": "2"
+    },
+    "showOnScreen": {
       "type": "string",
       "value": "2"
     },
@@ -2377,7 +3898,23 @@
     },
     "showTitles": {
       "type": "string",
-      "value": "2"
+      "value": "0"
+    },
+    "showWindowlessApps": {
+      "type": "int",
+      "value": 1
+    },
+    "showWindowlessApps10": {
+      "type": "string",
+      "value": "1"
+    },
+    "showWindowlessApps2": {
+      "type": "int",
+      "value": 1
+    },
+    "showWindowlessApps3": {
+      "type": "int",
+      "value": 1
     },
     "titleTruncation": {
       "type": "string",
@@ -2391,12 +3928,20 @@
       "type": "string",
       "value": "true"
     },
+    "windowDisplayDelay": {
+      "type": "string",
+      "value": "0"
+    },
     "windowMaxWidthInRow": {
       "type": "string",
       "value": "30"
     }
   },
   "com.mitchellh.ghostty": {
+    "CustomGhosttyIconBuild": {
+      "type": "string",
+      "value": "14263"
+    },
     "SUAutomaticallyUpdate": {
       "type": "bool",
       "value": true
@@ -2410,43 +3955,514 @@
       "value": false
     }
   },
-  "com.replit.Replit": {
-    "ApplePressAndHoldEnabled": {
+  "com.pvncher.repoprompt": {
+    "DidMigratePrompts": {
+      "type": "bool",
+      "value": true
+    },
+    "KeyboardShortcuts_cmdOptionC": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":8,\"carbonModifiers\":2304}"
+    },
+    "KeyboardShortcuts_cmdOptionP": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":35,\"carbonModifiers\":2304}"
+    },
+    "KeyboardShortcuts_cmdOptionS": {
+      "type": "string",
+      "value": "{\"carbonModifiers\":2304,\"carbonKeyCode\":1}"
+    },
+    "KeyboardShortcuts_cmdS": {
+      "type": "string",
+      "value": "{\"carbonModifiers\":256,\"carbonKeyCode\":1}"
+    },
+    "KeyboardShortcuts_cmdShiftS3": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":1,\"carbonModifiers\":768}"
+    },
+    "KeyboardShortcuts_composeTabClose": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":13,\"carbonModifiers\":256}"
+    },
+    "KeyboardShortcuts_composeTabNew": {
+      "type": "string",
+      "value": "{\"carbonModifiers\":256,\"carbonKeyCode\":17}"
+    },
+    "KeyboardShortcuts_composeTabNext": {
+      "type": "string",
+      "value": "{\"carbonModifiers\":4096,\"carbonKeyCode\":48}"
+    },
+    "KeyboardShortcuts_composeTabPrevious": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":48,\"carbonModifiers\":4608}"
+    },
+    "KeyboardShortcuts_decreaseFontScale": {
+      "type": "string",
+      "value": "{\"carbonModifiers\":256,\"carbonKeyCode\":27}"
+    },
+    "KeyboardShortcuts_increaseFontScale": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":24,\"carbonModifiers\":256}"
+    },
+    "KeyboardShortcuts_swComposeTab1": {
+      "type": "string",
+      "value": "{\"carbonModifiers\":256,\"carbonKeyCode\":18}"
+    },
+    "KeyboardShortcuts_swComposeTab2": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":19,\"carbonModifiers\":256}"
+    },
+    "KeyboardShortcuts_swComposeTab3": {
+      "type": "string",
+      "value": "{\"carbonModifiers\":256,\"carbonKeyCode\":20}"
+    },
+    "KeyboardShortcuts_swComposeTab4": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":21,\"carbonModifiers\":256}"
+    },
+    "KeyboardShortcuts_swComposeTab5": {
+      "type": "string",
+      "value": "{\"carbonModifiers\":256,\"carbonKeyCode\":23}"
+    },
+    "KeyboardShortcuts_swComposeTab6": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":22,\"carbonModifiers\":256}"
+    },
+    "KeyboardShortcuts_swComposeTab7": {
+      "type": "string",
+      "value": "{\"carbonModifiers\":256,\"carbonKeyCode\":26}"
+    },
+    "KeyboardShortcuts_swComposeTab8": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":28,\"carbonModifiers\":256}"
+    },
+    "KeyboardShortcuts_swComposeTab9": {
+      "type": "string",
+      "value": "{\"carbonModifiers\":256,\"carbonKeyCode\":25}"
+    },
+    "KeyboardShortcuts_swPreset1": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":18,\"carbonModifiers\":2304}"
+    },
+    "KeyboardShortcuts_swPreset21": {
+      "type": "string",
+      "value": "{\"carbonModifiers\":2304,\"carbonKeyCode\":19}"
+    },
+    "KeyboardShortcuts_swPreset31": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":20,\"carbonModifiers\":2304}"
+    },
+    "KeyboardShortcuts_swPreset41": {
+      "type": "string",
+      "value": "{\"carbonModifiers\":2304,\"carbonKeyCode\":21}"
+    },
+    "KeyboardShortcuts_swPreset51": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":23,\"carbonModifiers\":2304}"
+    },
+    "KeyboardShortcuts_swPreset61": {
+      "type": "string",
+      "value": "{\"carbonModifiers\":2304,\"carbonKeyCode\":22}"
+    },
+    "KeyboardShortcuts_swPreset71": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":26,\"carbonModifiers\":2304}"
+    },
+    "KeyboardShortcuts_swPreset81": {
+      "type": "string",
+      "value": "{\"carbonModifiers\":2304,\"carbonKeyCode\":28}"
+    },
+    "KeyboardShortcuts_swPreset91": {
+      "type": "string",
+      "value": "{\"carbonKeyCode\":25,\"carbonModifiers\":2304}"
+    },
+    "MCPFilesystemMigrationVersion": {
+      "type": "int",
+      "value": 6
+    },
+    "NSSplitView Subview Frames SwiftUI.(unknown context at $1d1cfa818).SceneBridgeReader<SwiftUI.SubscriptionView<Combine.PassthroughSubject<Any, Swift.Never>, SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<SwiftUI.ModifiedContent<RepoPrompt.ContentView_WithState, SwiftUI._EnvironmentKeyWritingModifier<Swift.Optional<RepoPrompt.VersionManager>>>, SwiftUI._EnvironmentKeyWritingModifier<Swift.Optional<RepoPrompt.SparkleUpdaterManager>>>, SwiftUI._EnvironmentKeyWritingModifier<Swift.Optional<RepoPrompt.WindowStatesManager>>>, SwiftUI._EnvironmentKeyWritingModifier<Swift.Optional<RepoPrompt.FontScaleManager>>>, SwiftUI._PreferenceWritingModifier<SwiftUI.ToolbarRoleKey>>, SwiftUI._FlexFrameLayout>, SwiftUI._EnvironmentKeyWritingModifier<Swift.Optional<SwiftUI.Font>>>>>-1-AppWindow-1, SidebarNavigationSplitView": {
+      "type": "plist",
+      "value": [
+        "0.000000, 0.000000, 372.000000, 652.000000, NO, NO",
+        "0.000000, 0.000000, 948.000000, 652.000000, NO, NO"
+      ]
+    },
+    "PHGBuildKeyV2": {
+      "type": "string",
+      "value": "251"
+    },
+    "PHGVersionKey": {
+      "type": "string",
+      "value": "1.5.67"
+    },
+    "SidebarTerminalHeight": {
+      "type": "int",
+      "value": 260
+    },
+    "SidebarTerminalProvider": {
+      "type": "string",
+      "value": "claudeCode"
+    },
+    "SparkleLastUpdateCheck": {
+      "type": "float",
+      "value": 1769483776.0
+    },
+    "autoRestoreWorkspacesEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "customPlanningPrompt": {
+      "type": "string",
+      "value": "You are a senior software architect specializing in code design and implementation planning. Your role is to:\n\n1. Analyze the requested changes and break them down into clear, actionable steps\n2. Create a detailed implementation plan that includes:\n   - Files that need to be modified\n   - Specific code sections requiring changes\n   - New functions, methods, or classes to be added\n   - Dependencies or imports to be updated\n   - Data structure modifications\n   - Interface changes\n   - Configuration updates\n\nFor each change:\n- Describe the exact location in the code where changes are needed\n- Explain the logic and reasoning behind each modification\n- Provide example signatures, parameters, and return types\n- Note any potential side effects or impacts on other parts of the codebase\n- Highlight critical architectural decisions that need to be made\n\nYou may include short code snippets to illustrate specific patterns, signatures, or structures, but do not implement the full solution.\n\nFocus solely on the technical implementation plan - exclude testing, validation, and deployment considerations unless they directly impact the architecture.\n\nPlease proceed with your analysis based on the following <user instructions>"
+    },
+    "editSettingsHighLarge": {
+      "type": "string",
+      "value": ""
+    },
+    "editSettingsHighSmall": {
+      "type": "string",
+      "value": ""
+    },
+    "editSettingsMediumLarge": {
+      "type": "string",
+      "value": ""
+    },
+    "editSettingsMediumSmall": {
+      "type": "string",
+      "value": ""
+    },
+    "gitDiffInclusionMode": {
+      "type": "string",
+      "value": "none"
+    },
+    "globalIgnoreDefaults": {
+      "type": "string",
+      "value": "# RepoPrompt global ignore defaults (v2)\n**/node_modules/\n**/.npm/\n**/.pnpm-store/\n**/.yarn/\n**/.cache/\n**/bower_components/\n\n**/__pycache__/\n**/.pytest_cache/\n**/.mypy_cache/\n\n**/.gradle/\n**/.m2/\n**/.nuget/\n**/.cargo/\n**/.stack-work/\n**/.ccache/\n\n**/.idea/\n**/.vscode/\n**/.bundle/\n**/.gem/\n\n# Virtual environments\n**/.venv/\n**/venv/\n\n# Common temp/junk files\n**/*.swp\n**/*~\n**/*.tmp\n**/*.temp\n**/*.bak"
+    },
+    "globalIgnoreDefaultsVersion": {
+      "type": "int",
+      "value": 2
+    },
+    "includeDefaultOpenRouterModels": {
       "type": "bool",
       "value": false
     },
-    "NSKeyRepeat": {
+    "lastSeenBuildNumber": {
+      "type": "int",
+      "value": 251
+    },
+    "lastSeenVersionID": {
+      "type": "int",
+      "value": 0
+    },
+    "license_device_id_fallback_v1": {
+      "type": "string",
+      "value": "9BBF423C-53F7-47AE-9351-DB13B299C058"
+    },
+    "planningModel": {
+      "type": "string",
+      "value": ""
+    },
+    "preferredComposeModel": {
+      "type": "string",
+      "value": ""
+    },
+    "promptSectionsOrder": {
+      "type": "string",
+      "value": "[\"fileMap\",\"fileContents\",\"gitDiff\",\"diffFormatting\",\"metaPrompts\",\"userInstructions\"]"
+    }
+  },
+  "com.quip.Desktop": {
+    "SUAutomaticallyUpdate": {
+      "type": "bool",
+      "value": true
+    },
+    "SUEnableAutomaticChecks": {
+      "type": "bool",
+      "value": true
+    },
+    "WebAutomaticSpellingCorrectionEnabled": {
+      "type": "bool",
+      "value": false
+    },
+    "browser-controller-default-window-content-rect": {
+      "type": "string",
+      "value": "{{743, 552}, {600, 355}}"
+    },
+    "browser-controller-last-window-user-id": {
+      "type": "string",
+      "value": "WXZAEA6QYBw"
+    },
+    "browser-controller-launch-state": {
+      "type": "plist",
+      "value": []
+    },
+    "silent-relaunch": {
+      "type": "bool",
+      "value": true
+    },
+    "silent-relaunch-application-active": {
+      "type": "bool",
+      "value": false
+    },
+    "silent-relaunch-application-background-mode": {
       "type": "bool",
       "value": false
     }
   },
   "com.ruban.notchi": {
+    "isMuted": {
+      "type": "bool",
+      "value": false
+    },
     "isUsageEnabled": {
       "type": "bool",
       "value": true
+    },
+    "notificationSound": {
+      "type": "string",
+      "value": "purr"
+    },
+    "previousNotificationSound": {
+      "type": "string",
+      "value": "purr"
     }
   },
   "com.superultra.Homerow": {
+    "NSStatusItem VisibleCC Item-0": {
+      "type": "bool",
+      "value": false
+    },
+    "SUAutomaticallyUpdate": {
+      "type": "bool",
+      "value": true
+    },
     "SUEnableAutomaticChecks": {
       "type": "bool",
       "value": true
+    },
+    "chain-clicks": {
+      "type": "bool",
+      "value": false
+    },
+    "enable-hyper-key": {
+      "type": "bool",
+      "value": false
     },
     "launch-at-login": {
       "type": "bool",
       "value": true
     },
+    "show-menubar-icon": {
+      "type": "bool",
+      "value": false
+    },
     "use-search-predicate": {
+      "type": "bool",
+      "value": false
+    }
+  },
+  "com.tinyspeck.slackmacgap": {
+    "AppleTextDirection": {
+      "type": "bool",
+      "value": true
+    },
+    "NSForceRightToLeftWritingDirection": {
+      "type": "bool",
+      "value": false
+    },
+    "NSFullScreenMenuItemEverywhere": {
+      "type": "bool",
+      "value": false
+    },
+    "NSTreatUnknownArgumentsAsOpen": {
+      "type": "string",
+      "value": "NO"
+    },
+    "SGTRecentFileSearches": {
+      "type": "plist",
+      "value": [
+        {
+          "attributes": [
+            "kMDItemDisplayName",
+            "_kMDItemFileName",
+            "kMDItemPhotosTitle"
+          ],
+          "enforceStrictMatch": false,
+          "exactMatch": false,
+          "name": "prayge",
+          "scope": 4,
+          "type": "com.apple.finder",
+          "values": [
+            "prayge"
+          ]
+        }
+      ]
+    }
+  },
+  "de.bahoom.HyperDock": {
+    "disclaimer_accepted": {
+      "type": "bool",
+      "value": true
+    },
+    "license_accepted": {
+      "type": "bool",
+      "value": true
+    },
+    "version": {
+      "type": "string",
+      "value": "1.8.0"
+    }
+  },
+  "io.github.keycastr": {
+    "SUAutomaticallyUpdate": {
+      "type": "bool",
+      "value": true
+    },
+    "SUEnableAutomaticChecks": {
+      "type": "bool",
+      "value": true
+    },
+    "SUSendProfileInfo": {
+      "type": "bool",
+      "value": true
+    },
+    "alwaysShowPrefs": {
+      "type": "bool",
+      "value": false
+    },
+    "default.allKeys": {
+      "type": "bool",
+      "value": true
+    },
+    "default.allModifiedKeys": {
+      "type": "bool",
+      "value": false
+    },
+    "default.commandKeysOnly": {
+      "type": "bool",
+      "value": false
+    },
+    "default.fontSize": {
+      "type": "float",
+      "value": 28.10903549194336
+    },
+    "mouse.displayOption": {
+      "type": "int",
+      "value": 1
+    },
+    "selectedVisualizer": {
+      "type": "string",
+      "value": "Default"
+    }
+  },
+  "notion.id": {
+    "AppleTextDirection": {
+      "type": "bool",
+      "value": true
+    },
+    "NSForceRightToLeftWritingDirection": {
+      "type": "bool",
+      "value": false
+    },
+    "NSFullScreenMenuItemEverywhere": {
+      "type": "bool",
+      "value": false
+    },
+    "NSTreatUnknownArgumentsAsOpen": {
+      "type": "string",
+      "value": "NO"
+    }
+  },
+  "org.gpgtools.gpgkeychain": {
+    "AlreadyUploadedKeys": {
+      "type": "plist",
+      "value": {
+        "2386C1C4D837D9DBA8F01DA0C82E03B83C0036E6": [
+          "pinkmonkeyblue@gmail.com"
+        ]
+      }
+    },
+    "NSTableView Supports v2 KeyList": {
+      "type": "bool",
+      "value": true
+    },
+    "NSTableView Supports v2 signaturesTable": {
+      "type": "bool",
+      "value": true
+    },
+    "NSTableView Supports v2 userIDsTable": {
       "type": "bool",
       "value": true
     }
   },
+  "org.jkiss.dbeaver.core.product": {
+    "NSAutomaticDashSubstitutionEnabled": {
+      "type": "int",
+      "value": 0
+    },
+    "NSAutomaticQuoteSubstitutionEnabled": {
+      "type": "int",
+      "value": 0
+    },
+    "NSScrollAnimationEnabled": {
+      "type": "int",
+      "value": 0
+    }
+  },
+  "org.pgadmin.pgadmin4": {
+    "LastRunAppBundlePath": {
+      "type": "string",
+      "value": "/Applications/pgAdmin 4.app"
+    }
+  },
   "us.zoom.updater.config": {
+    "AU2_BackgroundUpdateTimeInterval": {
+      "type": "string",
+      "value": "12"
+    },
+    "AU2_SetUpdateChannel": {
+      "type": "string",
+      "value": "1"
+    },
+    "EnableAutoTrackBillableHours": {
+      "type": "string",
+      "value": "false"
+    },
+    "EnableBillableHours": {
+      "type": "string",
+      "value": "true"
+    },
     "IsPromptFirstUpdate": {
       "type": "string",
       "value": "false"
+    },
+    "SetUpdatingChannel": {
+      "type": "string",
+      "value": "1"
     }
   },
   "us.zoom.xos": {
+    "BounceApplicationSetting": {
+      "type": "int",
+      "value": 2
+    },
+    "HasResetOrderTip": {
+      "type": "bool",
+      "value": true
+    },
+    "Hotkey Have Shown Tip": {
+      "type": "bool",
+      "value": true
+    },
+    "LottieTip": {
+      "type": "bool",
+      "value": true
+    },
+    "NSAllowContinuousSpellChecking": {
+      "type": "bool",
+      "value": true
+    },
     "NSConstraintBasedLayoutVisualizeMutuallyExclusiveConstraints": {
       "type": "bool",
       "value": false
@@ -2467,19 +4483,109 @@
       "type": "string",
       "value": "follow system language"
     },
+    "WebContinuousSpellCheckingEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "WebKitDisplayImagesKey": {
+      "type": "bool",
+      "value": false
+    },
+    "ZMCustomOrderTabsFlags": {
+      "type": "bool",
+      "value": true
+    },
+    "ZMInputTextViewAutomaticSpellingCorrectionEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "ZMInputTextViewContinuousSpellCheckingEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "ZMInputTextViewGrammarCheckingEnabled": {
+      "type": "bool",
+      "value": true
+    },
+    "ZMJoinMeetingFlowAnchor": {
+      "type": "string",
+      "value": "{{0, 0}, {1728, 1084}}"
+    },
+    "ZMPTClientSidebarWidth": {
+      "type": "int",
+      "value": 360
+    },
     "ZoomAutoUpdateState": {
       "type": "string",
       "value": "ZoomAutoUpdateStateReady"
     },
     "ZoomAutoUpdateVersion": {
       "type": "string",
-      "value": "6.0.11.35001"
+      "value": "6.7.2.72191"
     },
     "_NS_4445425547": {
       "type": "bool",
       "value": false
     },
+    "_favoriteArray": {
+      "type": "plist",
+      "value": [
+        ":rage:=\ud83d\ude21",
+        ":heart:=\u2764\ufe0f",
+        ":thumbsup:=\ud83d\udc4d",
+        ":green_heart:=\ud83d\udc9a",
+        ":100:=\ud83d\udcaf",
+        ":partying_face:=\ud83e\udd73",
+        ":muscle:=\ud83d\udcaa;:muscle_tone1:=\ud83d\udcaa\ud83c\udffb;:muscle_tone2:=\ud83d\udcaa\ud83c\udffc;:muscle_tone3:=\ud83d\udcaa\ud83c\udffd;:muscle_tone4:=\ud83d\udcaa\ud83c\udffe;:muscle_tone5:=\ud83d\udcaa\ud83c\udfff",
+        ":thinking:=\ud83e\udd14",
+        ":fire:=\ud83d\udd25",
+        ":clap:=\ud83d\udc4f;:clap_tone1:=\ud83d\udc4f\ud83c\udffb;:clap_tone2:=\ud83d\udc4f\ud83c\udffc;:clap_tone3:=\ud83d\udc4f\ud83c\udffd;:clap_tone4:=\ud83d\udc4f\ud83c\udffe;:clap_tone5:=\ud83d\udc4f\ud83c\udfff",
+        ":disappointed:=\ud83d\ude1e",
+        ":people_hugging:=\ud83e\udec2",
+        ":pray:=\ud83d\ude4f;:pray_tone1:=\ud83d\ude4f\ud83c\udffb;:pray_tone2:=\ud83d\ude4f\ud83c\udffc;:pray_tone3:=\ud83d\ude4f\ud83c\udffd;:pray_tone4:=\ud83d\ude4f\ud83c\udffe;:pray_tone5:=\ud83d\ude4f\ud83c\udfff",
+        ":stuck_out_tongue:=\ud83d\ude1b",
+        ":upside_down:=\ud83d\ude43",
+        ":smile:=\ud83d\ude04"
+      ]
+    },
+    "_favoriteArrayV2": {
+      "type": "plist",
+      "value": [
+        ":heart:=\u2764\ufe0f",
+        ":white_check_mark:=\u2705",
+        ":two_hearts:=\ud83d\udc95",
+        ":sunglasses:=\ud83d\ude0e",
+        ":skull_crossbones:=\u2620\ufe0f",
+        ":thumbsup:=\ud83d\udc4d",
+        ":astonished:=\ud83d\ude32",
+        ":pinched_fingers:=\ud83e\udd0c;:pinched_fingers_tone1:=\ud83e\udd0c\ud83c\udffb;:pinched_fingers_tone2:=\ud83e\udd0c\ud83c\udffc;:pinched_fingers_tone3:=\ud83e\udd0c\ud83c\udffd;:pinched_fingers_tone4:=\ud83e\udd0c\ud83c\udffe;:pinched_fingers_tone5:=\ud83e\udd0c\ud83c\udfff",
+        ":clap:=\ud83d\udc4f;:clap_tone1:=\ud83d\udc4f\ud83c\udffb;:clap_tone2:=\ud83d\udc4f\ud83c\udffc;:clap_tone3:=\ud83d\udc4f\ud83c\udffd;:clap_tone4:=\ud83d\udc4f\ud83c\udffe;:clap_tone5:=\ud83d\udc4f\ud83c\udfff",
+        ":green_heart:=\ud83d\udc9a",
+        ":smirk:=\ud83d\ude0f",
+        ":rage:=\ud83d\ude21",
+        ":100:=\ud83d\udcaf",
+        ":partying_face:=\ud83e\udd73",
+        ":muscle:=\ud83d\udcaa;:muscle_tone1:=\ud83d\udcaa\ud83c\udffb;:muscle_tone2:=\ud83d\udcaa\ud83c\udffc;:muscle_tone3:=\ud83d\udcaa\ud83c\udffd;:muscle_tone4:=\ud83d\udcaa\ud83c\udffe;:muscle_tone5:=\ud83d\udcaa\ud83c\udfff",
+        ":thinking:=\ud83e\udd14"
+      ]
+    },
+    "_favoriteArrayV4": {
+      "type": "plist",
+      "value": [
+        "\u2764\ufe0f",
+        "\ud83d\ude02",
+        "\ud83d\ude03"
+      ]
+    },
     "been dragged wall video": {
+      "type": "bool",
+      "value": true
+    },
+    "been pinned/spotlight video": {
+      "type": "bool",
+      "value": true
+    },
+    "kBOBroadcastBewBubble": {
       "type": "bool",
       "value": true
     },
@@ -2487,7 +4593,55 @@
       "type": "bool",
       "value": true
     },
+    "kWorkVivoTabName": {
+      "type": "string",
+      "value": ""
+    },
     "kZMAlreadyShowPMCTip": {
+      "type": "bool",
+      "value": true
+    },
+    "kZMHadShowFiveMinsCountDown": {
+      "type": "bool",
+      "value": false
+    },
+    "kZMHadShowOneDayCountDown": {
+      "type": "bool",
+      "value": false
+    },
+    "kZMHadShowOneHourCountDown": {
+      "type": "bool",
+      "value": false
+    },
+    "kZMHadShowSessionWarning": {
+      "type": "bool",
+      "value": false
+    },
+    "kZMMTViusalRefreshTipAlreadyShown": {
+      "type": "bool",
+      "value": true
+    },
+    "kZMMeetingChatTitleTipShowCount_Member": {
+      "type": "int",
+      "value": 3
+    },
+    "kZMScheduledOnboardingPopoverDismissedDefaultsKey": {
+      "type": "bool",
+      "value": true
+    },
+    "kZMShowNotificationCenter": {
+      "type": "bool",
+      "value": true
+    },
+    "kZMShowPMCTransition": {
+      "type": "int",
+      "value": 4
+    },
+    "kZMUserDefaultSelectedTabType": {
+      "type": "int",
+      "value": 0
+    },
+    "kZPSettingMyVideoDeprecatedKey": {
       "type": "bool",
       "value": true
     }

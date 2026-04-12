@@ -84,8 +84,12 @@ with open(CONF_PATH) as f:
             # Non-Apple domain blacklist
             domain_blacklist.add(domain_part[1:])
         else:
-            # Per-key blacklist for an auto-included domain
-            key_blacklists[domain_part] = patterns
+            # Per-key blacklist for an included domain. Apple domains must
+            # already have been whitelisted with a +domain entry above.
+            if domain_part in apple_whitelist:
+                apple_whitelist[domain_part].extend(patterns)
+            else:
+                key_blacklists[domain_part] = patterns
 
 # Get all domains
 raw = subprocess.run(["defaults", "domains"], capture_output=True, text=True)
