@@ -85,6 +85,26 @@ rate_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty
 resets_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
 resets_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
+# For pace coloring, trim a natural window end back to the most recent weekday 5pm ET
+# if `end` falls in the following off-hours dead zone (Mon-Thu 5pm → next 9am, Fri 5pm → Mon 9am).
+# Else return `end` unchanged. Args: $1 = now (unix), $2 = end (unix).
+work_trimmed_end() {
+  local now=$1 end=$2 ymd cutoff dow fwd next_ymd next_work
+  ymd=$(TZ="America/New_York" date -r "$end" +%Y-%m-%d)
+  cutoff=$(TZ="America/New_York" date -j -f "%Y-%m-%d %H:%M:%S" "$ymd 17:00:00" +%s 2>/dev/null)
+  [ "$cutoff" -gt "$end" ] && cutoff=$(( cutoff - 86400 ))
+  dow=$(TZ="America/New_York" date -r "$cutoff" +%u)
+  case "$dow" in
+    6) cutoff=$(( cutoff - 86400 )); dow=5 ;;
+    7) cutoff=$(( cutoff - 2 * 86400 )); dow=5 ;;
+  esac
+  [ "$cutoff" -lt "$now" ] && { echo "$end"; return; }
+  [ "$dow" -eq 5 ] && fwd=3 || fwd=1
+  next_ymd=$(TZ="America/New_York" date -r "$(( cutoff + fwd * 86400 ))" +%Y-%m-%d)
+  next_work=$(TZ="America/New_York" date -j -f "%Y-%m-%d %H:%M:%S" "$next_ymd 09:00:00" +%s 2>/dev/null)
+  [ "$end" -lt "$next_work" ] && echo "$cutoff" || echo "$end"
+}
+
 format_rate() {
   local pct=$1 resets=$2 window_secs=$3 display_override=$4 display_color=$5
   [ -z "$pct" ] && return
@@ -94,6 +114,10 @@ format_rate() {
   [ "$time_remaining" -lt 0 ] && time_remaining=0
   local time_elapsed=$(( window_secs - time_remaining ))
   [ "$time_elapsed" -lt 60 ] && time_elapsed=60
+  # Trim to last weekday 5pm ET for pace coloring only (display stays untouched)
+  local effective_end=$(work_trimmed_end "$now" "$resets")
+  local effective_window_secs=$(( window_secs - (resets - effective_end) ))
+  [ "$effective_window_secs" -lt 60 ] && effective_window_secs=60
 
   local info
   if [ -n "$display_override" ]; then
@@ -109,7 +133,7 @@ format_rate() {
   # Pace ratio for time remaining color (Ghostty Tomorrow Night palette)
   # Sigmoid-like piecewise: steep transition around 0.8x, 1.0x is red
   # green(181,189,104) → yellow(240,198,116) → red(204,102,102)
-  local time_elapsed_pct=$(( time_elapsed * 100 / window_secs ))
+  local time_elapsed_pct=$(( time_elapsed * 100 / effective_window_secs ))
   local ratio
   if [ "$time_elapsed_pct" -gt 0 ]; then
     ratio=$(( pct * 100 / time_elapsed_pct ))
