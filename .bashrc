@@ -15,6 +15,7 @@ export EDITOR="hx"
 export GPG_TTY=$(tty)
 
 alias brew="wax"
+alias dot='cd "$HOME/Code/dotfiles"'
 
 # VSCode shell integration
 [[ "$TERM_PROGRAM" == "vscode" ]] && [[ -f "$(code --locate-shell-integration-path bash 2>/dev/null)" ]] && . "$(code --locate-shell-integration-path bash)"
