@@ -3726,7 +3726,7 @@
     },
     "SUAutomaticallyUpdate": {
       "type": "bool",
-      "value": true
+      "value": false
     },
     "SUEnableAutomaticChecks": {
       "type": "bool",
@@ -3850,7 +3850,7 @@
     },
     "updatePolicy": {
       "type": "string",
-      "value": "2"
+      "value": "1"
     },
     "vimKeysEnabled": {
       "type": "string",

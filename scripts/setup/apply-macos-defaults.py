@@ -54,17 +54,6 @@ for domain, entries in snapshot.items():
             run_defaults(["defaults", "import", domain, tmp_path])
             os.unlink(tmp_path)
 
-# Power management (not in defaults — uses pmset)
-pmset_file = os.path.join(SCRIPT_DIR, "pmset.json")
-pmset_settings = {}
-if os.path.exists(pmset_file):
-    with open(pmset_file) as f:
-        pmset_settings = json.load(f)
-for source, settings in pmset_settings.items():
-    flag = "-b" if source == "battery" else "-c"
-    for key, val in settings.items():
-        subprocess.run(["sudo", "pmset", flag, key, str(val)], capture_output=True)
-
 # Restore login items
 login_items_file = os.path.join(SCRIPT_DIR, "login-items.json")
 if os.path.exists(login_items_file):
