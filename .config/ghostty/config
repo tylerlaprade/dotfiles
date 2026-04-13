@@ -3,7 +3,7 @@ keybind = performable:cmd+c=copy_to_clipboard
 macos-option-as-alt = true
 bell-features = system,border
 font-size = 16
-fullscreen = true
+maximize = true
 mouse-hide-while-typing = true
 shell-integration-features = no-title
 scrollback-limit = 50000000
