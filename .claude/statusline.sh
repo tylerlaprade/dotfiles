@@ -3,7 +3,10 @@
 input=$(cat)
 cd "$(echo "$input" | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 
-pct=$(echo "$input" | jq -r '.context_window | ((.used_percentage // 0) * (.context_window_size // 200000) / 200000) | round')
+# .used_percentage is clamped to 0-100 by CC, so it can't show overflow.
+# Compute % from raw tokens in .current_usage divided by .context_window_size
+# (so 100% = 200k in 200k mode, 100% = 1M in 1M mode).
+pct=$(echo "$input" | jq -r '.context_window | ((.current_usage // {}) as $u | (($u.input_tokens // 0) + ($u.cache_creation_input_tokens // 0) + ($u.cache_read_input_tokens // 0)) * 100 / (.context_window_size // 200000)) | round')
 
 RESET='\033[0m'
 
@@ -50,7 +53,7 @@ elif [ "$pct" -le 85 ]; then
   b=0
 else
   t=$(( (pct - 85) * 100 / (pct - 85 + 30) ))
-  r=255
+  r=$(( 255 - (255 - 160) * t / 100 ))
   g=0
   b=0
 fi
