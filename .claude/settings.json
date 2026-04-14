@@ -78,15 +78,6 @@
     ],
     "SessionStart": [
       {
-        "matcher": "startup",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/Code/dotfiles/scripts/sync/sync-dotfiles.sh"
-          }
-        ]
-      },
-      {
         "hooks": [
           {
             "type": "command",

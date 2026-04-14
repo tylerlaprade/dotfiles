@@ -129,6 +129,13 @@ for app_dir in "$HOME/Library/Application Support"/*/; do
   done
 done
 
+# LaunchAgents
+mkdir -p "$HOME/Library/LaunchAgents"
+for plist in "$DOTFILES"/LaunchAgents/*.plist; do
+  [[ -f "$plist" ]] || continue
+  link "$plist" "$HOME/Library/LaunchAgents/$(basename "$plist")"
+done
+
 # scripts/bin -> ~/.local/bin
 mkdir -p "$HOME/.local/bin"
 for script in "$DOTFILES"/scripts/bin/*.sh; do
