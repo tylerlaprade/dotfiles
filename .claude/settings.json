@@ -144,7 +144,8 @@
     "slack@claude-plugins-official": false,
     "superpowers@claude-plugins-official": false,
     "typescript-lsp@claude-plugins-official": false,
-    "caveman@caveman": true
+    "caveman@caveman": true,
+    "codex@openai-codex": true
   },
   "extraKnownMarketplaces": {
     "agent-browser": {
@@ -169,6 +170,12 @@
       "source": {
         "source": "github",
         "repo": "JuliusBrussee/caveman"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
       }
     }
   },
