@@ -3849,8 +3849,8 @@
       "value": "1"
     },
     "updatePolicy": {
-      "type": "string",
-      "value": "1"
+      "type": "int",
+      "value": 0
     },
     "vimKeysEnabled": {
       "type": "string",
