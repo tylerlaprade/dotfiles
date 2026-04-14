@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
-    "CLAUDE_CODE_BLOCKING_LIMIT_OVERRIDE": "2000000",
+    "CLAUDE_CODE_BLOCKING_LIMIT_OVERRIDE": "9999999",
     "CLAUDE_CODE_DISABLE_1M_CONTEXT": "1",
     "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1",
     "CLAUDE_CODE_EFFORT_LEVEL": "max",
