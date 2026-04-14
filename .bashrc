@@ -59,7 +59,16 @@ alias ls="eza"
 alias cat="bat"
 alias find="fd"
 alias du="dust"
-alias lg="lazygit"
+lg() {
+  local repo
+  repo=$(git rev-parse --show-toplevel 2>/dev/null) && repo=$(basename "$repo") || repo=""
+  if [[ -n "$repo" ]]; then
+    printf '\e]2;lazygit: %s\e\\' "$repo"
+  else
+    printf '\e]2;lazygit\e\\'
+  fi
+  lazygit "$@"
+}
 alias top="bottom"
 alias ps="procs"
 
