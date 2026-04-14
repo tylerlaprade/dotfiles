@@ -143,31 +143,36 @@
       "source": {
         "source": "github",
         "repo": "vercel-labs/agent-browser"
-      }
+      },
+      "autoUpdate": true
     },
     "basedpyright-lsp": {
       "source": {
         "source": "github",
         "repo": "tylerlaprade/basedpyright-lsp"
-      }
+      },
+      "autoUpdate": true
     },
     "claude-plugins-official": {
       "source": {
         "source": "github",
         "repo": "anthropics/claude-plugins-official"
-      }
+      },
+      "autoUpdate": true
     },
     "caveman": {
       "source": {
         "source": "github",
         "repo": "JuliusBrussee/caveman"
-      }
+      },
+      "autoUpdate": true
     },
     "openai-codex": {
       "source": {
         "source": "github",
         "repo": "openai/codex-plugin-cc"
-      }
+      },
+      "autoUpdate": true
     }
   },
   "alwaysThinkingEnabled": true,
