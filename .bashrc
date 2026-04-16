@@ -59,16 +59,7 @@ alias ls="eza"
 alias cat="bat"
 alias find="fd"
 alias du="dust"
-lg() {
-  local repo
-  repo=$(git rev-parse --show-toplevel 2>/dev/null) && repo=$(basename "$repo") || repo=""
-  if [[ -n "$repo" ]]; then
-    printf '\e]2;lazygit: %s\e\\' "$repo"
-  else
-    printf '\e]2;lazygit\e\\'
-  fi
-  lazygit "$@"
-}
+alias lg="lazygit"
 alias top="bottom"
 alias ps="procs"
 
@@ -93,6 +84,21 @@ _set_tab_title() {
   fi
 }
 PROMPT_COMMAND="_set_tab_title${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+
+# preexec (brush zsh-hooks) — no Pure in bash, so we handle cmd title manually.
+# Format is "cmd: dir" (unlike zshrc where Pure hardcodes "dir: cmd").
+preexec() {
+  local repo branch pr_info pr_num
+  repo=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null) || return
+  branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || return
+  pr_info=$(gh-pr-lookup "$repo" "$branch" --async 2>/dev/null)
+  pr_num="${pr_info%%	*}"
+  if [[ -n "$pr_num" ]]; then
+    printf '\e]0;#%s %s\a' "$pr_num" "${pr_info#*	}"
+  else
+    printf '\e]0;%s: %s\a' "${1%% *}" "${PWD##*/}"
+  fi
+}
 
 # Source local secrets
 [[ -f ~/.bashrc.local ]] && source ~/.bashrc.local

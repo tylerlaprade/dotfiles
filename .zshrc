@@ -54,16 +54,7 @@ alias ls="eza"
 alias cat="bat"
 alias find="fd"
 alias du="dust"
-lg() {
-  local repo
-  repo=$(git rev-parse --show-toplevel 2>/dev/null) && repo=$(basename "$repo") || repo=""
-  if [[ -n "$repo" ]]; then
-    printf '\e]2;lazygit: %s\e\\' "$repo"
-  else
-    printf '\e]2;lazygit\e\\'
-  fi
-  lazygit "$@"
-}
+alias lg="lazygit"
 alias top="bottom"
 alias ps="procs"
 
@@ -73,7 +64,9 @@ eval "$(zoxide init zsh)"
 # direnv - auto-load .envrc files
 eval "$(direnv hook zsh)"
 
-# Tab title: prefix "#PR" when a PR exists, otherwise let Ghostty default
+# Tab title: prefix "#PR" when a PR exists, otherwise let Pure handle it
+# (Pure's precmd sets "%~", preexec sets "<dir>: <cmd>" — so TUIs like hx
+# show as "dotfiles: hx foo.rs" instead of cwd path).
 _set_tab_title() {
   local repo branch pr_num
   repo=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null) || return
@@ -84,9 +77,6 @@ _set_tab_title() {
   if [[ -n "$pr_num" ]]; then
     local pr_title="${pr_info#*	}"
     printf '\e]0;#%s %s\a' "$pr_num" "$pr_title"
-  else
-    # Clear stale PR title; use Pure-style %~ so Ghostty doesn't fall back to full path
-    print -Pn '\e]0;%~\a'
   fi
 }
 autoload -Uz add-zsh-hook
