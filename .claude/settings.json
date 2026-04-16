@@ -199,9 +199,10 @@
   "alwaysThinkingEnabled": true,
   "promptSuggestionEnabled": false,
   "skipDangerousModePermissionPrompt": true,
+  "skipAutoPermissionPrompt": true,
+  "useAutoModeDuringPlan": true,
   "voiceEnabled": true,
   "feedbackSurveyState": {
     "lastShownTime": 9999999999999
-  },
-  "skipAutoPermissionPrompt": true
+  }
 }
