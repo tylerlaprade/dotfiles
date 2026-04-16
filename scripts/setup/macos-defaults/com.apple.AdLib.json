@@ -1,0 +1,18 @@
+{
+  "CKDPIDSyncState": {
+    "type": "int",
+    "value": 0
+  },
+  "allowIdentifierForAdvertising": {
+    "type": "bool",
+    "value": true
+  },
+  "partiality-segment": {
+    "type": "string",
+    "value": "https://partiality.itunes.apple.com/WebObjects/MZPartiality.woa/wa/IAD/segment"
+  },
+  "personalizedAdsMigrated": {
+    "type": "bool",
+    "value": true
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "captureDelay": {
+    "type": "int",
+    "value": 5
+  },
+  "captureHDR": {
+    "type": "bool",
+    "value": true
+  },
+  "location": {
+    "type": "string",
+    "value": "~/Documents/"
+  },
+  "showsClicks": {
+    "type": "bool",
+    "value": true
+  },
+  "style": {
+    "type": "string",
+    "value": "display"
+  },
+  "target": {
+    "type": "string",
+    "value": "file"
+  },
+  "video": {
+    "type": "bool",
+    "value": true
+  }
+}

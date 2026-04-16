@@ -1,0 +1,70 @@
+{
+  "bypassAvailability": {
+    "type": "bool",
+    "value": false
+  },
+  "debugUI": {
+    "type": "bool",
+    "value": false
+  },
+  "enableAlbumsDomain": {
+    "type": "bool",
+    "value": true
+  },
+  "enableArtDomain": {
+    "type": "bool",
+    "value": true
+  },
+  "enableBooksDomain": {
+    "type": "bool",
+    "value": true
+  },
+  "enableCoarseClassification": {
+    "type": "bool",
+    "value": true
+  },
+  "enableLandmarkDomain": {
+    "type": "bool",
+    "value": true
+  },
+  "enableNatureDomain": {
+    "type": "bool",
+    "value": true
+  },
+  "enablePetsDomain": {
+    "type": "bool",
+    "value": true
+  },
+  "enablePhotosApp": {
+    "type": "bool",
+    "value": true
+  },
+  "enableQuickLook": {
+    "type": "bool",
+    "value": true
+  },
+  "enableSafariApp": {
+    "type": "bool",
+    "value": true
+  },
+  "enableScreenshots": {
+    "type": "bool",
+    "value": true
+  },
+  "firstTimeExperience": {
+    "type": "bool",
+    "value": true
+  },
+  "initialized": {
+    "type": "bool",
+    "value": true
+  },
+  "sendLocationInfo": {
+    "type": "bool",
+    "value": true
+  },
+  "sendOCRText": {
+    "type": "bool",
+    "value": true
+  }
+}

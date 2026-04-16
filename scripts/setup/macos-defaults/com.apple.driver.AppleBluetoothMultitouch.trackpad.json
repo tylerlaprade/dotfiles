@@ -1,0 +1,98 @@
+{
+  "Clicking": {
+    "type": "int",
+    "value": 0
+  },
+  "DragLock": {
+    "type": "int",
+    "value": 0
+  },
+  "Dragging": {
+    "type": "int",
+    "value": 0
+  },
+  "TrackpadCornerSecondaryClick": {
+    "type": "int",
+    "value": 0
+  },
+  "TrackpadFiveFingerPinchGesture": {
+    "type": "int",
+    "value": 2
+  },
+  "TrackpadFourFingerHorizSwipeGesture": {
+    "type": "int",
+    "value": 2
+  },
+  "TrackpadFourFingerPinchGesture": {
+    "type": "int",
+    "value": 2
+  },
+  "TrackpadFourFingerVertSwipeGesture": {
+    "type": "int",
+    "value": 2
+  },
+  "TrackpadHandResting": {
+    "type": "bool",
+    "value": true
+  },
+  "TrackpadHorizScroll": {
+    "type": "int",
+    "value": 1
+  },
+  "TrackpadMomentumScroll": {
+    "type": "bool",
+    "value": true
+  },
+  "TrackpadPinch": {
+    "type": "int",
+    "value": 1
+  },
+  "TrackpadRightClick": {
+    "type": "bool",
+    "value": true
+  },
+  "TrackpadRotate": {
+    "type": "int",
+    "value": 1
+  },
+  "TrackpadScroll": {
+    "type": "bool",
+    "value": true
+  },
+  "TrackpadThreeFingerDrag": {
+    "type": "bool",
+    "value": false
+  },
+  "TrackpadThreeFingerHorizSwipeGesture": {
+    "type": "int",
+    "value": 2
+  },
+  "TrackpadThreeFingerTapGesture": {
+    "type": "int",
+    "value": 0
+  },
+  "TrackpadThreeFingerVertSwipeGesture": {
+    "type": "int",
+    "value": 2
+  },
+  "TrackpadTwoFingerDoubleTapGesture": {
+    "type": "int",
+    "value": 1
+  },
+  "TrackpadTwoFingerFromRightEdgeSwipeGesture": {
+    "type": "int",
+    "value": 3
+  },
+  "USBMouseStopsTrackpad": {
+    "type": "int",
+    "value": 0
+  },
+  "UserPreferences": {
+    "type": "bool",
+    "value": true
+  },
+  "version": {
+    "type": "int",
+    "value": 5
+  }
+}

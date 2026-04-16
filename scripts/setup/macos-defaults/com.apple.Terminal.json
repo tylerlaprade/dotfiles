@@ -1,0 +1,26 @@
+{
+  "Default Window Settings": {
+    "type": "string",
+    "value": "Basic"
+  },
+  "FocusFollowsMouse": {
+    "type": "bool",
+    "value": true
+  },
+  "HasMigratedDefaults": {
+    "type": "bool",
+    "value": true
+  },
+  "Man Page Window Settings": {
+    "type": "string",
+    "value": "Man Page"
+  },
+  "SecureKeyboardEntry": {
+    "type": "bool",
+    "value": false
+  },
+  "Startup Window Settings": {
+    "type": "string",
+    "value": "Basic"
+  }
+}

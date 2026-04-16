@@ -1,0 +1,18 @@
+{
+  "AppleTextDirection": {
+    "type": "bool",
+    "value": true
+  },
+  "NSForceRightToLeftWritingDirection": {
+    "type": "bool",
+    "value": false
+  },
+  "NSFullScreenMenuItemEverywhere": {
+    "type": "bool",
+    "value": false
+  },
+  "NSTreatUnknownArgumentsAsOpen": {
+    "type": "string",
+    "value": "NO"
+  }
+}

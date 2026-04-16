@@ -1,0 +1,22 @@
+{
+  "closeViewHotkeysEnabled": {
+    "type": "bool",
+    "value": false
+  },
+  "closeViewZoomDisplayID": {
+    "type": "int",
+    "value": 0
+  },
+  "closeViewZoomFactor": {
+    "type": "float",
+    "value": 1.0
+  },
+  "login": {
+    "type": "bool",
+    "value": false
+  },
+  "sessionChange": {
+    "type": "bool",
+    "value": false
+  }
+}

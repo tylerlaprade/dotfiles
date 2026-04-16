@@ -1,0 +1,46 @@
+{
+  "SUAutomaticallyUpdate": {
+    "type": "bool",
+    "value": true
+  },
+  "SUEnableAutomaticChecks": {
+    "type": "bool",
+    "value": true
+  },
+  "capsLockKeycode": {
+    "type": "int",
+    "value": 224
+  },
+  "capsLockRemapped": {
+    "type": "int",
+    "value": 1
+  },
+  "executeQuickHyperKey": {
+    "type": "int",
+    "value": 1
+  },
+  "hideMenuBarIcon": {
+    "type": "bool",
+    "value": true
+  },
+  "hyperFlags": {
+    "type": "int",
+    "value": 1966080
+  },
+  "keyRemap": {
+    "type": "int",
+    "value": 2
+  },
+  "lastVersion": {
+    "type": "string",
+    "value": "56"
+  },
+  "launchOnLogin": {
+    "type": "bool",
+    "value": true
+  },
+  "quickHyperKeycode": {
+    "type": "int",
+    "value": 53
+  }
+}

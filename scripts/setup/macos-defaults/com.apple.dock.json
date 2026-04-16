@@ -1,0 +1,46 @@
+{
+  "autohide": {
+    "type": "bool",
+    "value": true
+  },
+  "expose-group-apps": {
+    "type": "bool",
+    "value": true
+  },
+  "largesize": {
+    "type": "int",
+    "value": 128
+  },
+  "magnification": {
+    "type": "bool",
+    "value": false
+  },
+  "minimize-to-application": {
+    "type": "bool",
+    "value": true
+  },
+  "mru-spaces": {
+    "type": "bool",
+    "value": false
+  },
+  "orientation": {
+    "type": "string",
+    "value": "right"
+  },
+  "showAppExposeGestureEnabled": {
+    "type": "bool",
+    "value": true
+  },
+  "tilesize": {
+    "type": "float",
+    "value": 31.0
+  },
+  "wvous-br-corner": {
+    "type": "int",
+    "value": 1
+  },
+  "wvous-br-modifier": {
+    "type": "int",
+    "value": 1048576
+  }
+}

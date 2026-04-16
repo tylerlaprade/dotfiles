@@ -1,0 +1,90 @@
+{
+  "AppleActionOnDoubleClick": {
+    "type": "string",
+    "value": "Minimize"
+  },
+  "AppleAntiAliasingThreshold": {
+    "type": "int",
+    "value": 4
+  },
+  "AppleInterfaceStyleSwitchesAutomatically": {
+    "type": "bool",
+    "value": true
+  },
+  "AppleKeyboardUIMode": {
+    "type": "int",
+    "value": 0
+  },
+  "AppleMiniaturizeOnDoubleClick": {
+    "type": "bool",
+    "value": false
+  },
+  "AppleScrollerPagingBehavior": {
+    "type": "bool",
+    "value": true
+  },
+  "AppleShowScrollBars": {
+    "type": "string",
+    "value": "Always"
+  },
+  "AppleSpacesSwitchOnActivate": {
+    "type": "bool",
+    "value": true
+  },
+  "AppleWindowTabbingMode": {
+    "type": "string",
+    "value": "always"
+  },
+  "InitialKeyRepeat": {
+    "type": "int",
+    "value": 15
+  },
+  "KeyRepeat": {
+    "type": "int",
+    "value": 2
+  },
+  "NSAutomaticCapitalizationEnabled": {
+    "type": "bool",
+    "value": true
+  },
+  "NSAutomaticDashSubstitutionEnabled": {
+    "type": "bool",
+    "value": true
+  },
+  "NSAutomaticPeriodSubstitutionEnabled": {
+    "type": "bool",
+    "value": false
+  },
+  "NSAutomaticQuoteSubstitutionEnabled": {
+    "type": "bool",
+    "value": true
+  },
+  "NSAutomaticSpellingCorrectionEnabled": {
+    "type": "bool",
+    "value": true
+  },
+  "NSAutomaticTextCompletionEnabled": {
+    "type": "bool",
+    "value": true
+  },
+  "WebAutomaticSpellingCorrectionEnabled": {
+    "type": "bool",
+    "value": true
+  },
+  "_HIHideMenuBar": {
+    "type": "bool",
+    "value": true
+  },
+  "com.apple.springing.delay": {
+    "type": "float",
+    "value": 0.5
+  },
+  "com.apple.springing.enabled": {
+    "type": "bool",
+    "value": true
+  },
+  "com.apple.trackpad.forceClick": {
+    "type": "bool",
+    "value": false
+  }
+}

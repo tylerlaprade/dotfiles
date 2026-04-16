@@ -1,0 +1,18 @@
+{
+  "ASAcknowledgedOnboardingVersion": {
+    "type": "int",
+    "value": 7
+  },
+  "AutoPlayVideoSetting": {
+    "type": "string",
+    "value": "on"
+  },
+  "UserSetAutoPlayVideoSetting": {
+    "type": "bool",
+    "value": false
+  },
+  "kAOSUIProfilePictureCropRect": {
+    "type": "string",
+    "value": "{{0, 0}, {500, 500}}"
+  }
+}

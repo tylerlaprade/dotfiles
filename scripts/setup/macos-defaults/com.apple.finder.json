@@ -1,0 +1,50 @@
+{
+  "FXArrangeGroupViewBy": {
+    "type": "string",
+    "value": "Name"
+  },
+  "FXPreferredViewStyle": {
+    "type": "string",
+    "value": "icnv"
+  },
+  "FXRemoveOldTrashItems": {
+    "type": "bool",
+    "value": true
+  },
+  "RecentsArrangeGroupViewBy": {
+    "type": "string",
+    "value": "Date Last Opened"
+  },
+  "ShowExternalHardDrivesOnDesktop": {
+    "type": "bool",
+    "value": true
+  },
+  "ShowHardDrivesOnDesktop": {
+    "type": "bool",
+    "value": false
+  },
+  "ShowPathbar": {
+    "type": "bool",
+    "value": false
+  },
+  "ShowRemovableMediaOnDesktop": {
+    "type": "bool",
+    "value": true
+  },
+  "ShowSidebar": {
+    "type": "bool",
+    "value": true
+  },
+  "ShowStatusBar": {
+    "type": "bool",
+    "value": false
+  },
+  "_FXSortFoldersFirst": {
+    "type": "bool",
+    "value": true
+  },
+  "_FXSortFoldersFirstOnDesktop": {
+    "type": "bool",
+    "value": true
+  }
+}

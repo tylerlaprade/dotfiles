@@ -1,0 +1,6 @@
+{
+  "shown-first-time-ui": {
+    "type": "bool",
+    "value": true
+  }
+}

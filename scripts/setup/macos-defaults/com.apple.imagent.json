@@ -1,0 +1,36 @@
+{
+  "CKPerBootTasks": {
+    "type": "plist",
+    "value": [
+      "CKAccountInfoCacheReset"
+    ]
+  },
+  "IMChatVocabularyUpdaterDidPerformInitialUpdateKey": {
+    "type": "bool",
+    "value": true
+  },
+  "Setting.EnableReadReceipts": {
+    "type": "bool",
+    "value": true
+  },
+  "Setting.GlobalReadReceiptsVersionID": {
+    "type": "int",
+    "value": 1
+  },
+  "archivedMessagesChangeToken-syncStoreVersion": {
+    "type": "int",
+    "value": 1
+  },
+  "attachmentZoneChangeToken-syncStoreVersion": {
+    "type": "int",
+    "value": 1
+  },
+  "changeToken-syncStoreVersion": {
+    "type": "int",
+    "value": 1
+  },
+  "messagesChangeToken-syncStoreVersion": {
+    "type": "int",
+    "value": 1
+  }
+}

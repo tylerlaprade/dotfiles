@@ -1,0 +1,38 @@
+{
+  "MouseButtonDivision": {
+    "type": "int",
+    "value": 55
+  },
+  "MouseButtonMode": {
+    "type": "string",
+    "value": "OneButton"
+  },
+  "MouseHorizontalScroll": {
+    "type": "bool",
+    "value": true
+  },
+  "MouseMomentumScroll": {
+    "type": "bool",
+    "value": true
+  },
+  "MouseOneFingerDoubleTapGesture": {
+    "type": "int",
+    "value": 0
+  },
+  "MouseTwoFingerDoubleTapGesture": {
+    "type": "int",
+    "value": 3
+  },
+  "MouseTwoFingerHorizSwipeGesture": {
+    "type": "int",
+    "value": 2
+  },
+  "MouseVerticalScroll": {
+    "type": "bool",
+    "value": true
+  },
+  "UserPreferences": {
+    "type": "bool",
+    "value": true
+  }
+}

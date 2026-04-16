@@ -1,0 +1,138 @@
+{
+  "SUAutomaticallyUpdate": {
+    "type": "bool",
+    "value": false
+  },
+  "SUEnableAutomaticChecks": {
+    "type": "bool",
+    "value": true
+  },
+  "alignThumbnails": {
+    "type": "string",
+    "value": "1"
+  },
+  "appearanceSize": {
+    "type": "string",
+    "value": "2"
+  },
+  "appearanceStyle": {
+    "type": "string",
+    "value": "0"
+  },
+  "appearanceVisibility": {
+    "type": "string",
+    "value": "2"
+  },
+  "crashPolicy": {
+    "type": "string",
+    "value": "2"
+  },
+  "cursorFollowFocus": {
+    "type": "string",
+    "value": "2"
+  },
+  "cursorFollowFocusEnabled": {
+    "type": "string",
+    "value": "false"
+  },
+  "exceptions": {
+    "type": "string",
+    "value": "[{\"hide\":\"1\",\"bundleIdentifier\":\"com.McAfee.McAfeeSafariHost\",\"ignore\":\"0\"},{\"hide\":\"1\",\"bundleIdentifier\":\"com.apple.finder\",\"ignore\":\"0\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.microsoft.rdc.macos\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.teamviewer.TeamViewer\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"org.virtualbox.app.VirtualBoxVM\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.parallels.\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.citrix.XenAppViewer\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.citrix.receiver.icaviewer.mac\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.nicesoftware.dcvviewer\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.vmware.fusion\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.apple.ScreenSharing\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.utmapp.UTM\",\"ignore\":\"2\"},{\"hide\":\"1\",\"bundleIdentifier\":\"com.granola.app\",\"ignore\":\"0\"},{\"hide\":\"1\",\"bundleIdentifier\":\"com.superultra.Homerow\",\"ignore\":\"0\"}]"
+  },
+  "fadeOutAnimation": {
+    "type": "string",
+    "value": "true"
+  },
+  "hideAppBadges": {
+    "type": "string",
+    "value": "false"
+  },
+  "hideShowAppShortcut": {
+    "type": "plist-file",
+    "file": "macos-plists/com.lwouis.alt-tab-macos.hideShowAppShortcut.plist"
+  },
+  "hideSpaceNumberLabels": {
+    "type": "string",
+    "value": "true"
+  },
+  "hideStatusIcons": {
+    "type": "string",
+    "value": "true"
+  },
+  "hideWindowlessApps": {
+    "type": "string",
+    "value": "true"
+  },
+  "menubarIcon": {
+    "type": "string",
+    "value": "2"
+  },
+  "previewFadeInAnimation": {
+    "type": "string",
+    "value": "true"
+  },
+  "previewFocusedWindow": {
+    "type": "string",
+    "value": "false"
+  },
+  "shortcutCount": {
+    "type": "string",
+    "value": "3"
+  },
+  "showHiddenWindows": {
+    "type": "string",
+    "value": "2"
+  },
+  "showMinimizedWindows": {
+    "type": "string",
+    "value": "2"
+  },
+  "showOnScreen": {
+    "type": "string",
+    "value": "2"
+  },
+  "showTabsAsWindows": {
+    "type": "string",
+    "value": "false"
+  },
+  "showTitles": {
+    "type": "string",
+    "value": "0"
+  },
+  "showWindowlessApps": {
+    "type": "int",
+    "value": 1
+  },
+  "showWindowlessApps10": {
+    "type": "string",
+    "value": "1"
+  },
+  "showWindowlessApps2": {
+    "type": "int",
+    "value": 1
+  },
+  "showWindowlessApps3": {
+    "type": "int",
+    "value": 1
+  },
+  "titleTruncation": {
+    "type": "string",
+    "value": "1"
+  },
+  "updatePolicy": {
+    "type": "int",
+    "value": 0
+  },
+  "vimKeysEnabled": {
+    "type": "string",
+    "value": "true"
+  },
+  "windowDisplayDelay": {
+    "type": "string",
+    "value": "0"
+  },
+  "windowMaxWidthInRow": {
+    "type": "string",
+    "value": "30"
+  }
+}

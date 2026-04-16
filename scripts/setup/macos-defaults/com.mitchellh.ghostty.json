@@ -1,0 +1,14 @@
+{
+  "SUAutomaticallyUpdate": {
+    "type": "bool",
+    "value": true
+  },
+  "SUEnableAutomaticChecks": {
+    "type": "bool",
+    "value": true
+  },
+  "SUSendProfileInfo": {
+    "type": "bool",
+    "value": false
+  }
+}

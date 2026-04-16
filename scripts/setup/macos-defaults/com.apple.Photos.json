@@ -1,0 +1,42 @@
+{
+  "IPXDefaultDidPromoteiCloudPhotosInGettingStarted": {
+    "type": "bool",
+    "value": true
+  },
+  "IPXDefaultHasBeenLaunched": {
+    "type": "bool",
+    "value": true
+  },
+  "IPXDefaultIsRestoringViewControllers": {
+    "type": "bool",
+    "value": false
+  },
+  "IPXDefaultShowLibraryChooserOnLaunch": {
+    "type": "bool",
+    "value": false
+  },
+  "IPXPluginHostClearVisualizeConstraints": {
+    "type": "bool",
+    "value": true
+  },
+  "LastCuratedLibraryFirstTimeExperienceReadinessLogged": {
+    "type": "int",
+    "value": 1
+  },
+  "LastKnownHasSharedLibrary": {
+    "type": "int",
+    "value": 1
+  },
+  "LastKnownHasSharedLibraryPreview": {
+    "type": "int",
+    "value": 0
+  },
+  "PXRootSettingsHideWIPAlerts": {
+    "type": "bool",
+    "value": false
+  },
+  "allPhotosLibraryPreferredIndividualItemsColumns": {
+    "type": "int",
+    "value": 5
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "LastRunAppBundlePath": {
+    "type": "string",
+    "value": "/Applications/Google Chrome.app"
+  },
+  "NSUserKeyEquivalents": {
+    "type": "plist",
+    "value": {}
+  }
+}

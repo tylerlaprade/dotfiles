@@ -1,0 +1,18 @@
+{
+  "Allow Explicit Content": {
+    "type": "bool",
+    "value": true
+  },
+  "Assistant Enabled": {
+    "type": "bool",
+    "value": true
+  },
+  "Dictation Enabled": {
+    "type": "bool",
+    "value": true
+  },
+  "Siri Data Sharing Opt-In Status": {
+    "type": "int",
+    "value": 2
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "BounceApplicationSetting": {
+    "type": "int",
+    "value": 2
+  },
+  "NSConstraintBasedLayoutVisualizeMutuallyExclusiveConstraints": {
+    "type": "bool",
+    "value": false
+  },
+  "NSQuitAlwaysKeepsWindows": {
+    "type": "bool",
+    "value": false
+  },
+  "NSScrollViewShouldScrollUnderTitlebar": {
+    "type": "bool",
+    "value": false
+  },
+  "kCaptureWithoutChatWindow": {
+    "type": "bool",
+    "value": true
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "AppleDictationAutoEnable": {
+    "type": "int",
+    "value": 1
+  },
+  "AppleFnUsageType": {
+    "type": "int",
+    "value": 1
+  }
+}

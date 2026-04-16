@@ -1,0 +1,22 @@
+{
+  "content_visibility": {
+    "type": "int",
+    "value": 2
+  },
+  "play_forwarded_notifications_sounds": {
+    "type": "bool",
+    "value": true
+  },
+  "sort_order": {
+    "type": "int",
+    "value": 0
+  },
+  "summarize_previews": {
+    "type": "bool",
+    "value": false
+  },
+  "version": {
+    "type": "int",
+    "value": 1
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "SUAutomaticallyUpdate": {
+    "type": "bool",
+    "value": true
+  },
+  "SUEnableAutomaticChecks": {
+    "type": "bool",
+    "value": true
+  },
+  "chain-clicks": {
+    "type": "bool",
+    "value": false
+  },
+  "enable-hyper-key": {
+    "type": "bool",
+    "value": false
+  },
+  "launch-at-login": {
+    "type": "bool",
+    "value": true
+  },
+  "show-menubar-icon": {
+    "type": "bool",
+    "value": false
+  },
+  "use-search-predicate": {
+    "type": "bool",
+    "value": false
+  }
+}

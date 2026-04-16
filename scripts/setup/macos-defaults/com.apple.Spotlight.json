@@ -1,0 +1,18 @@
+{
+  "ModelName": {
+    "type": "string",
+    "value": "Canned"
+  },
+  "__NSEnableTSMDocumentWindowLevel": {
+    "type": "bool",
+    "value": true
+  },
+  "showedFTE": {
+    "type": "bool",
+    "value": true
+  },
+  "version": {
+    "type": "int",
+    "value": 7
+  }
+}

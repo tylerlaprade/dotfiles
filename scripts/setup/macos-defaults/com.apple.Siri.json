@@ -1,0 +1,10 @@
+{
+  "GMSignedUp": {
+    "type": "bool",
+    "value": true
+  },
+  "StatusMenuVisible": {
+    "type": "bool",
+    "value": true
+  }
+}

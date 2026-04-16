@@ -1,0 +1,6 @@
+{
+  "DistanceUnits": {
+    "type": "string",
+    "value": "Imperial"
+  }
+}

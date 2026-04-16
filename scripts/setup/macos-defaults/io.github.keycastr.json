@@ -1,0 +1,30 @@
+{
+  "alwaysShowPrefs": {
+    "type": "bool",
+    "value": false
+  },
+  "default.allKeys": {
+    "type": "bool",
+    "value": true
+  },
+  "default.allModifiedKeys": {
+    "type": "bool",
+    "value": false
+  },
+  "default.commandKeysOnly": {
+    "type": "bool",
+    "value": false
+  },
+  "default.fontSize": {
+    "type": "float",
+    "value": 28.10903549194336
+  },
+  "mouse.displayOption": {
+    "type": "int",
+    "value": 1
+  },
+  "selectedVisualizer": {
+    "type": "string",
+    "value": "Default"
+  }
+}

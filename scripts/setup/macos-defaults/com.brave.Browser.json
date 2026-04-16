@@ -1,0 +1,18 @@
+{
+  "LastRunAppBundlePath": {
+    "type": "string",
+    "value": "/Applications/Brave Browser.app"
+  },
+  "SUAutomaticallyUpdate": {
+    "type": "bool",
+    "value": true
+  },
+  "SUEnableAutomaticChecks": {
+    "type": "bool",
+    "value": true
+  },
+  "SUScheduledCheckInterval": {
+    "type": "int",
+    "value": 10800
+  }
+}

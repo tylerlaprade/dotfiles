@@ -1,0 +1,6 @@
+{
+  "RemoteLiveActivitiesEnabled": {
+    "type": "bool",
+    "value": true
+  }
+}

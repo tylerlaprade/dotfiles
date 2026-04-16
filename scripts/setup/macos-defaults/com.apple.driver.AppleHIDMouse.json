@@ -1,0 +1,46 @@
+{
+  "Button1": {
+    "type": "int",
+    "value": 1
+  },
+  "Button2": {
+    "type": "int",
+    "value": 1
+  },
+  "Button3": {
+    "type": "int",
+    "value": 0
+  },
+  "Button4": {
+    "type": "int",
+    "value": 0
+  },
+  "Button4Click": {
+    "type": "int",
+    "value": 0
+  },
+  "Button4Force": {
+    "type": "int",
+    "value": 0
+  },
+  "ButtonDominance": {
+    "type": "int",
+    "value": 1
+  },
+  "ScrollH": {
+    "type": "int",
+    "value": 1
+  },
+  "ScrollS": {
+    "type": "int",
+    "value": 4
+  },
+  "ScrollSSize": {
+    "type": "int",
+    "value": 30
+  },
+  "ScrollV": {
+    "type": "int",
+    "value": 1
+  }
+}

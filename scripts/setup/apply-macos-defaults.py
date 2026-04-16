@@ -1,8 +1,8 @@
 #!/usr/bin/env -S uv run --script
-"""Apply macOS defaults from snapshot.
+"""Apply macOS defaults from per-domain snapshot files.
 
-Reads macos-defaults.json and writes each setting via `defaults write`.
-Run on a new machine after install.
+Reads scripts/setup/macos-defaults/*.json and writes each setting via
+`defaults write`. Run on a new machine after install.
 """
 
 import json
@@ -13,16 +13,14 @@ import sys
 import tempfile
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SNAPSHOT_PATH = os.path.join(SCRIPT_DIR, "macos-defaults.json")
+DOMAIN_DIR = os.path.join(SCRIPT_DIR, "macos-defaults")
 
-if not os.path.exists(SNAPSHOT_PATH):
-    print("No snapshot found at", SNAPSHOT_PATH)
+if not os.path.exists(DOMAIN_DIR):
+    print("No snapshot directory found at", DOMAIN_DIR)
     sys.exit(1)
 
-with open(SNAPSHOT_PATH) as f:
-    snapshot = json.load(f)
-
 failed = []
+
 
 def run_defaults(args):
     """Run defaults command, retry with sudo on permission failure."""
@@ -32,7 +30,15 @@ def run_defaults(args):
     if result.returncode != 0:
         failed.append((args, result.stderr.strip()))
 
-for domain, entries in snapshot.items():
+
+for filename in sorted(os.listdir(DOMAIN_DIR)):
+    if not filename.endswith(".json"):
+        continue
+    domain = filename[:-5]  # strip .json
+
+    with open(os.path.join(DOMAIN_DIR, filename)) as f:
+        entries = json.load(f)
+
     for key, info in entries.items():
         t = info["type"]
         val = info.get("value")
@@ -61,7 +67,6 @@ if os.path.exists(login_items_file):
         login_items = json.load(f)
     for item in login_items:
         path = os.path.expanduser(item["path"])
-        # Skip items whose apps aren't installed
         if not os.path.exists(path):
             failed.append((["login-item", item["name"]], f"App not found at {path}"))
             continue

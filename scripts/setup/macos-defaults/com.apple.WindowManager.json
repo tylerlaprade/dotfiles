@@ -1,0 +1,30 @@
+{
+  "AppWindowGroupingBehavior": {
+    "type": "int",
+    "value": 1
+  },
+  "AutoHide": {
+    "type": "bool",
+    "value": false
+  },
+  "EnableTiledWindowMargins": {
+    "type": "bool",
+    "value": false
+  },
+  "GloballyEnabled": {
+    "type": "bool",
+    "value": true
+  },
+  "HideDesktop": {
+    "type": "bool",
+    "value": false
+  },
+  "StageManagerHideWidgets": {
+    "type": "bool",
+    "value": false
+  },
+  "StandardHideWidgets": {
+    "type": "bool",
+    "value": false
+  }
+}

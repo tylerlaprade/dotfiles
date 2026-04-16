@@ -1,0 +1,76 @@
+{
+  "BirthdayEventsGenerationAttemptsToResetKey": {
+    "type": "int",
+    "value": 0
+  },
+  "BirthdayEventsGenerationLastLocale": {
+    "type": "string",
+    "value": "en_US"
+  },
+  "CalDefaultCalendar": {
+    "type": "string",
+    "value": "UseLastSelectedAsDefaultCalendar"
+  },
+  "CalForceTruthFileRestoreHashKey": {
+    "type": "string",
+    "value": "16A1"
+  },
+  "CollapsedTopLevelNodes": {
+    "type": "plist",
+    "value": {
+      "MainWindow": []
+    }
+  },
+  "NSDontMakeMainWindowKey": {
+    "type": "string",
+    "value": "NO"
+  },
+  "NSEventConcurrentProcessingEnabled": {
+    "type": "string",
+    "value": "YES"
+  },
+  "NotificationsLastLocale": {
+    "type": "string",
+    "value": "en_US"
+  },
+  "ShowDeclinedEvents": {
+    "type": "bool",
+    "value": false
+  },
+  "TabbedWindowGroups": {
+    "type": "plist",
+    "value": []
+  },
+  "display birthdays calendar": {
+    "type": "bool",
+    "value": true
+  },
+  "enableTravelAdvisoriesForAutomaticBehavior": {
+    "type": "bool",
+    "value": true
+  },
+  "first day of week": {
+    "type": "int",
+    "value": 0
+  },
+  "first minute of day time range": {
+    "type": "int",
+    "value": 0
+  },
+  "iCal version": {
+    "type": "int",
+    "value": 150994944
+  },
+  "migrationAttempts": {
+    "type": "int",
+    "value": 0
+  },
+  "number of hours displayed": {
+    "type": "int",
+    "value": 17
+  },
+  "view rects": {
+    "type": "plist",
+    "value": {}
+  }
+}
