@@ -10,7 +10,6 @@
     "MAX_THINKING_TOKENS": "63999"
   },
   "permissions": {
-    "defaultMode": "plan",
     "allow": [
       "Bash(gh pr list*)",
       "Bash(gh pr view*)",
@@ -31,7 +30,8 @@
       "Bash(git diff*)",
       "Bash(git show*)",
       "Bash(git blame*)"
-    ]
+    ],
+    "defaultMode": "plan"
   },
   "hooks": {
     "PermissionRequest": [
@@ -198,9 +198,10 @@
   },
   "alwaysThinkingEnabled": true,
   "promptSuggestionEnabled": false,
-  "voiceEnabled": true,
   "skipDangerousModePermissionPrompt": true,
+  "voiceEnabled": true,
   "feedbackSurveyState": {
     "lastShownTime": 9999999999999
-  }
+  },
+  "skipAutoPermissionPrompt": true
 }

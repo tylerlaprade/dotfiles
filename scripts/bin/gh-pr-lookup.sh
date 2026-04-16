@@ -11,7 +11,7 @@ pr_map="$HOME/.cache/gh-pr-map"
 mkdir -p "$(dirname "$pr_map")"
 key="$repo:$branch"
 
-# Randomly wipe cache (~1 in 32768 calls)
+# Randomly wipe cache (~3% of calls)
 [[ $RANDOM -lt 1000 ]] && rm -f "$pr_map"
 
 cached=$(grep -m1 "^$key	" "$pr_map" 2>/dev/null | cut -f2-)
