@@ -1,6 +1,6 @@
 #!/bin/bash
 [[ -n "$HIDE_GIT_PROMPT" ]] && exit 0
-input=$(tee -a /tmp/statusline-debug.log)
+input=$(cat)
 cd "$(echo "$input" | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 
 # .used_percentage is clamped to 0-100 by CC, so it can't show overflow.
