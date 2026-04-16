@@ -100,5 +100,8 @@ preexec() {
   fi
 }
 
+# resume — delay-resume claude/codex sessions
+source ~/Code/dotfiles/scripts/bin/resume.sh
+
 # Source local secrets
 [[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
