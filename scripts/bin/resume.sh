@@ -1,5 +1,6 @@
 # resume — delay-launch a claude or codex session, keeping the machine awake
 # Source from .zshrc / .bashrc:  source ~/Code/dotfiles/scripts/bin/resume.sh
+# macOS-only: uses BSD `date -j -f` and `caffeinate`.
 #
 # No prompt arg → resumes the last session with prompt "continue".
 # Prompt arg   → starts a fresh session with that prompt.
@@ -34,30 +35,26 @@ resume() {
       esac ;;
   esac
 
-  local delay
-  local lc="${time_str:l}"
-
-  if [[ $lc == *am || $lc == *pm ]]; then
-    local ampm="${lc: -2:1}"
-    local time_num="${lc%??}"
-    _resume_parse_clock "$time_num" "$ampm" || return 1
-  elif [[ $lc == *[ap] ]]; then
-    local ampm="${lc: -1}"
-    local time_num="${lc%?}"
-    _resume_parse_clock "$time_num" "$ampm" || return 1
-  elif [[ $lc == *s ]]; then
-    delay="${lc%s}"
-  elif [[ $lc == *m ]]; then
-    delay=$(( ${lc%m} * 60 ))
-  elif [[ $lc == *h ]]; then
-    delay=$(( ${lc%h} * 3600 ))
-  elif [[ $lc == <-> ]]; then
-    echo "resume: bare number '$time_str' is ambiguous — use 3000s, 45m, 2h, or a clock time like 7p" >&2
-    return 1
-  else
-    echo "resume: unrecognized time/duration '$time_str' — use 3000s, 45m, 2h, or a clock time like 7p" >&2
+  local delay num rest
+  num="${time_str%%[!0-9]*}"
+  rest="${time_str#"$num"}"
+  if [ -z "$num" ] || [ -z "$rest" ]; then
+    if [[ $time_str =~ ^[0-9]+$ ]]; then
+      echo "resume: bare number '$time_str' is ambiguous — use 3000s, 45m, 2h, or a clock time like 7p" >&2
+    else
+      echo "resume: unrecognized time/duration '$time_str' — use 3000s, 45m, 2h, or a clock time like 7p" >&2
+    fi
     return 1
   fi
+  case "$rest" in
+    [sS])                 delay="$num" ;;
+    [mM])                 delay=$(( num * 60 )) ;;
+    [hH])                 delay=$(( num * 3600 )) ;;
+    [aApP]|[aApP][mM])    delay=$(_resume_clock_delay "$num" "${rest:0:1}") || return 1 ;;
+    *)
+      echo "resume: unrecognized time/duration '$time_str' — use 3000s, 45m, 2h, or a clock time like 7p" >&2
+      return 1 ;;
+  esac
 
   local prompt action new=0
   if [ -n "$1" ]; then
@@ -83,13 +80,8 @@ resume() {
   caffeinate -ims sh -c 'sleep "$1"; shift; exec "$@"' _ "$delay" "${cmd[@]}" "$prompt"
 }
 
-_resume_parse_clock() {
-  local time_num="$1" ampm="$2"
-  local hour min
-  if [[ $time_num != <-> ]]; then
-    echo "resume: invalid clock time '$time_num$ampm'" >&2
-    return 1
-  fi
+_resume_clock_delay() {
+  local time_num="$1" ampm="$2" hour min
   if [ ${#time_num} -le 2 ]; then
     hour=$time_num min=0
   else
@@ -97,12 +89,13 @@ _resume_parse_clock() {
     hour=${time_num%??}
   fi
   case $ampm in
-    p) [ "$hour" -ne 12 ] && hour=$((hour + 12)) ;;
-    a) [ "$hour" -eq 12 ] && hour=0 ;;
+    p|P) [ "$hour" -ne 12 ] && hour=$((hour + 12)) ;;
+    a|A) [ "$hour" -eq 12 ] && hour=0 ;;
   esac
-  local target_ts now_ts
+  local target_ts now_ts delay
   target_ts=$(date -j -f "%H:%M:%S" "$(printf '%02d:%02d:00' "$hour" "$min")" +%s)
   now_ts=$(date +%s)
   delay=$((target_ts - now_ts))
   [ "$delay" -le 0 ] && delay=$((delay + 86400))
+  printf '%s\n' "$delay"
 }
