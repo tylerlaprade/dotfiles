@@ -147,20 +147,18 @@ rate_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty
 resets_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
 resets_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
-# Overage gate: write rate limits + kill all sessions if over threshold
-if [ -f ~/.claude/overage-gate ]; then
-  _rl_tmp="/tmp/claude-rate-limits.$$.tmp"
-  _rl_file="/tmp/claude-rate-limits.json"
-  printf '{"five_hour":%s,"seven_day":%s,"resets_5h":%s,"resets_7d":%s,"updated_at":%s}\n' \
-    "${rate_5h:-0}" "${rate_7d:-0}" "${resets_5h:-0}" "${resets_7d:-0}" "$(date +%s)" \
-    > "$_rl_tmp" && mv "$_rl_tmp" "$_rl_file" 2>/dev/null
-  if [ ! -f /tmp/claude-overage-override ]; then
-    _threshold=${CLAUDE_OVERAGE_THRESHOLD:-95}
-    if [ "${rate_5h:-0}" -ge "$_threshold" ] || [ "${rate_7d:-0}" -ge "$_threshold" ]; then
-      printf '%s 5h=%s%% 7d=%s%%\n' "$(date +%s)" "${rate_5h}" "${rate_7d}" >> /tmp/claude-overage-kills.log
-      touch /tmp/claude-overage-killed
-      pkill claude
-    fi
+# Persist rate-limit snapshot so tools like `resume` can read latest state
+printf '{"five_hour":%s,"seven_day":%s,"resets_5h":%s,"resets_7d":%s,"updated_at":%s}\n' \
+  "${rate_5h:-0}" "${rate_7d:-0}" "${resets_5h:-0}" "${resets_7d:-0}" "$(date +%s)" \
+  > /tmp/claude-rate-limits.json
+
+# Overage gate: kill all sessions if over threshold
+if [ -f ~/.claude/overage-gate ] && [ ! -f /tmp/claude-overage-override ]; then
+  _threshold=${CLAUDE_OVERAGE_THRESHOLD:-95}
+  if [ "${rate_5h:-0}" -ge "$_threshold" ] || [ "${rate_7d:-0}" -ge "$_threshold" ]; then
+    printf '%s 5h=%s%% 7d=%s%%\n' "$(date +%s)" "${rate_5h}" "${rate_7d}" >> /tmp/claude-overage-kills.log
+    touch /tmp/claude-overage-killed
+    pkill claude
   fi
 fi
 

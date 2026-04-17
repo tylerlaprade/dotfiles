@@ -8,11 +8,17 @@
 # Tool and time/duration may be passed in either order.
 # Bare numbers are rejected as ambiguous — durations need a unit suffix.
 #
+# No time/duration → defaults to next 5h rate-limit reset, read from
+# /tmp/claude-rate-limits.json (written by statusline.sh). Errors if the
+# snapshot is missing, the 7d limit is already over, or there is no
+# active 5h window.
+#
 # Time/duration formats:
 #   7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
 #   3000s, 45m, 2h                duration in seconds/minutes/hours
 #
 # Usage:
+#   resume claude                # resume last claude session at next 5h reset
 #   resume codex 7p              # resume last codex session at 7:00 PM
 #   resume 1220a claude          # resume last claude session at 12:20 AM
 #   resume codex 3000s           # resume last codex session in 3000 seconds
@@ -20,41 +26,58 @@
 
 resume() {
   local a1="$1" a2="$2"
-  shift 2
 
   local tool time_str
-  case "$a1" in
-    codex|claude) tool="$a1"; time_str="$a2" ;;
-    *)
-      case "$a2" in
-        codex|claude) tool="$a2"; time_str="$a1" ;;
-        *)
-          echo "Usage: resume <codex|claude> <time|duration> [prompt]" >&2
-          echo "       (tool and time may be in either order)" >&2
-          return 1 ;;
-      esac ;;
-  esac
-
-  local delay num rest
-  num="${time_str%%[!0-9]*}"
-  rest="${time_str#"$num"}"
-  if [ -z "$num" ] || [ -z "$rest" ]; then
-    if [[ $time_str =~ ^[0-9]+$ ]]; then
-      echo "resume: bare number '$time_str' is ambiguous — use 3000s, 45m, 2h, or a clock time like 7p" >&2
-    else
-      echo "resume: unrecognized time/duration '$time_str' — use 3000s, 45m, 2h, or a clock time like 7p" >&2
+  if [[ $a1 == codex || $a1 == claude ]]; then
+    tool="$a1"
+    if [[ $a2 == codex || $a2 == claude ]]; then
+      echo "resume: got two tool names; expected <codex|claude> [time|duration] [prompt]" >&2
+      return 1
     fi
+    time_str="$a2"
+    if [ -n "$time_str" ]; then shift 2; else shift 1; fi
+  elif [[ $a2 == codex || $a2 == claude ]]; then
+    tool="$a2"; time_str="$a1"
+    shift 2
+  else
+    echo "Usage: resume <codex|claude> [time|duration] [prompt]" >&2
+    echo "       (tool and time may be in either order; omit time to wait for next 5h reset)" >&2
     return 1
   fi
-  case "$rest" in
-    [sS])                 delay="$num" ;;
-    [mM])                 delay=$(( num * 60 )) ;;
-    [hH])                 delay=$(( num * 3600 )) ;;
-    [aApP]|[aApP][mM])    delay=$(_resume_clock_delay "$num" "${rest:0:1}") || return 1 ;;
-    *)
-      echo "resume: unrecognized time/duration '$time_str' — use 3000s, 45m, 2h, or a clock time like 7p" >&2
-      return 1 ;;
-  esac
+
+  local delay
+  if [ -z "$time_str" ]; then
+    [ "$tool" = "claude" ] || { echo "resume: no-time default only supported for claude (codex rate-limit snapshot not wired up yet)" >&2; return 1; }
+    local rl_file="/tmp/claude-rate-limits.json"
+    [ -f "$rl_file" ] || { echo "resume: no rate-limit snapshot at $rl_file — statusline must run at least once first" >&2; return 1; }
+    local seven_day resets_5h now
+    IFS=$'\t' read -r seven_day resets_5h < <(jq -r '[.seven_day // 0, .resets_5h // 0] | @tsv' "$rl_file")
+    now=$(date +%s)
+    [ "$seven_day" -ge 100 ] && { echo "resume: over 7d limit (${seven_day}%) — not resuming" >&2; return 1; }
+    [ "$resets_5h" -le "$now" ] && { echo "resume: no active 5h window (resets_5h=$resets_5h, now=$now)" >&2; return 1; }
+    delay=$(( resets_5h - now ))
+  else
+    local num rest
+    num="${time_str%%[!0-9]*}"
+    rest="${time_str#"$num"}"
+    if [ -z "$num" ] || [ -z "$rest" ]; then
+      if [[ $time_str =~ ^[0-9]+$ ]]; then
+        echo "resume: bare number '$time_str' is ambiguous — use 3000s, 45m, 2h, or a clock time like 7p" >&2
+      else
+        echo "resume: unrecognized time/duration '$time_str' — use 3000s, 45m, 2h, or a clock time like 7p" >&2
+      fi
+      return 1
+    fi
+    case "$rest" in
+      [sS])                 delay="$num" ;;
+      [mM])                 delay=$(( num * 60 )) ;;
+      [hH])                 delay=$(( num * 3600 )) ;;
+      [aApP]|[aApP][mM])    delay=$(_resume_clock_delay "$num" "${rest:0:1}") || return 1 ;;
+      *)
+        echo "resume: unrecognized time/duration '$time_str' — use 3000s, 45m, 2h, or a clock time like 7p" >&2
+        return 1 ;;
+    esac
+  fi
 
   local prompt action new=0
   if [ -n "$1" ]; then
