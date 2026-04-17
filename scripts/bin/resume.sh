@@ -8,9 +8,11 @@
 # Tool and time/duration may be passed in either order.
 # Bare numbers are rejected as ambiguous — durations need a unit suffix.
 #
-# No time/duration → defaults to next 5h rate-limit reset, read from
-# /tmp/claude-rate-limits.json (written by statusline.sh). Errors if the
-# snapshot is missing, the 7d limit is already over, or there is no
+# No time/duration → defaults to next 5h rate-limit reset.
+#   claude: reads /tmp/claude-rate-limits.json (written by statusline.sh).
+#   codex:  reads the latest token_count event from the most recent
+#           ~/.codex/sessions/*/*/*/rollout-*.jsonl.
+# Errors if no snapshot exists, the 7d limit is over, or there is no
 # active 5h window.
 #
 # Time/duration formats:
@@ -47,11 +49,19 @@ resume() {
 
   local delay
   if [ -z "$time_str" ]; then
-    [ "$tool" = "claude" ] || { echo "resume: no-time default only supported for claude (codex rate-limit snapshot not wired up yet)" >&2; return 1; }
-    local rl_file="/tmp/claude-rate-limits.json"
-    [ -f "$rl_file" ] || { echo "resume: no rate-limit snapshot at $rl_file — statusline must run at least once first" >&2; return 1; }
     local seven_day resets_5h now
-    IFS=$'\t' read -r seven_day resets_5h < <(jq -r '[.seven_day // 0, .resets_5h // 0] | @tsv' "$rl_file")
+    case "$tool" in
+      claude)
+        local rl_file="/tmp/claude-rate-limits.json"
+        [ -f "$rl_file" ] || { echo "resume: no rate-limit snapshot at $rl_file — statusline must run at least once first" >&2; return 1; }
+        IFS=$'\t' read -r seven_day resets_5h < <(jq -r '[.seven_day // 0, .resets_5h // 0] | @tsv' "$rl_file") ;;
+      codex)
+        local latest
+        latest=$(command ls ~/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | sort -r | head -1)
+        [ -n "$latest" ] || { echo "resume: no codex session rollouts in ~/.codex/sessions — run codex at least once first" >&2; return 1; }
+        IFS=$'\t' read -r seven_day resets_5h <<<"$(jq -rc 'select(.payload.rate_limits != null) | .payload.rate_limits | [(.secondary.used_percent // 0 | floor), (.primary.resets_at // 0)] | @tsv' "$latest" 2>/dev/null | tail -1)"
+        [ -n "$resets_5h" ] || { echo "resume: no rate_limits data in latest codex rollout — session too short" >&2; return 1; } ;;
+    esac
     now=$(date +%s)
     [ "$seven_day" -ge 100 ] && { echo "resume: over 7d limit (${seven_day}%) — not resuming" >&2; return 1; }
     [ "$resets_5h" -le "$now" ] && { echo "resume: no active 5h window (resets_5h=$resets_5h, now=$now)" >&2; return 1; }
