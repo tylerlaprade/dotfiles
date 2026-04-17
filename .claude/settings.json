@@ -9,6 +9,7 @@
     "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
     "MAX_THINKING_TOKENS": "63999"
   },
+  "includeGitInstructions": false,
   "permissions": {
     "allow": [
       "Bash(gh pr list *)",
@@ -199,14 +200,14 @@
   "alwaysThinkingEnabled": true,
   "effortLevel": "medium",
   "promptSuggestionEnabled": false,
-  "skipDangerousModePermissionPrompt": true,
-  "skipAutoPermissionPrompt": true,
   "showClearContextOnPlanAccept": true,
-  "includeGitInstructions": false,
-  "useAutoModeDuringPlan": true,
+  "skipDangerousModePermissionPrompt": true,
   "disableAutoMode": "disable",
+  "skipAutoPermissionPrompt": true,
+  "useAutoModeDuringPlan": true,
   "voiceEnabled": true,
   "feedbackSurveyState": {
     "lastShownTime": 9999999999999
-  }
+  },
+  "model": "claude-opus-4-6"
 }
