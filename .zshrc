@@ -128,11 +128,15 @@ claude() {
   done
 }
 
-# cw — condor workspace: create workspace + start Claude
+# cwc — change workspace (condor): create workspace + start Claude
 # Prefer cw.sh from current repo (works from subdirs), fall back to any condor workspace
 _cw_root=$(git rev-parse --show-toplevel 2>/dev/null)
 (){ (($#)) && source $1; } ${_cw_root}/scripts/cw.sh(N) ~/Code/condor*/scripts/cw.sh(N)
 unset _cw_root
+if (( $+functions[cw] )); then
+  functions[cwc]=$functions[cw]
+  unset -f cw
+fi
 
 # Rust tool aliases
 alias ls="eza"

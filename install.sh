@@ -58,6 +58,27 @@ if command -v cargo &>/dev/null; then
   pid_cargo=$!
 fi
 
+# cw (Rust "change workspace" CLI — github.com/tylerlaprade/cw)
+if command -v cargo &>/dev/null; then
+  echo "  [cw] starting..."
+  (
+    CW_DIR="$HOME/Code/cw"
+    if [[ ! -d "$CW_DIR" ]]; then
+      mkdir -p "$(dirname "$CW_DIR")"
+      git clone git@github.com:tylerlaprade/cw.git "$CW_DIR" >"$LOGDIR/cw.log" 2>&1 \
+        || git clone https://github.com/tylerlaprade/cw.git "$CW_DIR" >>"$LOGDIR/cw.log" 2>&1
+    fi
+    if [[ -d "$CW_DIR" ]]; then
+      (cd "$CW_DIR" && cargo build --release) >>"$LOGDIR/cw.log" 2>&1 \
+        && mkdir -p "$HOME/.local/bin" \
+        && ln -sf "$CW_DIR/target/release/cw" "$HOME/.local/bin/cw" \
+        && echo "  [cw] done" \
+        || echo "  [cw] FAILED — see $LOGDIR/cw.log"
+    fi
+  ) &
+  pid_cw=$!
+fi
+
 # Bun
 if ! command -v bun &>/dev/null; then
   echo "  [bun] starting..."
@@ -86,6 +107,7 @@ done
 # Wait for background jobs
 wait $pid_brew 2>/dev/null
 [[ -n "${pid_cargo:-}" ]] && wait $pid_cargo 2>/dev/null
+[[ -n "${pid_cw:-}" ]] && wait $pid_cw 2>/dev/null
 [[ -n "${pid_bun:-}" ]] && wait $pid_bun 2>/dev/null
 wait $pid_sourcery 2>/dev/null
 [[ -n "${pid_claude:-}" ]] && wait $pid_claude 2>/dev/null

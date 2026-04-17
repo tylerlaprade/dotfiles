@@ -40,7 +40,7 @@ zj() {
 # Claude
 claude() { command claude --allow-dangerously-skip-permissions "$@"; }
 
-# cw — condor workspace
+# cwc — change workspace (condor)
 _cw_root=$(git rev-parse --show-toplevel 2>/dev/null)
 _cw_found=0
 if [[ -n "$_cw_root" && -f "$_cw_root/scripts/cw.sh" ]]; then
@@ -51,6 +51,10 @@ if [[ $_cw_found -eq 0 ]]; then
   for _cw_f in "$HOME"/Code/condor*/scripts/cw.sh; do
     [[ -f "$_cw_f" ]] && source "$_cw_f" && break
   done
+fi
+if declare -F cw >/dev/null; then
+  eval "$(declare -f cw | sed '1s/^cw /cwc /')"
+  unset -f cw
 fi
 unset _cw_root _cw_found _cw_f
 
