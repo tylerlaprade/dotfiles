@@ -15,6 +15,11 @@ import tempfile
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DOMAIN_DIR = os.path.join(SCRIPT_DIR, "macos-defaults")
 
+PER_HOST_SETTINGS = [
+    # (domain, key, type_flag, value_str)
+    ("com.apple.screensaver", "idleTime", "-int", "600"),
+]
+
 if not os.path.exists(DOMAIN_DIR):
     print("No snapshot directory found at", DOMAIN_DIR)
     sys.exit(1)
@@ -59,6 +64,9 @@ for filename in sorted(os.listdir(DOMAIN_DIR)):
                 tmp_path = tmp.name
             run_defaults(["defaults", "import", domain, tmp_path])
             os.unlink(tmp_path)
+
+for domain, key, type_flag, value in PER_HOST_SETTINGS:
+    run_defaults(["defaults", "-currentHost", "write", domain, key, type_flag, value])
 
 # Restore login items
 login_items_file = os.path.join(SCRIPT_DIR, "login-items.json")
