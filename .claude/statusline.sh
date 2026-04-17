@@ -9,6 +9,8 @@ cd "$(echo "$input" | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 pct=$(echo "$input" | jq -r '.context_window | ((.current_usage // {}) as $u | (($u.input_tokens // 0) + ($u.cache_creation_input_tokens // 0) + ($u.cache_read_input_tokens // 0)) * 100 / (.context_window_size // 200000)) | round')
 
 RESET='\033[0m'
+WHITE='\033[97m'
+DIM='\033[90m'
 
 # Tomorrow Night gradient: green → yellow → red with asymptotic red tail
 # Sets global r, g, b. Args: value green_end yellow_point red_point [asymptotic_k]
@@ -32,6 +34,66 @@ tn_gradient() {
     g=$(( 102 - 102 * t / 100 ))
     b=$(( 102 - 102 * t / 100 ))
   fi
+}
+
+# Time-of-day color for the clock (weekdays 4:30-6:00pm ET).
+# White outside the window; LERPs through the context-bar palette
+# (matches the green/yellow anchors at lines 43-47 and the bright-red
+# endpoint at line 31). Bold from 5:15pm onward. 5:30-6:00pm also
+# toggles reverse video on each render via a state file — alternation
+# is tied to statusline refresh cadence, not wall clock.
+format_time_color() {
+  local t_str=$1 dow h m s secs phase_start t r g b bold="" reverse=""
+  dow=$(TZ="America/New_York" date +%u)
+  if [ "$dow" -ge 6 ]; then
+    printf '%b%s%b' "$WHITE" "$t_str" "$RESET"
+    return
+  fi
+  read -r h m s < <(TZ="America/New_York" date "+%H %M %S")
+  # 10# prefix prevents octal parsing on 08:xx / 09:xx
+  secs=$((10#$h * 3600 + 10#$m * 60 + 10#$s))
+  local P0=59400 P1=60300 P2=61200 P3=62100 P4=63000 P5=64800
+  if [ "$secs" -lt "$P0" ] || [ "$secs" -ge "$P5" ]; then
+    printf '%b%s%b' "$WHITE" "$t_str" "$RESET"
+    return
+  fi
+  if [ "$secs" -lt "$P1" ]; then           # 4:30-4:45 white -> green
+    phase_start=$P0
+    t=$(( (secs - phase_start) * 100 / 900 ))
+    r=$(( 255 + (0 - 255) * t / 100 ))
+    g=$(( 255 + (200 - 255) * t / 100 ))
+    b=$(( 255 + (0 - 255) * t / 100 ))
+  elif [ "$secs" -lt "$P2" ]; then         # 4:45-5:00 green -> yellow
+    phase_start=$P1
+    t=$(( (secs - phase_start) * 100 / 900 ))
+    r=$(( 255 * t / 100 ))
+    g=200
+    b=0
+  elif [ "$secs" -lt "$P3" ]; then         # 5:00-5:15 yellow -> dark red
+    phase_start=$P2
+    t=$(( (secs - phase_start) * 100 / 900 ))
+    r=$(( 255 + (160 - 255) * t / 100 ))
+    g=$(( 200 - 200 * t / 100 ))
+    b=0
+  elif [ "$secs" -lt "$P4" ]; then         # 5:15-5:30 dark red -> bright red + BOLD
+    phase_start=$P3
+    t=$(( (secs - phase_start) * 100 / 900 ))
+    r=$(( 160 + (255 - 160) * t / 100 ))
+    g=0
+    b=0
+    bold='\033[1m'
+  else                                     # 5:30-6:00 bright red + BOLD + reverse toggle
+    r=255; g=0; b=0
+    bold='\033[1m'
+    local flash_state="/tmp/claude-statusline-flash.$USER"
+    if [ -f "$flash_state" ]; then
+      rm -f "$flash_state"
+      reverse='\033[7m'
+    else
+      touch "$flash_state"
+    fi
+  fi
+  printf '%b\033[38;2;%d;%d;%dm%b%s\033[0m' "$bold" "$r" "$g" "$b" "$reverse" "$t_str"
 }
 
 # Smooth color gradient based on context degradation research:
@@ -189,9 +251,11 @@ format_rate() {
 
 git_status=$(git-status-line --async-pr)
 current_time=$(TZ="America/New_York" date +"%-I:%M %p")
+model_name=$(echo "$input" | jq -r '.model.display_name // empty')
 
-# Line 1: context bar · rates · time
+# Line 1: model · context bar · rates · time
 parts=()
+[ -n "$model_name" ] && parts+=("${DIM}${model_name}${RESET}")
 parts+=("$ctx_info")
 cost_display="" cost_color=""
 if [ "${rate_5h:-0}" -ge 100 ]; then
@@ -212,8 +276,7 @@ rate=$(format_rate "$rate_5h" "$resets_5h" 18000 "$cost_display" "$cost_color")
 [ -n "$rate" ] && parts+=("5h $rate")
 rate=$(format_rate "$rate_7d" "$resets_7d" 604800)
 [ -n "$rate" ] && parts+=("7d $rate")
-WHITE='\033[97m'
-parts+=("${WHITE}${current_time}${RESET}")
+parts+=("$(format_time_color "$current_time")")
 
 echo -e "$(printf '%s' "${parts[0]}")$(printf ' · %s' "${parts[@]:1}")"
 
