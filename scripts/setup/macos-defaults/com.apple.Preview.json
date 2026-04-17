@@ -1,4 +1,8 @@
 {
+  "PVMarkupToolbarVisibleForImages": {
+    "type": "bool",
+    "value": true
+  },
   "PVPDFLastSidebarWidth": {
     "type": "float",
     "value": 205.0
