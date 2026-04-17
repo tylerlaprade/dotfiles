@@ -3,7 +3,7 @@ model = "gpt-5.4"
 approvals_reviewer = "user"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "xhigh"
 
 [projects."/Users/Tyler Laprade/Code/dotfiles"]
 trust_level = "trusted"
@@ -22,6 +22,7 @@ trust_level = "trusted"
 
 [notice]
 hide_rate_limit_model_nudge = true
+hide_full_access_warning = true
 
 [notice.model_migrations]
 "gpt-5.3-codex" = "gpt-5.4"
