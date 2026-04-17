@@ -30,10 +30,11 @@ prevent_idle_sleep = true
 [tui]
 status_line = [
   "model-with-reasoning",
-  "context-remaining",
   "current-dir",
   "git-branch",
+  "context-used",
   "five-hour-limit",
   "weekly-limit",
   "fast-mode",
+  "thread-title",
 ]
