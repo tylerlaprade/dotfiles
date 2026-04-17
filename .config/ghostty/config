@@ -2,7 +2,7 @@ copy-on-select = clipboard
 keybind = performable:cmd+c=copy_to_clipboard
 macos-option-as-alt = true
 bell-features = system,border
-font-size = 16
+font-size = 17
 fullscreen = true
 mouse-hide-while-typing = true
 shell-integration-features = no-title
