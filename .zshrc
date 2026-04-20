@@ -162,7 +162,7 @@ eval "$(direnv hook zsh)"
 # (Pure's precmd sets "%~", preexec sets "<dir>: <cmd>" — so TUIs like hx
 # show as "dotfiles: hx foo.rs" instead of cwd path).
 _set_tab_title() {
-  local repo branch pr_num
+  local repo branch pr_num cmd="${3:-$1}"
   repo=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null) || return
   branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || return
   local pr_info
@@ -170,7 +170,9 @@ _set_tab_title() {
   local pr_num="${pr_info%%	*}"
   if [[ -n "$pr_num" ]]; then
     local pr_title="${pr_info#*	}"
-    printf '\e]0;#%s %s\a' "$pr_num" "$pr_title"
+    local prefix=""
+    [[ -n "$cmd" ]] && prefix="${cmd%% *}: "
+    printf '\e]0;%s#%s %s\a' "$prefix" "$pr_num" "$pr_title"
   fi
 }
 autoload -Uz add-zsh-hook
