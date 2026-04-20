@@ -138,6 +138,11 @@ if (( $+functions[cw] )); then
   unset -f cw
 fi
 
+# Rust cw wrapper — parses CW records (CD/TITLE/EXEC) from binary
+if (( $+commands[cw] )); then
+  eval "$(cw shell-init zsh)"
+fi
+
 # Rust tool aliases
 alias ls="eza"
 alias cat="bat"

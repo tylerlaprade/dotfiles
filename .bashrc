@@ -58,6 +58,11 @@ if declare -F cw >/dev/null; then
 fi
 unset _cw_root _cw_found _cw_f
 
+# Rust cw wrapper — parses CW records (CD/TITLE/EXEC) from binary
+if command -v cw >/dev/null; then
+  eval "$(cw shell-init bash)"
+fi
+
 # Rust tool aliases
 alias ls="eza"
 alias cat="bat"
