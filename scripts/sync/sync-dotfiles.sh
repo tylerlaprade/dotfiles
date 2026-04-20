@@ -8,6 +8,21 @@ while [[ -L "$_source" ]]; do
 done
 DOTFILES="$(cd "$(dirname "$_source")/../.." && pwd)"
 
+# Paths handled by dedicated sync scripts below. link_tree skips these so
+# it doesn't symlink-then-clobber (which accumulated `.pre-dotfiles-*`
+# backups on every invocation). Populated by dedicated_sync().
+DEDICATED_SYNC_PATHS=()
+
+dedicated_sync() {
+  local dst="$1"
+  shift
+  DEDICATED_SYNC_PATHS+=("$dst")
+  if [[ -L "$dst" ]]; then
+    rm "$dst"
+  fi
+  "$@" "$dst"
+}
+
 link() {
   local src="$1" dst="$2"
   if [[ -L "$dst" ]]; then
@@ -35,26 +50,30 @@ link_tree() {
   for item in "$src_dir"/*; do
     [[ -e "$item" || -L "$item" ]] || continue
     local name="$(basename "$item")"
+    local dst="$dst_dir/$name"
+    local skip=0
+    for skip_path in "${DEDICATED_SYNC_PATHS[@]}"; do
+      [[ "$dst" == "$skip_path" ]] && skip=1 && break
+    done
+    [[ $skip -eq 1 ]] && continue
     if [[ -d "$item" && ! -L "$item" ]]; then
-      link_tree "$item" "$dst_dir/$name"
+      link_tree "$item" "$dst"
     else
-      link "$item" "$dst_dir/$name"
+      link "$item" "$dst"
     fi
   done
 }
+
+# Helix languages.toml — secret-aware bidirectional sync (has Sourcery token).
+# Must run before link_tree so the path gets registered in DEDICATED_SYNC_PATHS.
+dedicated_sync "$HOME/.config/helix/languages.toml" \
+  "$DOTFILES/scripts/sync/sync-helix-languages.py" \
+  "$DOTFILES/.config/helix/languages.toml"
 
 # ~/.config/*
 for dir in "$DOTFILES"/.config/*/; do
   link_tree "$dir" "$HOME/.config/$(basename "$dir")"
 done
-
-# Helix languages.toml — secret-aware bidirectional sync (has Sourcery token)
-helix_lang_local="$HOME/.config/helix/languages.toml"
-helix_lang_repo="$DOTFILES/.config/helix/languages.toml"
-if [[ -L "$helix_lang_local" ]]; then
-  rm "$helix_lang_local"
-fi
-"$DOTFILES/scripts/sync/sync-helix-languages.py" "$helix_lang_repo" "$helix_lang_local"
 
 # ~/.claude/* (skip machine-local files)
 mkdir -p "$HOME/.claude"
