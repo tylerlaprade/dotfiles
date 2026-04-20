@@ -102,7 +102,17 @@ resume() {
       if (( new )); then
         cmd=(codex --dangerously-bypass-approvals-and-sandbox)
       else
-        cmd=(codex resume --last --dangerously-bypass-approvals-and-sandbox)
+        # `codex resume` takes [SESSION_ID] [PROMPT] positionals. With --last and a
+        # prompt, the prompt would land in the SESSION_ID slot. Extract the latest
+        # rollout's UUID and pass it explicitly so the prompt lands correctly.
+        local latest_rollout latest_uuid
+        latest_rollout=$(command ls ~/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | sort -r | head -1)
+        if [ -z "$latest_rollout" ]; then
+          echo "resume: no codex session rollouts in ~/.codex/sessions — cannot resume" >&2
+          return 1
+        fi
+        latest_uuid=$(basename "$latest_rollout" | sed -E 's/^rollout-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}-(.+)\.jsonl$/\1/')
+        cmd=(codex resume --dangerously-bypass-approvals-and-sandbox "$latest_uuid")
       fi ;;
     claude)
       cmd=(claude --dangerously-skip-permissions)
