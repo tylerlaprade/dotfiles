@@ -8,12 +8,13 @@
 # Tool and time/duration may be passed in either order.
 # Bare numbers are rejected as ambiguous — durations need a unit suffix.
 #
-# No time/duration → defaults to next 5h rate-limit reset.
+# No time/duration → defaults to next rate-limit reset.
 #   claude: reads /tmp/claude-rate-limits.json (written by statusline.sh).
 #   codex:  reads the latest token_count event from the most recent
 #           ~/.codex/sessions/*/*/*/rollout-*.jsonl.
-# Errors if no snapshot exists, the 7d limit is over, or there is no
-# active 5h window.
+# If 7d limit is exceeded, waits for 7d reset. Otherwise waits for next 5h
+# reset. Errors if no snapshot exists, or if 7d is not exceeded and there
+# is no active 5h window.
 #
 # Time/duration formats:
 #   7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
@@ -49,23 +50,31 @@ resume() {
 
   local delay
   if [ -z "$time_str" ]; then
-    local seven_day resets_5h now
+    local seven_day resets_5h resets_7d now
     case "$tool" in
       claude)
         local rl_file="/tmp/claude-rate-limits.json"
         [ -f "$rl_file" ] || { echo "resume: no rate-limit snapshot at $rl_file — statusline must run at least once first" >&2; return 1; }
-        IFS=$'\t' read -r seven_day resets_5h < <(jq -r '[.seven_day // 0, .resets_5h // 0] | @tsv' "$rl_file") ;;
+        IFS=$'\t' read -r seven_day resets_5h resets_7d < <(jq -r '[.seven_day // 0, .resets_5h // 0, .resets_7d // 0] | @tsv' "$rl_file") ;;
       codex)
         local latest
         latest=$(command ls ~/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | sort -r | head -1)
         [ -n "$latest" ] || { echo "resume: no codex session rollouts in ~/.codex/sessions — run codex at least once first" >&2; return 1; }
-        IFS=$'\t' read -r seven_day resets_5h <<<"$(jq -rc 'select(.payload.rate_limits != null) | .payload.rate_limits | [(.secondary.used_percent // 0 | floor), (.primary.resets_at // 0)] | @tsv' "$latest" 2>/dev/null | tail -1)"
+        IFS=$'\t' read -r seven_day resets_5h resets_7d <<<"$(jq -rc 'select(.payload.rate_limits != null) | .payload.rate_limits | [(.secondary.used_percent // 0 | floor), (.primary.resets_at // 0), (.secondary.resets_at // 0)] | @tsv' "$latest" 2>/dev/null | tail -1)"
         [ -n "$resets_5h" ] || { echo "resume: no rate_limits data in latest codex rollout — session too short" >&2; return 1; } ;;
     esac
     now=$(date +%s)
-    [ "$seven_day" -ge 100 ] && { echo "resume: over 7d limit (${seven_day}%) — not resuming" >&2; return 1; }
-    [ "$resets_5h" -le "$now" ] && { echo "resume: no active 5h window (resets_5h=$resets_5h, now=$now)" >&2; return 1; }
-    delay=$(( resets_5h - now ))
+    if [ "$seven_day" -ge 100 ]; then
+      [ "$resets_7d" -le "$now" ] && { echo "resume: over 7d limit (${seven_day}%) but resets_7d=$resets_7d is not in the future — snapshot stale" >&2; return 1; }
+      local target=$resets_7d
+      [ "$resets_5h" -gt "$target" ] && target=$resets_5h
+      delay=$(( target - now ))
+    elif [ "$resets_5h" -le "$now" ]; then
+      echo "resume: no active 5h window (resets_5h=$resets_5h, now=$now)" >&2
+      return 1
+    else
+      delay=$(( resets_5h - now ))
+    fi
   else
     local num rest
     num="${time_str%%[!0-9]*}"
