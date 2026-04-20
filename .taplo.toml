@@ -1,0 +1,5 @@
+[[rule]]
+include = [".codex/config.toml"]
+
+[rule.formatting]
+array_auto_expand = false
