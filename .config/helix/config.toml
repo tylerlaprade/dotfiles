@@ -41,6 +41,8 @@ d = "delete_selection_noyank"
 c = "change_selection_noyank"
 A-d = "no_op"
 A-c = "no_op"
+j = "move_line_down"
+k = "move_line_up"
 C-j = "half_page_down"
 C-k = "half_page_up"
 G = "goto_last_line"
@@ -52,6 +54,8 @@ j = "goto_last_line"
 k = "goto_file_start"
 
 [keys.select]
+j = "extend_line_down"
+k = "extend_line_up"
 G = "extend_to_last_line"
 Cmd-c = "yank_main_selection_to_clipboard"
 Cmd-x = ["yank_main_selection_to_clipboard", "delete_selection_noyank"]
