@@ -41,10 +41,6 @@ command = "sourcery"
 args = ["lsp"]
 config = { token = "SOURCERY_TOKEN", extension_version = "helix.lsp", editor_version = "helix" }
 
-[language-server.cspell]
-command = "cspell-lsp"
-args = ["--stdio"]
-
 # JavaScript/TypeScript - Biome for formatting, ESLint + Flint for linting
 
 [[language]]
@@ -60,10 +56,6 @@ language-servers = [
     "code-action",
   ] },
   { name = "sourcery", only-features = [
-    "diagnostics",
-    "code-action",
-  ] },
-  { name = "cspell", only-features = [
     "diagnostics",
     "code-action",
   ] },
@@ -86,10 +78,6 @@ language-servers = [
     "diagnostics",
     "code-action",
   ] },
-  { name = "cspell", only-features = [
-    "diagnostics",
-    "code-action",
-  ] },
   "biome",
 ]
 
@@ -106,10 +94,6 @@ language-servers = [
     "code-action",
   ] },
   { name = "sourcery", only-features = [
-    "diagnostics",
-    "code-action",
-  ] },
-  { name = "cspell", only-features = [
     "diagnostics",
     "code-action",
   ] },
@@ -132,10 +116,6 @@ language-servers = [
     "diagnostics",
     "code-action",
   ] },
-  { name = "cspell", only-features = [
-    "diagnostics",
-    "code-action",
-  ] },
   "biome",
 ]
 
@@ -153,22 +133,12 @@ language-servers = [
     "diagnostics",
     "code-action",
   ] },
-  { name = "cspell", only-features = [
-    "diagnostics",
-    "code-action",
-  ] },
 ]
 
 # JSON
 [[language]]
 name = "json"
 language-id = "jsonc"
-auto-format = true
-language-servers = ["vscode-json-language-server"]
-
-[language-server.vscode-json-language-server]
-command = "vscode-json-language-server"
-args = ["--stdio"]
 
 [language-server.vscode-json-language-server.config.json.schemas]
 "https://json.schemastore.org/package.json" = ["package.json"]
@@ -180,143 +150,46 @@ args = ["--stdio"]
 "https://json.schemastore.org/eslintrc.json" = [".eslintrc", ".eslintrc.json"]
 "https://json.schemastore.org/pyrightconfig.json" = ["pyrightconfig.json"]
 
-# Shell — bash-language-server uses shellcheck for diagnostics
-
-[language-server.bash-language-server]
-command = "bash-language-server"
-args = ["start"]
-
-# TOML
-
-[language-server.taplo]
-command = "taplo"
-args = ["lsp", "stdio"]
-
 # YAML
-
-[language-server.yaml-language-server]
-command = "yaml-language-server"
-args = ["--stdio"]
 
 [language-server.yaml-language-server.config.yaml]
 schemas = { "https://json.schemastore.org/github-workflow.json" = ".github/workflows/*.yml" }
 validation = true
 completion = true
 
-# CSS / HTML
-
-[language-server.vscode-css-language-server]
-command = "vscode-css-language-server"
-args = ["--stdio"]
-
-[language-server.vscode-html-language-server]
-command = "vscode-html-language-server"
-args = ["--stdio"]
-
 [language-server.stylelint-lsp]
 command = "stylelint-lsp"
 args = ["--stdio"]
-
-# Rust
-[[language]]
-name = "rust"
-auto-format = true
-language-servers = [
-  "rust-analyzer",
-  { name = "cspell", only-features = [
-    "diagnostics",
-    "code-action",
-  ] },
-]
-formatter = { command = "rustfmt" }
 
 # Shell
 [[language]]
 name = "bash"
 auto-format = true
-language-servers = [
-  "bash-language-server",
-  { name = "cspell", only-features = [
-    "diagnostics",
-    "code-action",
-  ] },
-]
 formatter = { command = "shfmt", args = ["-i", "2"] }
 
 # TOML
 [[language]]
 name = "toml"
 auto-format = true
-language-servers = [
-  "taplo",
-  { name = "cspell", only-features = [
-    "diagnostics",
-    "code-action",
-  ] },
-]
 formatter = { command = "taplo", args = ["format", "-"] }
-
-# YAML
-[[language]]
-name = "yaml"
-auto-format = true
-language-servers = [
-  "yaml-language-server",
-  { name = "cspell", only-features = [
-    "diagnostics",
-    "code-action",
-  ] },
-]
 
 # Markdown
 [[language]]
 name = "markdown"
 auto-format = true
-language-servers = [
-  { name = "cspell", only-features = [
-    "diagnostics",
-    "code-action",
-  ] },
-]
 formatter = { command = "markdownlint-cli2", args = ["--fix"] }
 
-# CSS / SCSS
+# CSS / SCSS — stylelint layered on top of builtin vscode-css-language-server
 [[language]]
 name = "css"
-auto-format = true
 language-servers = [
   "vscode-css-language-server",
-  { name = "stylelint-lsp", only-features = [
-    "diagnostics",
-  ] },
-  { name = "cspell", only-features = [
-    "diagnostics",
-    "code-action",
-  ] },
+  { name = "stylelint-lsp", only-features = ["diagnostics"] },
 ]
 
 [[language]]
 name = "scss"
-auto-format = true
 language-servers = [
   "vscode-css-language-server",
-  { name = "stylelint-lsp", only-features = [
-    "diagnostics",
-  ] },
-  { name = "cspell", only-features = [
-    "diagnostics",
-    "code-action",
-  ] },
-]
-
-# HTML
-[[language]]
-name = "html"
-auto-format = true
-language-servers = [
-  "vscode-html-language-server",
-  { name = "cspell", only-features = [
-    "diagnostics",
-    "code-action",
-  ] },
+  { name = "stylelint-lsp", only-features = ["diagnostics"] },
 ]
