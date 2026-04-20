@@ -26,6 +26,7 @@ if ! command -v rustup &>/dev/null; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
   source "$HOME/.cargo/env"
 fi
+rustup component add rust-analyzer 2>/dev/null || true
 
 # 3. Wax (fast Homebrew-compatible package manager)
 if command -v cargo &>/dev/null && ! command -v wax &>/dev/null; then
