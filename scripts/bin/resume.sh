@@ -109,8 +109,42 @@ resume() {
       (( new )) || cmd+=(-c) ;;
   esac
 
-  echo "$action $tool in ${delay}s ($(date -r $(($(date +%s) + delay)) '+%I:%M %p'))"
-  caffeinate -ims sh -c 'sleep "$1"; shift; exec "$@"' _ "$delay" "${cmd[@]}" "$prompt"
+  local target_clock
+  target_clock=$(date -r $(($(date +%s) + delay)) '+%I:%M %p')
+
+  local label="$action $tool"
+  caffeinate -ims sh -c '
+    label=$1; clock=$2; delay=$3; shift 3
+    end=$(( $(date +%s) + delay ))
+    (
+      i=0
+      while :; do
+        now=$(date +%s)
+        rem=$(( end - now ))
+        [ "$rem" -le 0 ] && break
+        h=$(( rem / 3600 )); m=$(( (rem % 3600) / 60 )); s=$(( rem % 60 ))
+        if [ "$h" -gt 0 ]; then t=$(printf "%dh%02dm" "$h" "$m")
+        elif [ "$m" -gt 0 ]; then t=$(printf "%dm%02ds" "$m" "$s")
+        else t=$(printf "%ds" "$s"); fi
+        case $(( i % 10 )) in
+          0) f="⠋" ;; 1) f="⠙" ;; 2) f="⠹" ;; 3) f="⠸" ;; 4) f="⠼" ;;
+          5) f="⠴" ;; 6) f="⠦" ;; 7) f="⠧" ;; 8) f="⠇" ;; 9) f="⠏" ;;
+        esac
+        printf "\033]2;%s %s in %s\007" "$f" "$label" "$t"
+        printf "\r\033[K%s %s in %s (%s)" "$f" "$label" "$t" "$clock"
+        sleep 1
+        i=$(( i + 1 ))
+      done
+    ) &
+    spin_pid=$!
+    trap "kill $spin_pid 2>/dev/null; printf \"\n\"; exit 130" INT TERM
+    trap "kill $spin_pid 2>/dev/null" EXIT
+    sleep "$delay"
+    kill "$spin_pid" 2>/dev/null
+    wait "$spin_pid" 2>/dev/null
+    printf "\r\033[K"
+    exec "$@"
+  ' _ "$label" "$target_clock" "$delay" "${cmd[@]}" "$prompt"
 }
 
 _resume_clock_delay() {
