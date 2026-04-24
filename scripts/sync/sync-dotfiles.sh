@@ -92,6 +92,14 @@ done
 # TUI setting toggles don't create formatting-only diffs.
 "$DOTFILES/scripts/sync/format-claude-settings.py" "$DOTFILES/.claude/settings.json"
 
+# Codex global instructions use the same plain Markdown prefs as Claude.
+mkdir -p "$HOME/.codex"
+link "$DOTFILES/.claude/CLAUDE.md" "$HOME/.codex/AGENTS.md"
+
+# Gemini CLI global context uses the same plain Markdown prefs as Claude.
+mkdir -p "$HOME/.gemini"
+link "$DOTFILES/.claude/CLAUDE.md" "$HOME/.gemini/GEMINI.md"
+
 # ~/.*rc, ~/.gitconfig, etc.
 for item in "$DOTFILES"/.[!.]*; do
   local_name="$(basename "$item")"
