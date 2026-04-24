@@ -34,6 +34,7 @@
     ],
     "defaultMode": "bypassPermissions"
   },
+  "model": "opus",
   "hooks": {
     "PermissionRequest": [
       {
@@ -202,7 +203,10 @@
   "showClearContextOnPlanAccept": true,
   "skipDangerousModePermissionPrompt": true,
   "disableAutoMode": "disable",
-  "skipAutoPermissionPrompt": true,
+  "theme": "auto",
+  "preferredNotifChannel": "terminal_bell",
+  "autoCompactEnabled": false,
+  "agentPushNotifEnabled": true,
   "useAutoModeDuringPlan": true,
   "voiceEnabled": true,
   "feedbackSurveyState": {
