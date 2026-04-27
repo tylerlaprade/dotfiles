@@ -29,6 +29,10 @@ eval "$(fnm env --use-on-cd)"
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
+# helix (gj1118 fork built from source)
+export PATH="$HOME/.cargo/bin:$PATH"
+export HELIX_RUNTIME="$HOME/Code/helix/runtime"
+
 
 # Zellij dev session - uses git repo name or optional argument
 zj() {

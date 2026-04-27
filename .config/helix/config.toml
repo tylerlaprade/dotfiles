@@ -1,4 +1,7 @@
-theme = "quiet_light"
+[theme]
+light = "quiet_light"
+dark = "default"
+
 
 [editor]
 scrolloff = 20
