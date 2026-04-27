@@ -1,14 +1,16 @@
-copy-on-select = clipboard
-keybind = performable:cmd+c=copy_to_clipboard
-macos-option-as-alt = true
+adjust-cursor-thickness = 2
 bell-features = system,border
-font-size = 17
-fullscreen = true
-mouse-hide-while-typing = true
-shell-integration-features = no-title
-scrollback-limit = 50000000
+copy-on-select = clipboard
 cursor-color = cell-foreground
 cursor-text = cell-background
-adjust-cursor-thickness = 2
-selection-foreground = cell-background
+font-family = Victor Mono
+font-size = 16
+fullscreen = true
+keybind = performable:cmd+c=copy_to_clipboard
+macos-option-as-alt = true
+macos-titlebar-style = native
+mouse-hide-while-typing = true
+scrollback-limit = 50000000
 selection-background = cell-foreground
+selection-foreground = cell-background
+shell-integration-features = no-title
