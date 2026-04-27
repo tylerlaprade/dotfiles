@@ -7,17 +7,11 @@
 	<key>ProgramArguments</key>
 	<array>
 		<string>/bin/bash</string>
-		<string>/Users/tyler/Code/dotfiles/scripts/sync/update-helix.sh</string>
+		<string>-lc</string>
+		<string>exec "${DOTFILES_DIR:-$HOME/Code/dotfiles}/scripts/sync/update-helix.sh"</string>
 	</array>
-	<key>StartCalendarInterval</key>
-	<dict>
-		<key>Weekday</key>
-		<integer>0</integer>
-		<key>Hour</key>
-		<integer>3</integer>
-		<key>Minute</key>
-		<integer>0</integer>
-	</dict>
+	<key>RunAtLoad</key>
+	<true/>
 	<key>StandardOutPath</key>
 	<string>/tmp/update-helix.log</string>
 	<key>StandardErrorPath</key>

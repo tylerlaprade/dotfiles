@@ -7,7 +7,8 @@
 	<key>ProgramArguments</key>
 	<array>
 		<string>/bin/bash</string>
-		<string>/Users/Tyler Laprade/Code/dotfiles/scripts/sync/sync-dotfiles.sh</string>
+		<string>-lc</string>
+		<string>exec "${DOTFILES_DIR:-$HOME/Code/dotfiles}/scripts/sync/sync-dotfiles.sh"</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
