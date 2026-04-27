@@ -7,6 +7,7 @@ while [[ -L "$_source" ]]; do
   _source="$(readlink "$_source")"
 done
 DOTFILES="$(cd "$(dirname "$_source")/../.." && pwd)"
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 # Paths handled by dedicated sync scripts below. link_tree skips these so
 # it doesn't symlink-then-clobber (which accumulated `.pre-dotfiles-*`
@@ -190,6 +191,12 @@ elif [[ -f "$gt_prefs" && ! -f "$gt_config" ]]; then
 fi
 # Upgrade global uv tools (sourcery, etc.)
 uv tool upgrade --all >/dev/null 2>&1 || true
+
+# Upgrade global Cargo tools, including wax when installed via Cargo.
+if command -v cargo >/dev/null 2>&1; then
+  cargo install cargo-update >/dev/null 2>&1 || true
+  cargo install-update -a >/dev/null 2>&1 || true
+fi
 
 # macOS defaults — read current values and update snapshot
 if [[ -z "${SKIP_DEFAULTS_SYNC:-}" ]]; then
