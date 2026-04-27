@@ -147,10 +147,18 @@ rate_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty
 resets_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
 resets_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
-# Persist rate-limit snapshot so tools like `resume` can read latest state
-printf '{"five_hour":%s,"seven_day":%s,"resets_5h":%s,"resets_7d":%s,"updated_at":%s}\n' \
-  "${rate_5h:-0}" "${rate_7d:-0}" "${resets_5h:-0}" "${resets_7d:-0}" "$(date +%s)" \
-  > /tmp/claude-rate-limits.json
+# Persist rate-limit snapshot so tools like `resume` can read latest state.
+# Per-session harness rate_limits is cached at last API response, so an idle
+# session's render carries stale numbers. Skip the write unless our resets_5h
+# is at least as new as the existing snapshot's — older reset = older data.
+_snap_resets_5h=0
+[ -f /tmp/claude-rate-limits.json ] && \
+  _snap_resets_5h=$(jq -r '.resets_5h // 0' /tmp/claude-rate-limits.json 2>/dev/null)
+if [ "${resets_5h:-0}" -ge "${_snap_resets_5h:-0}" ]; then
+  printf '{"five_hour":%s,"seven_day":%s,"resets_5h":%s,"resets_7d":%s,"updated_at":%s}\n' \
+    "${rate_5h:-0}" "${rate_7d:-0}" "${resets_5h:-0}" "${resets_7d:-0}" "$(date +%s)" \
+    > /tmp/claude-rate-limits.json
+fi
 
 # Overage gate: kill all sessions if over threshold
 if [ -f ~/.claude/overage-gate ] && [ ! -f /tmp/claude-overage-override ]; then
