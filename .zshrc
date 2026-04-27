@@ -167,8 +167,10 @@ eval "$(direnv hook zsh)"
 # show as "dotfiles: hx foo.rs" instead of cwd path).
 _set_tab_title() {
   local repo branch pr_num cmd="${3:-$1}"
-  repo=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null) || return
-  branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || return
+  local _meta
+  _meta=$(git-meta 2>/dev/null) || return
+  repo="${_meta%%$'\t'*}"
+  branch="${_meta##*$'\t'}"
   local pr_info
   pr_info=$(gh-pr-lookup "$repo" "$branch" --async 2>/dev/null)
   local pr_num="${pr_info%%	*}"

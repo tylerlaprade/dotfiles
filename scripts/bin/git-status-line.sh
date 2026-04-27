@@ -4,15 +4,14 @@
 # In zellij: always use session's project. Outside: use current git repo.
 if [[ -n "$ZELLIJ_SESSION_NAME" && -d "$HOME/Code/$ZELLIJ_SESSION_NAME/.git" ]]; then
     cd "$HOME/Code/$ZELLIJ_SESSION_NAME" || exit 0
-    repo_name="$ZELLIJ_SESSION_NAME"
-elif git_root=$(git rev-parse --show-toplevel 2>/dev/null); then
-    repo_name=$(basename "$git_root")
-else
-    exit 0
 fi
 
-repo_full=$(git remote get-url origin 2>/dev/null | sed -E 's#(git@|https://)github\.com[:/]##; s#\.git$##')
-full_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
+# git-meta caches (repo, repo_full, branch) per-PWD, invalidated by HEAD/config
+# mtime. One subprocess on cold call, ~0 on cache hit. Shared with the zsh
+# tab-title hook.
+meta=$(git-meta 2>/dev/null) || exit 0
+IFS=$'\t' read -r repo_default repo_full full_branch <<<"$meta"
+repo_name="${ZELLIJ_SESSION_NAME:-$repo_default}"
 dirty=$(git diff --quiet && git diff --cached --quiet || echo "*")
 
 # PR number + title (cached indefinitely, tab-separated)
