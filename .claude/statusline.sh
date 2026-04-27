@@ -274,6 +274,41 @@ rate=$(format_rate "$rate_5h" "$resets_5h" 18000 "$cost_display" "$cost_color")
 [ -n "$rate" ] && parts+=("5h $rate")
 rate=$(format_rate "$rate_7d" "$resets_7d" 604800)
 [ -n "$rate" ] && parts+=("7d $rate")
+
+# Idle countdown until thinking-history clear.
+# Per April 23 postmortem: Claude Code clears old thinking sections after ~1hr idle
+# to reduce resume cost. Last-write mtime of transcript = last turn = idle reference.
+# Hidden until idle > 15min (no clutter during active work).
+transcript_path=$(echo "$input" | jq -r '.transcript_path // empty')
+if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
+  last_activity=$(stat -f %m "$transcript_path" 2>/dev/null)
+  if [ -n "$last_activity" ]; then
+    now_ts=$(date +%s)
+    idle_elapsed=$(( now_ts - last_activity ))
+    if [ "$idle_elapsed" -gt 900 ]; then
+      if [ "$idle_elapsed" -ge 3600 ]; then
+        # Expired: bold bright red + reverse video, alternating each render
+        flash_state="/tmp/claude-statusline-think-flash.$USER"
+        reverse=""
+        if [ -f "$flash_state" ]; then
+          rm -f "$flash_state"
+          reverse='\033[7m'
+        else
+          touch "$flash_state"
+        fi
+        parts+=("$(printf '\033[1m\033[38;2;255;0;0m%bthinking cleared\033[0m' "$reverse")")
+      else
+        remaining=$(( 3600 - idle_elapsed ))
+        mins=$(( (remaining + 59) / 60 ))
+        pct_used=$(( idle_elapsed * 100 / 3600 ))
+        tn_gradient "$pct_used" 50 75 95
+        idle_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
+        parts+=("$(printf '%bclear in %dm\033[0m' "$idle_color" "$mins")")
+      fi
+    fi
+  fi
+fi
+
 parts+=("$(format_time_color "$current_time")")
 
 echo -e "$(printf '%s' "${parts[0]}")$(printf ' · %s' "${parts[@]:1}")"
