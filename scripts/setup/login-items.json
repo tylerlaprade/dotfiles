@@ -1,5 +1,13 @@
 [
   {
+    "name": "Discord",
+    "path": "/Applications/Discord.app"
+  },
+  {
+    "name": "Graphite",
+    "path": "/Applications/Graphite.app"
+  },
+  {
     "name": "Claude",
     "path": "/Applications/Claude.app"
   },
@@ -10,13 +18,5 @@
   {
     "name": "Google Calendar",
     "path": "~/Applications/Brave Browser Apps.localized/Google Calendar.app"
-  },
-  {
-    "name": "Discord",
-    "path": "/Applications/Discord.app"
-  },
-  {
-    "name": "Graphite",
-    "path": "/Applications/Graphite.app"
   }
 ]

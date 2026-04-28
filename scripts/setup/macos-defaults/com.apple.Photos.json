@@ -34,9 +34,5 @@
   "PXRootSettingsHideWIPAlerts": {
     "type": "bool",
     "value": false
-  },
-  "allPhotosLibraryPreferredIndividualItemsColumns": {
-    "type": "int",
-    "value": 5
   }
 }

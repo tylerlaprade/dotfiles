@@ -151,19 +151,6 @@ if [[ ! -d "/Applications/Graphite.app" ]]; then
     || echo "  Graphite install failed"
 fi
 
-# Notchi (Claude Code notch companion, not in Homebrew)
-has_notch=$(osascript -l JavaScript -e 'ObjC.import("AppKit"); $.NSScreen.mainScreen.safeAreaInsets.top > 0 ? "true" : "false"' 2>/dev/null || echo "false")
-if [[ "$has_notch" == "true" && ! -d "/Applications/Notchi.app" ]]; then
-  echo "Installing Notchi..."
-  gh release download --repo sk-ruban/notchi --pattern '*.dmg' -D /tmp --clobber 2>/dev/null \
-    && hdiutil attach /tmp/Notchi-*.dmg -nobrowse -quiet \
-    && cp -R "/Volumes/Notchi/Notchi.app" /Applications/ \
-    && hdiutil detach "/Volumes/Notchi" -quiet \
-    && rm /tmp/Notchi-*.dmg \
-    && echo "  Notchi installed" \
-    || echo "  Notchi install failed"
-fi
-
 # Remove files that block symlink creation (created by tools or restore)
 for f in .gitconfig .npmrc; do
   [[ -f "$HOME/$f" && ! -L "$HOME/$f" ]] && rm "$HOME/$f"

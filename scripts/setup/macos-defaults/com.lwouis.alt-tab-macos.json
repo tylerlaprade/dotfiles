@@ -7,6 +7,10 @@
     "type": "bool",
     "value": true
   },
+  "SUSkippedVersion": {
+    "type": "string",
+    "value": "10.12.0"
+  },
   "alignThumbnails": {
     "type": "string",
     "value": "1"
@@ -28,8 +32,8 @@
     "value": "2"
   },
   "cursorFollowFocus": {
-    "type": "string",
-    "value": "2"
+    "type": "int",
+    "value": 0
   },
   "cursorFollowFocusEnabled": {
     "type": "string",
@@ -115,13 +119,17 @@
     "type": "int",
     "value": 1
   },
+  "showWindowlessApps4": {
+    "type": "int",
+    "value": 1
+  },
   "titleTruncation": {
     "type": "string",
     "value": "1"
   },
   "updatePolicy": {
-    "type": "int",
-    "value": 0
+    "type": "string",
+    "value": "1"
   },
   "vimKeysEnabled": {
     "type": "string",

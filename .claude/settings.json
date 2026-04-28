@@ -35,118 +35,15 @@
     "defaultMode": "bypassPermissions"
   },
   "model": "opus",
-  "hooks": {
-    "PermissionRequest": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/notchi-hook.sh"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/notchi-hook.sh"
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "auto",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/notchi-hook.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "manual",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/notchi-hook.sh"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/notchi-hook.sh"
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/notchi-hook.sh"
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/notchi-hook.sh"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/notchi-hook.sh"
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/notchi-hook.sh"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/notchi-hook.sh"
-          }
-        ]
-      }
-    ]
-  },
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh",
     "refreshInterval": 30
   },
   "enabledPlugins": {
+    "caveman@caveman": true,
     "code-simplifier@claude-plugins-official": false,
+    "codex@openai-codex": true,
     "context7@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": false,
     "hookify@claude-plugins-official": false,
@@ -157,9 +54,7 @@
     "skill-creator@claude-plugins-official": false,
     "slack@claude-plugins-official": false,
     "superpowers@claude-plugins-official": false,
-    "typescript-lsp@claude-plugins-official": true,
-    "caveman@caveman": true,
-    "codex@openai-codex": true
+    "typescript-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "agent-browser": {
@@ -176,17 +71,17 @@
       },
       "autoUpdate": true
     },
-    "claude-plugins-official": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/claude-plugins-official"
-      },
-      "autoUpdate": true
-    },
     "caveman": {
       "source": {
         "source": "github",
         "repo": "JuliusBrussee/caveman"
+      },
+      "autoUpdate": true
+    },
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
       },
       "autoUpdate": true
     },
@@ -198,7 +93,6 @@
       "autoUpdate": true
     }
   },
-  "alwaysThinkingEnabled": true,
   "promptSuggestionEnabled": false,
   "showClearContextOnPlanAccept": true,
   "skipDangerousModePermissionPrompt": true,
@@ -206,6 +100,7 @@
   "theme": "auto",
   "preferredNotifChannel": "terminal_bell",
   "autoCompactEnabled": false,
+  "remoteControlAtStartup": true,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "useAutoModeDuringPlan": true,
