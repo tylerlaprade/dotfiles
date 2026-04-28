@@ -5,7 +5,7 @@
   },
   "SUEnableAutomaticChecks": {
     "type": "bool",
-    "value": true
+    "value": false
   },
   "SUSkippedVersion": {
     "type": "string",
@@ -129,7 +129,7 @@
   },
   "updatePolicy": {
     "type": "string",
-    "value": "1"
+    "value": "0"
   },
   "vimKeysEnabled": {
     "type": "string",
