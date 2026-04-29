@@ -1,5 +1,4 @@
 #!/bin/bash
-[[ -n "$HIDE_GIT_PROMPT" ]] && exit 0
 input=$(cat)
 cd "$(echo "$input" | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 
@@ -255,7 +254,11 @@ format_rate() {
   echo "$info"
 }
 
-git_status=$(git-status-line --async-pr)
+if [[ -n "$HIDE_GIT_PROMPT" ]]; then
+  git_status=""
+else
+  git_status=$(git-status-line --async-pr)
+fi
 current_time=$(TZ="America/New_York" date +"%-I:%M %p")
 model_name=$(echo "$input" | jq -r '.model.display_name // empty')
 
@@ -322,7 +325,7 @@ parts+=("$(format_time_color "$current_time")")
 echo -e "$(printf '%s' "${parts[0]}")$(printf ' · %s' "${parts[@]:1}")"
 
 # Line 2: git info
-echo -e "$git_status"
+[ -n "$git_status" ] && echo -e "$git_status"
 
 # Keep Ghostty tab title current (zsh hooks don't fire during TUI apps)
 # Only override title when there's a PR; otherwise let Claude Code's own title persist
