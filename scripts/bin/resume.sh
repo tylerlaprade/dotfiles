@@ -151,7 +151,7 @@ resume() {
         esac
         printf "\033]2;%s %s in %s\007" "$f" "$label" "$t"
         printf "\r\033[K%s %s in %s (%s)" "$f" "$label" "$t" "$clock"
-        sleep 1
+        sleep 0.1
         i=$(( i + 1 ))
       done
     ) &
