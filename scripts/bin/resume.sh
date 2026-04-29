@@ -158,8 +158,6 @@ resume() {
     spin_pid=$!
     trap "kill $spin_pid 2>/dev/null; printf \"\n\"; exit 130" INT TERM
     trap "kill $spin_pid 2>/dev/null" EXIT
-    sleep "$delay"
-    kill "$spin_pid" 2>/dev/null
     wait "$spin_pid" 2>/dev/null
     printf "\r\033[K"
     exec "$@"
