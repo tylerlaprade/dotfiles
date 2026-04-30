@@ -17,7 +17,7 @@
   },
   "default.fontSize": {
     "type": "float",
-    "value": 28.10903549194336
+    "value": 28.109035492
   },
   "mouse.displayOption": {
     "type": "int",

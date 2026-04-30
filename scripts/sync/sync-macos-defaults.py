@@ -123,6 +123,9 @@ def stabilize_number(domain, key, kind, value, existing):
     if not isinstance(old_value, (int, float)):
         return kind, value
 
+    if old_type == "float" and isinstance(old_value, float):
+        old_value = round(old_value, 9)
+
     if old_type == kind and old_value == value:
         return old_type, old_value
 
@@ -154,6 +157,7 @@ def export_domain(domain, blacklist, existing):
             kind, value = stabilize_number(domain, key, "int", val, existing)
             entries[key] = {"type": kind, "value": value}
         elif isinstance(val, float):
+            val = round(val, 9)
             kind, value = stabilize_number(domain, key, "float", val, existing)
             entries[key] = {"type": kind, "value": value}
         elif isinstance(val, str):

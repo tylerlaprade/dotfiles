@@ -3,14 +3,6 @@
     "type": "int",
     "value": 0
   },
-  "AccessibilityEnabled": {
-    "type": "bool",
-    "value": true
-  },
-  "ApplicationAccessibilityEnabled": {
-    "type": "int",
-    "value": 1
-  },
   "AutomationEnabled": {
     "type": "int",
     "value": 0
@@ -43,10 +35,6 @@
     "type": "int",
     "value": 1
   },
-  "GenericAccessibilityClientEnabled": {
-    "type": "int",
-    "value": 1
-  },
   "GrayscaleDisplay": {
     "type": "int",
     "value": 0
@@ -57,7 +45,7 @@
   },
   "KeyRepeatDelay": {
     "type": "float",
-    "value": 0.5
+    "value": 0.25
   },
   "KeyRepeatEnabled": {
     "type": "int",
@@ -65,7 +53,7 @@
   },
   "KeyRepeatInterval": {
     "type": "float",
-    "value": 0.083333333
+    "value": 0.033333333
   },
   "ReduceMotionEnabled": {
     "type": "int",

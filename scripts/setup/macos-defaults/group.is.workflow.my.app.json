@@ -1,0 +1,14 @@
+{
+  "WFActionDefaultFavoritesAddedKey": {
+    "type": "bool",
+    "value": true
+  },
+  "WFActionFavorites": {
+    "type": "plist",
+    "value": [
+      "is.workflow.actions.sendmessage",
+      "is.workflow.actions.openapp",
+      "is.workflow.actions.playmusic"
+    ]
+  }
+}
