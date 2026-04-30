@@ -171,6 +171,7 @@ auto-format = true
 name = "markdown"
 auto-format = true
 formatter = { command = "markdownlint-cli2", args = ["--fix"] }
+language-servers = ["marksman", "rumdl"]
 
 [[language]]
 name = "css"
