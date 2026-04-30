@@ -58,6 +58,11 @@ completion = true
 command = "stylelint-lsp"
 args = ["--stdio"]
 
+[language-server.vscode-html-language-server.config]
+provideFormatter = true
+css = { validate = true, lint = { validProperties = [] } }
+
+
 [[language]]
 name = "javascript"
 auto-format = true
