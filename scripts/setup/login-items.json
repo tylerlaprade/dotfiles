@@ -1,5 +1,13 @@
 [
   {
+    "name": "Brave Browser",
+    "path": "/Applications/Brave Browser.app"
+  },
+  {
+    "name": "Ghostty",
+    "path": "/Applications/Ghostty.app"
+  },
+  {
     "name": "Discord",
     "path": "/Applications/Discord.app"
   },
