@@ -11,11 +11,21 @@ RESET='\033[0m'
 WHITE='\033[97m'
 DIM='\033[90m'
 
-# Tomorrow Night gradient: green → yellow → red with asymptotic red tail
-# Sets global r, g, b. Args: value green_end yellow_point red_point [asymptotic_k]
+# Tomorrow Night gradient: (blue →) green → yellow → red with asymptotic red tail
+# Sets global r, g, b. Args: value green_end yellow_point red_point [asymptotic_k] [blue_floor]
+# When blue_floor is set, val ≤ blue_floor is pure blue and blue_floor→green_end blends blue→green.
 tn_gradient() {
-  local val=$1 green_end=$2 yellow_pt=$3 red_pt=$4 k=${5:-80}
-  if [ "$val" -le "$green_end" ]; then
+  local val=$1 green_end=$2 yellow_pt=$3 red_pt=$4 k=${5:-80} blue_floor=${6:-}
+  if [ -n "$blue_floor" ] && [ "$val" -lt "$green_end" ]; then
+    if [ "$val" -le "$blue_floor" ]; then
+      r=129 g=162 b=190
+    else
+      local t=$(( (val - blue_floor) * 100 / (green_end - blue_floor) ))
+      r=$(( 129 + (181 - 129) * t / 100 ))
+      g=$(( 162 + (189 - 162) * t / 100 ))
+      b=$(( 190 + (104 - 190) * t / 100 ))
+    fi
+  elif [ "$val" -le "$green_end" ]; then
     r=181 g=189 b=104
   elif [ "$val" -le "$yellow_pt" ]; then
     local t=$(( (val - green_end) * 100 / (yellow_pt - green_end) ))
@@ -35,62 +45,54 @@ tn_gradient() {
   fi
 }
 
-# Time-of-day color for the clock (weekdays 4:30-6:00pm ET).
-# White outside the window; LERPs through the context-bar palette
-# (matches the green/yellow anchors at lines 43-47 and the bright-red
-# endpoint at line 31). Bold from 5:15pm onward. 5:30-6:00pm also
-# toggles reverse video on each render via a state file — alternation
-# is tied to statusline refresh cadence, not wall clock.
+# Time-of-day color for the clock (weekdays 4:30-5:45pm and 10:45pm-midnight ET).
+# White outside the windows; LERPs white→green→yellow→bright-red, with bold from
+# the yellow→red phase onward. Final phase of each window also toggles reverse
+# video — on for seconds 0-29, off for 30-59. Statusline updates every 30s, so
+# the toggle reads as a steady 30s-on/30s-off blink without per-session race.
 format_time_color() {
   local t_str=$1 dow h m s secs phase_start t r g b bold="" reverse=""
-  dow=$(TZ="America/New_York" date +%u)
+  read -r dow h m s < <(TZ="America/New_York" date "+%u %H %M %S")
   if [ "$dow" -ge 6 ]; then
     printf '%b%s%b' "$WHITE" "$t_str" "$RESET"
     return
   fi
-  read -r h m s < <(TZ="America/New_York" date "+%H %M %S")
   # 10# prefix prevents octal parsing on 08:xx / 09:xx
   secs=$((10#$h * 3600 + 10#$m * 60 + 10#$s))
-  local P0=59400 P1=60300 P2=61200 P3=62100 P4=63000 P5=64800
-  if [ "$secs" -lt "$P0" ] || [ "$secs" -ge "$P5" ]; then
+  local P0 P1 P2 P3 P4
+  if [ "$secs" -ge 59400 ] && [ "$secs" -lt 63900 ]; then
+    # 4:30-5:45pm: 15+15+15+30 min phases
+    P0=59400 P1=60300 P2=61200 P3=62100 P4=63900
+  elif [ "$secs" -ge 81900 ] && [ "$secs" -lt 86400 ]; then
+    # 10:45pm-midnight: 15+15+15+30 min phases
+    P0=81900 P1=82800 P2=83700 P3=84600 P4=86400
+  else
     printf '%b%s%b' "$WHITE" "$t_str" "$RESET"
     return
   fi
-  if [ "$secs" -lt "$P1" ]; then           # 4:30-4:45 white -> green
+  if [ "$secs" -lt "$P1" ]; then           # white -> green
     phase_start=$P0
-    t=$(( (secs - phase_start) * 100 / 900 ))
+    t=$(( (secs - phase_start) * 100 / (P1 - P0) ))
     r=$(( 255 + (0 - 255) * t / 100 ))
     g=$(( 255 + (200 - 255) * t / 100 ))
     b=$(( 255 + (0 - 255) * t / 100 ))
-  elif [ "$secs" -lt "$P2" ]; then         # 4:45-5:00 green -> yellow
+  elif [ "$secs" -lt "$P2" ]; then         # green -> yellow
     phase_start=$P1
-    t=$(( (secs - phase_start) * 100 / 900 ))
+    t=$(( (secs - phase_start) * 100 / (P2 - P1) ))
     r=$(( 255 * t / 100 ))
     g=200
     b=0
-  elif [ "$secs" -lt "$P3" ]; then         # 5:00-5:15 yellow -> dark red
+  elif [ "$secs" -lt "$P3" ]; then         # yellow -> bright red + BOLD
     phase_start=$P2
-    t=$(( (secs - phase_start) * 100 / 900 ))
-    r=$(( 255 + (160 - 255) * t / 100 ))
+    t=$(( (secs - phase_start) * 100 / (P3 - P2) ))
+    r=255
     g=$(( 200 - 200 * t / 100 ))
     b=0
-  elif [ "$secs" -lt "$P4" ]; then         # 5:15-5:30 dark red -> bright red + BOLD
-    phase_start=$P3
-    t=$(( (secs - phase_start) * 100 / 900 ))
-    r=$(( 160 + (255 - 160) * t / 100 ))
-    g=0
-    b=0
     bold='\033[1m'
-  else                                     # 5:30-6:00 bright red + BOLD + reverse toggle
+  else                                     # bright red + BOLD + reverse toggle
     r=255; g=0; b=0
     bold='\033[1m'
-    local flash_state="/tmp/claude-statusline-flash.$USER"
-    if [ -f "$flash_state" ]; then
-      rm -f "$flash_state"
-      reverse='\033[7m'
-    else
-      touch "$flash_state"
-    fi
+    [ $((10#$s)) -lt 30 ] && reverse='\033[7m'
   fi
   printf '%b\033[38;2;%d;%d;%dm%b%s\033[0m' "$bold" "$r" "$g" "$b" "$reverse" "$t_str"
 }
@@ -226,8 +228,9 @@ format_rate() {
   fi
 
   # Pace gradient for time remaining
-  #   ≤0.75x: flat green, 0.75-0.98x: green→yellow, 0.98-1.25x: yellow→red, >1.25x: asymptotic red
-  tn_gradient "$ratio" 75 98 125
+  #   ≤0.50x: flat blue, 0.50-0.75x: blue→green, ≤0.75x: flat green,
+  #   0.75-0.98x: green→yellow, 0.98-1.25x: yellow→red, >1.25x: asymptotic red
+  tn_gradient "$ratio" 75 98 125 80 50
   local time_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
 
   if [ "$time_remaining" -gt 0 ]; then
@@ -298,15 +301,9 @@ if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
     idle_elapsed=$(( now_ts - last_activity ))
     if [ "$idle_elapsed" -gt 900 ]; then
       if [ "$idle_elapsed" -ge 3600 ]; then
-        # Expired: bold bright red + reverse video, alternating each render
-        flash_state="/tmp/claude-statusline-think-flash.$USER"
+        # Expired: bold bright red + reverse video, on for seconds 0-29, off for 30-59
         reverse=""
-        if [ -f "$flash_state" ]; then
-          rm -f "$flash_state"
-          reverse='\033[7m'
-        else
-          touch "$flash_state"
-        fi
+        [ $((now_ts % 60)) -lt 30 ] && reverse='\033[7m'
         parts+=("$(printf '\033[1m\033[38;2;255;0;0m%bthinking cleared\033[0m' "$reverse")")
       else
         remaining=$(( 3600 - idle_elapsed ))
