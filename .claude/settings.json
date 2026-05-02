@@ -41,7 +41,7 @@
     "refreshInterval": 30
   },
   "enabledPlugins": {
-    "caveman@caveman": true,
+    "caveman@caveman": false,
     "code-simplifier@claude-plugins-official": false,
     "codex@openai-codex": true,
     "context7@claude-plugins-official": true,
