@@ -12,11 +12,19 @@ import fnmatch
 import json
 import os
 import plistlib
+import re
 import subprocess
 import sys
 import tempfile
 from datetime import date, datetime
 from math import isclose
+
+UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+SUFFIXED_UUID_RE = re.compile(r"^[A-Z]+-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(-\d+)?$")
+ISO_DATETIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}")
+EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+HEX32PLUS_RE = re.compile(r"^[0-9a-fA-F]{32,}$")
+ACCOUNT_RECORD_KEYS = {"AccountID", "AccountAlternateDSID", "AccountDescription", "AccountAuthenticationType"}
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
@@ -100,6 +108,60 @@ def has_bytes(obj):
     return False
 
 
+def is_churn_scalar(val):
+    """Top-level scalar that's clearly state: timestamps, UUIDs, ISO datetimes, prefixed UUIDs."""
+    if isinstance(val, bool):
+        return False
+    if isinstance(val, int) and 1_000_000_000 < val < 4_000_000_000:
+        return True
+    if isinstance(val, float) and 1e9 < val < 4e9:
+        return True
+    if isinstance(val, str):
+        if UUID_RE.match(val) or SUFFIXED_UUID_RE.match(val) or ISO_DATETIME_RE.match(val):
+            return True
+    return False
+
+
+def contains_email(val):
+    """Recursively scan for email-shaped strings (secret / account leak)."""
+    if isinstance(val, str):
+        return bool(EMAIL_RE.search(val))
+    if isinstance(val, dict):
+        return any(contains_email(v) for v in val.values())
+    if isinstance(val, list):
+        return any(contains_email(v) for v in val)
+    return False
+
+
+def is_hex_keyed_dict(val):
+    """Dict whose keys are all 32+ hex chars — SHA-style digest keys (CloudKit caches)."""
+    if not isinstance(val, dict) or not val:
+        return False
+    return all(isinstance(k, str) and HEX32PLUS_RE.match(k) for k in val.keys())
+
+
+def is_apple_account_record(val):
+    """Apple account dict (or list of them) — AccountID/DSID/etc. (MobileMeAccounts)."""
+    if isinstance(val, list):
+        return bool(val) and all(is_apple_account_record(x) for x in val)
+    if isinstance(val, dict):
+        return bool(set(val.keys()) & ACCOUNT_RECORD_KEYS)
+    return False
+
+
+def contains_file_bookmark(val, depth=4):
+    """Recursively scan for {'book': bytes, ...} — NSURL file bookmarks (machine-specific paths)."""
+    if depth < 0:
+        return False
+    if isinstance(val, dict):
+        if any(k == "book" and isinstance(v, bytes) for k, v in val.items()):
+            return True
+        return any(contains_file_bookmark(v, depth - 1) for v in val.values())
+    if isinstance(val, list):
+        return any(contains_file_bookmark(v, depth - 1) for v in val)
+    return False
+
+
 def normalize_plist_value(obj):
     if isinstance(obj, datetime):
         return obj.isoformat()
@@ -151,6 +213,14 @@ def export_domain(domain, blacklist, existing):
         if any(fnmatch.fnmatch(key, pat) for pat in blacklist):
             continue
         val = d[key]
+        if (
+            is_churn_scalar(val)
+            or contains_email(val)
+            or is_hex_keyed_dict(val)
+            or is_apple_account_record(val)
+            or contains_file_bookmark(val)
+        ):
+            continue
         if isinstance(val, bool):
             entries[key] = {"type": "bool", "value": val}
         elif isinstance(val, int):
