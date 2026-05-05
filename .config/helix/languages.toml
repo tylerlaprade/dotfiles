@@ -62,14 +62,17 @@ args = ["--stdio"]
 provideFormatter = true
 css = { validate = true, lint = { validProperties = [] } }
 
+[language-server.vscode-css-language-server.config]
+provideFormatter = true
+css = { validate = true, lint = { validProperties = [] } }
+scss = { validate = true, lint = { validProperties = [] } }
+less = { validate = true, lint = { validProperties = [] } }
 
 [[language]]
 name = "javascript"
 auto-format = true
 language-servers = [
-  { name = "typescript-language-server", except-features = [
-    "format",
-  ] },
+  "typescript-language-server",
   "vscode-eslint-language-server",
   { name = "flint", only-features = [
     "diagnostics",
@@ -79,16 +82,14 @@ language-servers = [
     "diagnostics",
     "code-action",
   ] },
-  "biome",
+  { name = "biome", except-features = ["format"] },
 ]
 
 [[language]]
 name = "typescript"
 auto-format = true
 language-servers = [
-  { name = "typescript-language-server", except-features = [
-    "format",
-  ] },
+  "typescript-language-server",
   "vscode-eslint-language-server",
   { name = "flint", only-features = [
     "diagnostics",
@@ -98,16 +99,14 @@ language-servers = [
     "diagnostics",
     "code-action",
   ] },
-  "biome",
+  { name = "biome", except-features = ["format"] },
 ]
 
 [[language]]
 name = "jsx"
 auto-format = true
 language-servers = [
-  { name = "typescript-language-server", except-features = [
-    "format",
-  ] },
+  "typescript-language-server",
   "vscode-eslint-language-server",
   { name = "flint", only-features = [
     "diagnostics",
@@ -117,16 +116,14 @@ language-servers = [
     "diagnostics",
     "code-action",
   ] },
-  "biome",
+  { name = "biome", except-features = ["format"] },
 ]
 
 [[language]]
 name = "tsx"
 auto-format = true
 language-servers = [
-  { name = "typescript-language-server", except-features = [
-    "format",
-  ] },
+  "typescript-language-server",
   "vscode-eslint-language-server",
   { name = "flint", only-features = [
     "diagnostics",
@@ -136,7 +133,7 @@ language-servers = [
     "diagnostics",
     "code-action",
   ] },
-  "biome",
+  { name = "biome", except-features = ["format"] },
 ]
 
 
