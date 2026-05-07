@@ -12,7 +12,6 @@ fi
 export EDITOR="hx"
 export GPG_TTY=$(tty)
 
-alias brew="wax"
 alias dot='cd "$HOME/Code/dotfiles"'
 [[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
 
