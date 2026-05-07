@@ -1,8 +1,4 @@
 {
-  "captureDelay": {
-    "type": "int",
-    "value": 5
-  },
   "captureHDR": {
     "type": "bool",
     "value": true
