@@ -35,7 +35,6 @@
     ],
     "defaultMode": "bypassPermissions"
   },
-  "model": "claude-opus-4-6",
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh",
@@ -109,5 +108,6 @@
   "voiceEnabled": true,
   "feedbackSurveyState": {
     "lastShownTime": 9999999999999
-  }
+  },
+  "inputNeededNotifEnabled": true
 }
