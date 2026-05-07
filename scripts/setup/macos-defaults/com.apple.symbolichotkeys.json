@@ -105,14 +105,13 @@
         }
       },
       "164": {
-        "enabled": false,
+        "enabled": true,
         "value": {
           "parameters": [
-            65535,
-            65535,
-            0
+            1048576,
+            18446744073708503039
           ],
-          "type": "standard"
+          "type": "modifier"
         }
       },
       "17": {
@@ -135,6 +134,12 @@
             0
           ],
           "type": "standard"
+        }
+      },
+      "176": {
+        "enabled": false,
+        "value": {
+          "type": "SAE1.0"
         }
       },
       "179": {
