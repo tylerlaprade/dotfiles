@@ -97,14 +97,29 @@ done
 mkdir -p "$HOME/.codex"
 link "$DOTFILES/.claude/CLAUDE.md" "$HOME/.codex/AGENTS.md"
 
+# Codex skills — symlink each from .codex/skills/ (skip .system, owned by Codex).
+mkdir -p "$HOME/.codex/skills"
+for item in "$DOTFILES"/.codex/skills/*; do
+  [[ -e "$item" || -L "$item" ]] || continue
+  link "$item" "$HOME/.codex/skills/$(basename "$item")"
+done
+
 # Gemini CLI global context uses the same plain Markdown prefs as Claude.
 mkdir -p "$HOME/.gemini"
 link "$DOTFILES/.claude/CLAUDE.md" "$HOME/.gemini/GEMINI.md"
 
+# Agent Skills (agentskills.io standard) — symlink each skill folder as a whole
+# so the dir stays a single link instead of a per-file mirror.
+mkdir -p "$HOME/.agents/skills"
+for item in "$DOTFILES"/.agents/skills/*; do
+  [[ -e "$item" || -L "$item" ]] || continue
+  link "$item" "$HOME/.agents/skills/$(basename "$item")"
+done
+
 # ~/.*rc, ~/.gitconfig, etc.
 for item in "$DOTFILES"/.[!.]*; do
   local_name="$(basename "$item")"
-  [[ "$local_name" == ".git" || "$local_name" == ".config" || "$local_name" == ".claude" || "$local_name" == ".codex" || "$local_name" == ".vscode" ]] && continue
+  [[ "$local_name" == ".git" || "$local_name" == ".config" || "$local_name" == ".claude" || "$local_name" == ".codex" || "$local_name" == ".agents" || "$local_name" == ".vscode" ]] && continue
   if [[ -d "$item" && ! -L "$item" ]]; then
     link_tree "$item" "$HOME/$local_name"
   else

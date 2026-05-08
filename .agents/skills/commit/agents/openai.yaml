@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit"
+  short_description: "Stage and commit changes without touching unrelated files"
+  default_prompt: "Use $commit to stage and commit current changes."
