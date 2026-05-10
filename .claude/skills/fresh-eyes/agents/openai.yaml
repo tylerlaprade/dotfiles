@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fresh Eyes"
+  short_description: "Re-examine recent work for blunders, oversights, and bugs"
+  default_prompt: "Use $fresh-eyes to re-check recent work for mistakes."
