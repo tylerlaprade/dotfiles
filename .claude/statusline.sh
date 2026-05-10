@@ -45,7 +45,7 @@ tn_gradient() {
   fi
 }
 
-# Time-of-day color for the clock (weekdays 4:30-5:45pm and 10:45pm-midnight ET).
+# Time-of-day color for the clock (weekdays 4:30-5:45pm, every day 10:45pm-midnight ET).
 # White outside the windows; LERPs white→green→yellow→bright-red, with bold from
 # the yellow→red phase onward. Final phase of each window also toggles reverse
 # video — on for seconds 0-29, off for 30-59. Statusline updates every 30s, so
@@ -53,18 +53,14 @@ tn_gradient() {
 format_time_color() {
   local t_str=$1 dow h m s secs phase_start t r g b bold="" reverse=""
   read -r dow h m s < <(TZ="America/New_York" date "+%u %H %M %S")
-  if [ "$dow" -ge 6 ]; then
-    printf '%b%s%b' "$WHITE" "$t_str" "$RESET"
-    return
-  fi
   # 10# prefix prevents octal parsing on 08:xx / 09:xx
   secs=$((10#$h * 3600 + 10#$m * 60 + 10#$s))
   local P0 P1 P2 P3 P4
-  if [ "$secs" -ge 59400 ] && [ "$secs" -lt 63900 ]; then
-    # 4:30-5:45pm: 15+15+15+30 min phases
+  if [ "$dow" -le 5 ] && [ "$secs" -ge 59400 ] && [ "$secs" -lt 63900 ]; then
+    # 4:30-5:45pm weekdays only: 15+15+15+30 min phases
     P0=59400 P1=60300 P2=61200 P3=62100 P4=63900
   elif [ "$secs" -ge 81900 ] && [ "$secs" -lt 86400 ]; then
-    # 10:45pm-midnight: 15+15+15+30 min phases
+    # 10:45pm-midnight every day: 15+15+15+30 min phases
     P0=81900 P1=82800 P2=83700 P3=84600 P4=86400
   else
     printf '%b%s%b' "$WHITE" "$t_str" "$RESET"
