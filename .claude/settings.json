@@ -102,12 +102,12 @@
   "preferredNotifChannel": "terminal_bell",
   "autoCompactEnabled": false,
   "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": false,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "useAutoModeDuringPlan": true,
   "voiceEnabled": true,
   "feedbackSurveyState": {
     "lastShownTime": 9999999999999
-  },
-  "inputNeededNotifEnabled": true
+  }
 }
