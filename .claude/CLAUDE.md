@@ -14,3 +14,4 @@
 - "learnings" is not a word. Say "lessons" instead.
 - Never say "Clean."
 - Use `tyler@tylerlaprade.com` for my public-facing email address (not relevant for git commits, private repos, company-specific stuff, etc.).
+- My global git config has `diff.external=difft`. For a raw unified diff, use `git diff --no-ext-diff`. Don't touch `diff.external`.

@@ -8,8 +8,6 @@
 	gpgsign = true
 [init]
 	defaultBranch = master
-[diff]
-    external = difft
 [core]
     pager = delta
 [interactive]
@@ -22,3 +20,5 @@
 	rebase = true
 [url "git@github.com:"]
 	insteadOf = https://github.com/
+[diff]
+	external = difft
