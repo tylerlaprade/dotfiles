@@ -183,3 +183,7 @@ language-servers = [
   "vscode-css-language-server",
   { name = "stylelint-lsp", only-features = ["diagnostics"] },
 ]
+
+[[language]]
+name = "html"
+indent = { tab-width = 4, unit = "    " }
