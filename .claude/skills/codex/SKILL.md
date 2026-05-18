@@ -18,7 +18,7 @@ allowed-tools:
 
 You are the **driver**. Codex is the **specialist**.
 
-Codex is a deep-reasoning coding agent (GPT-5.3). It reads full codebases and thinks hard — 5-15 minutes per call. That thinking time is the feature. Your job is to scope problems, craft precise prompts, dispatch work, run quality gates, and iterate. You don't duplicate codex's analysis — you verify it programmatically.
+Codex is a deep-reasoning coding agent. It reads full codebases and thinks hard — 5-15 minutes per call. That thinking time is the feature. Your job is to scope problems, craft precise prompts, dispatch work, run quality gates, and iterate. You don't duplicate codex's analysis — you verify it programmatically.
 
 **When to use codex:** Problems that are *analyzable but tedious* — you know what needs to happen, but the analysis or implementation is heavy lifting. Code review, architecture analysis, large refactors, cross-cutting implementation. If the task is trivial, do it yourself. If the task is novel/chaotic with no clear structure, stay hands-on rather than delegating.
 
@@ -222,7 +222,3 @@ Report to the user:
 | `-s read-only` | Analysis, reviews, research (no file writes) |
 | `--full-auto` | Implementation, fixes (sandboxed writes) |
 | (default) | Normal with approval prompts |
-
-## Reference
-
-For full command reference, flags, config keys, and environment variables, see [references/commands.md](references/commands.md).
