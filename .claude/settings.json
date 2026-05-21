@@ -11,7 +11,6 @@
     "MAX_THINKING_TOKENS": "63999"
   },
   "includeGitInstructions": false,
-  "alwaysThinkingEnabled": true,
   "permissions": {
     "allow": [
       "Bash(gh pr list *)",
@@ -36,15 +35,38 @@
     ],
     "defaultMode": "bypassPermissions"
   },
+  "hooks": {
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "session-guard deregister"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tool_pid=\"$PPID\"; shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else session-guard register --tool claude --pid \"$tool_pid\"; fi"
+          }
+        ]
+      }
+    ]
+  },
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh",
     "refreshInterval": 30
   },
   "enabledPlugins": {
-    "caveman@caveman": false,
     "code-simplifier@claude-plugins-official": false,
     "codex@openai-codex": true,
+    "compound-engineering@compound-engineering-plugin": false,
     "context7@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": false,
     "hookify@claude-plugins-official": false,
@@ -53,10 +75,10 @@
     "ralph-loop@claude-plugins-official": false,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": false,
-    "slack@claude-plugins-official": false,
     "superpowers@claude-plugins-official": false,
+    "swift-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
-    "compound-engineering@compound-engineering-plugin": false
+    "agent-browser@agent-browser": true
   },
   "extraKnownMarketplaces": {
     "agent-browser": {
@@ -70,13 +92,6 @@
       "source": {
         "source": "github",
         "repo": "tylerlaprade/basedpyright-lsp"
-      },
-      "autoUpdate": true
-    },
-    "caveman": {
-      "source": {
-        "source": "github",
-        "repo": "JuliusBrussee/caveman"
       },
       "autoUpdate": true
     },
@@ -95,6 +110,7 @@
       "autoUpdate": true
     }
   },
+  "alwaysThinkingEnabled": true,
   "promptSuggestionEnabled": false,
   "showClearContextOnPlanAccept": true,
   "skipDangerousModePermissionPrompt": true,
