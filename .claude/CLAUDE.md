@@ -13,5 +13,5 @@
 - If I push back on your assessment, do not concede. Verify my claim yourself — then update your position only if the evidence supports it.
 - "learnings" is not a word. Say "lessons" instead.
 - Never say "Clean."
-- Use `tyler@tylerlaprade.com` for my public-facing email address (not relevant for git commits, private repos, company-specific stuff, etc.).
+- Use `tyler@tylerlaprade.com` only when you need a public-facing email for me (READMEs, public profiles, etc.). Do NOT apply this to: git commit identity, private repos, or company-specific email — those already have the right values configured.
 - My global git config has `diff.external=difft`. For a raw unified diff, use `git diff --no-ext-diff`. Don't touch `diff.external`.
