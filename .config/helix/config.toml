@@ -1,6 +1,6 @@
 [theme]
 light = "quiet_light"
-dark = "default"
+dark = "ataraxia"
 
 
 [editor]
@@ -36,8 +36,8 @@ enable = true
 
 # Not yet in stable release
 # https://github.com/helix-editor/helix/pull/13133
-# [editor.inline-blame]
-# show = "cursor-line"
+[editor.inline-blame]
+show = "cursor-line"
 
 [keys.normal]
 d = "delete_selection_noyank"
@@ -49,6 +49,7 @@ k = "move_line_up"
 C-j = "half_page_down"
 C-k = "half_page_up"
 G = "goto_last_line"
+backspace = "delete_char_backward"
 Cmd-c = "yank_main_selection_to_clipboard"
 Cmd-x = ["yank_main_selection_to_clipboard", "delete_selection_noyank"]
 
@@ -60,6 +61,7 @@ k = "goto_file_start"
 j = "extend_line_down"
 k = "extend_line_up"
 G = "extend_to_last_line"
+backspace = "delete_char_backward"
 Cmd-c = "yank_main_selection_to_clipboard"
 Cmd-x = ["yank_main_selection_to_clipboard", "delete_selection_noyank"]
 
