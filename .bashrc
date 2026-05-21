@@ -114,3 +114,7 @@ source ~/Code/dotfiles/scripts/bin/resume.sh
 
 # Source local secrets
 [[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
+
+
+# Added by Antigravity CLI installer
+export PATH="/Users/tyler/.local/bin:$PATH"

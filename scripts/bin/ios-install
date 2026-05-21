@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# Build the iOS app (Release, no debugger) and install it on the first paired
+# iPhone. Captures noisy build output, waits for unlock if the phone is locked,
+# retries if the device is busy.
+#
+# Usage:
+#   ios-install                # auto-detect .xcodeproj in cwd
+#   ios-install BrainDump      # resolves to ~/Code/BrainDump
+#   ios-install path/to/dir    # any absolute or relative dir containing .xcodeproj
+set -euo pipefail
+
+CONFIG="Release"
+
+# --- Resolve target directory ---------------------------------------------
+if [[ -n "${1:-}" ]]; then
+  target="$1"
+  if [[ -d "$target" ]]; then
+    cd "$target"
+  elif [[ -d "$HOME/Code/$target" ]]; then
+    cd "$HOME/Code/$target"
+  else
+    echo "ios-install: '$target' not found (tried '$target' and '$HOME/Code/$target')" >&2
+    exit 1
+  fi
+fi
+
+# --- Locate project / scheme / app ----------------------------------------
+PROJECT=$(ls -d ./*.xcodeproj 2>/dev/null | head -1 || true)
+if [[ -z "$PROJECT" ]]; then
+  echo "ios-install: no .xcodeproj in $(pwd)" >&2
+  exit 1
+fi
+PROJECT="${PROJECT#./}"
+SCHEME="${PROJECT%.xcodeproj}"
+APP_NAME="${SCHEME}.app"
+
+# --- Pick device ----------------------------------------------------------
+# Fast path: $IPHONE_UDID env var (set in ~/.zshenv.local, kept out of public repo).
+# Fallback: first paired iPhone via devicectl list.
+UDID="${IPHONE_UDID:-}"
+if [[ -n "$UDID" ]] && ! xcrun devicectl device info details --device "$UDID" >/dev/null 2>&1; then
+  UDID=""
+fi
+if [[ -z "$UDID" ]]; then
+  UDID=$(xcrun devicectl list devices --json-output - 2>/dev/null | python3 -c "
+import json, sys
+for d in json.load(sys.stdin).get('result', {}).get('devices', []):
+    props = d.get('deviceProperties', {})
+    if (props.get('platformIdentifier') or '').startswith('com.apple.platform.iphoneos'):
+        print(d['identifier']); break
+") || true
+fi
+if [[ -z "$UDID" ]]; then
+  echo "ios-install: no iPhone paired with this Mac. Plug in your phone." >&2
+  exit 1
+fi
+
+# --- Build (output captured; printed only on failure) ---------------------
+echo "→ Building $SCHEME ($CONFIG, generic iOS)"
+build_log=$(mktemp -t ios-install-build)
+trap 'rm -f "$build_log"' EXIT
+
+if ! xcodebuild \
+    -project "$PROJECT" \
+    -scheme "$SCHEME" \
+    -configuration "$CONFIG" \
+    -destination "generic/platform=iOS" \
+    -derivedDataPath build \
+    -quiet \
+    build >"$build_log" 2>&1; then
+  echo "Build failed. Last 60 lines of log:" >&2
+  tail -60 "$build_log" >&2
+  echo "(full log: $build_log — saved for inspection)" >&2
+  trap - EXIT
+  exit 1
+fi
+
+APP_PATH="build/Build/Products/${CONFIG}-iphoneos/${APP_NAME}"
+if [[ ! -d "$APP_PATH" ]]; then
+  echo "ios-install: built app not found at $APP_PATH" >&2
+  exit 1
+fi
+
+# --- Install (waits for unlock + retries device-busy) ---------------------
+echo "→ Installing $APP_PATH onto $UDID"
+attempt=0
+while true; do
+  if output=$(xcrun devicectl device install app --device "$UDID" "$APP_PATH" 2>&1); then
+    break
+  fi
+  if echo "$output" | grep -qiE "passcode protected|device is locked|locked device|device is busy|in use by another"; then
+    if [[ $attempt -eq 0 ]]; then
+      echo "⏳ Waiting — iPhone locked or busy. Install will continue automatically."
+    fi
+    attempt=$((attempt + 1))
+    sleep 2
+    continue
+  fi
+  echo "$output" >&2
+  echo "ios-install: install failed (not lock/busy)." >&2
+  exit 1
+done
+
+echo "✓ Installed $APP_NAME. Tap it on your phone to launch."
