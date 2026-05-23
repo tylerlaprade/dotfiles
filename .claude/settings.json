@@ -33,7 +33,7 @@
       "Bash(git show *)",
       "Bash(git blame *)"
     ],
-    "defaultMode": "bypassPermissions"
+    "defaultMode": "auto"
   },
   "hooks": {
     "SessionEnd": [
@@ -114,7 +114,6 @@
   "promptSuggestionEnabled": false,
   "showClearContextOnPlanAccept": true,
   "skipDangerousModePermissionPrompt": true,
-  "disableAutoMode": "disable",
   "theme": "auto",
   "preferredNotifChannel": "terminal_bell",
   "autoCompactEnabled": false,
