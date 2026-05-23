@@ -45,33 +45,49 @@ tn_gradient() {
   fi
 }
 
-# Time-of-day color for the clock (weekdays 4:30-5:45pm, every day 10:45pm-midnight ET).
-# White outside the windows; LERPs white→green→yellow→bright-red, with bold from
-# the yellow→red phase onward. Final phase of each window also toggles reverse
-# video — on for seconds 0-29, off for 30-59. Statusline updates every 30s, so
-# the toggle reads as a steady 30s-on/30s-off blink without per-session race.
+# Time-of-day color for the clock (weekdays 4:30-5:45pm, every day 9:30pm-midnight ET).
+# White outside the windows; LERPs white→green→yellow→bright-red (nighttime inserts an
+# extra white→blue pre-phase so the green-fade starts from blue). Bold kicks in at the
+# yellow→red phase onward. Final phase of each window also toggles reverse video —
+# on for seconds 0-29, off for 30-59. Statusline updates every 30s, so the toggle
+# reads as a steady 30s-on/30s-off blink without per-session race.
 format_time_color() {
-  local t_str=$1 dow h m s secs phase_start t r g b bold="" reverse=""
+  local t_str=$1 dow h m s secs phase_start t r g b bold="" reverse="" night=0 start_r=255 start_g=255 start_b=255
   read -r dow h m s < <(TZ="America/New_York" date "+%u %H %M %S")
   # 10# prefix prevents octal parsing on 08:xx / 09:xx
   secs=$((10#$h * 3600 + 10#$m * 60 + 10#$s))
-  local P0 P1 P2 P3 P4
+  local P0 P1 P2 P3 P4 P_blue
   if [ "$dow" -le 5 ] && [ "$secs" -ge 59400 ] && [ "$secs" -lt 63900 ]; then
     # 4:30-5:45pm weekdays only: 15+15+15+30 min phases
     P0=59400 P1=60300 P2=61200 P3=62100 P4=63900
-  elif [ "$secs" -ge 81900 ] && [ "$secs" -lt 86400 ]; then
-    # 10:45pm-midnight every day: 15+15+15+30 min phases
-    P0=81900 P1=82800 P2=83700 P3=84600 P4=86400
+  elif [ "$secs" -ge 77400 ] && [ "$secs" -lt 86400 ]; then
+    # 9:30pm-midnight every day: 30+30+30+30+30 min phases (extra white→blue pre-phase)
+    P0=77400 P_blue=79200 P1=81000 P2=82800 P3=84600 P4=86400
+    night=1
   else
     printf '%b%s%b' "$WHITE" "$t_str" "$RESET"
     return
   fi
-  if [ "$secs" -lt "$P1" ]; then           # white -> green
+  if [ "$night" -eq 1 ] && [ "$secs" -lt "$P_blue" ]; then  # white -> blue (night pre-phase)
+    phase_start=$P0
+    t=$(( (secs - phase_start) * 100 / (P_blue - P0) ))
+    r=$(( 255 + (50 - 255) * t / 100 ))
+    g=$(( 255 + (130 - 255) * t / 100 ))
+    b=255
+    printf '\033[38;2;%d;%d;%dm%s\033[0m' "$r" "$g" "$b" "$t_str"
+    return
+  fi
+  # After the pre-phase, the green-fade starts from blue instead of white on night windows.
+  if [ "$night" -eq 1 ]; then
+    start_r=50 start_g=130 start_b=255
+    P0=$P_blue
+  fi
+  if [ "$secs" -lt "$P1" ]; then           # start_color -> green
     phase_start=$P0
     t=$(( (secs - phase_start) * 100 / (P1 - P0) ))
-    r=$(( 255 + (0 - 255) * t / 100 ))
-    g=$(( 255 + (200 - 255) * t / 100 ))
-    b=$(( 255 + (0 - 255) * t / 100 ))
+    r=$(( start_r + (0 - start_r) * t / 100 ))
+    g=$(( start_g + (200 - start_g) * t / 100 ))
+    b=$(( start_b + (0 - start_b) * t / 100 ))
   elif [ "$secs" -lt "$P2" ]; then         # green -> yellow
     phase_start=$P1
     t=$(( (secs - phase_start) * 100 / (P2 - P1) ))
