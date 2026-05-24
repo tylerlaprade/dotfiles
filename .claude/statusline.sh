@@ -45,7 +45,7 @@ tn_gradient() {
   fi
 }
 
-# Time-of-day color for the clock (weekdays 4:30-5:45pm, every day 9:30pm-midnight ET).
+# Time-of-day color for the clock (weekdays 4:30-6:45pm, every day 9:30pm-1am ET).
 # White outside the windows; LERPs white→green→yellow→bright-red (nighttime inserts an
 # extra white→blue pre-phase so the green-fade starts from blue). Bold kicks in at the
 # yellow→red phase onward. Final phase of each window also toggles reverse video —
@@ -57,13 +57,15 @@ format_time_color() {
   # 10# prefix prevents octal parsing on 08:xx / 09:xx
   secs=$((10#$h * 3600 + 10#$m * 60 + 10#$s))
   local P0 P1 P2 P3 P4 P_blue
-  if [ "$dow" -le 5 ] && [ "$secs" -ge 59400 ] && [ "$secs" -lt 63900 ]; then
-    # 4:30-5:45pm weekdays only: 15+15+15+30 min phases
-    P0=59400 P1=60300 P2=61200 P3=62100 P4=63900
-  elif [ "$secs" -ge 77400 ] && [ "$secs" -lt 86400 ]; then
-    # 9:30pm-midnight every day: 30+30+30+30+30 min phases (extra white→blue pre-phase)
-    P0=77400 P_blue=79200 P1=81000 P2=82800 P3=84600 P4=86400
+  if [ "$dow" -le 5 ] && [ "$secs" -ge 59400 ] && [ "$secs" -lt 67500 ]; then
+    # 4:30-6:45pm weekdays only: 15+15+15+90 min phases
+    P0=59400 P1=60300 P2=61200 P3=62100 P4=67500
+  elif [ "$secs" -ge 77400 ] || [ "$secs" -lt 3600 ]; then
+    # 9:30pm-1am every day: 30+30+30+30+90 min phases (extra white→blue pre-phase)
+    # Post-midnight: shift secs into the prior day's range so phase math keeps working.
+    P0=77400 P_blue=79200 P1=81000 P2=82800 P3=84600 P4=90000
     night=1
+    [ "$secs" -lt 3600 ] && secs=$(( secs + 86400 ))
   else
     printf '%b%s%b' "$WHITE" "$t_str" "$RESET"
     return
