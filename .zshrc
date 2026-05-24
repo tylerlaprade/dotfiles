@@ -1,6 +1,6 @@
 # Prompt (Pure)
 fpath+=("/opt/homebrew/share/zsh/site-functions")
-autoload -Uz compinit && compinit
+autoload -Uz compinit && compinit -C
 autoload -U promptinit; promptinit
 export VIRTUAL_ENV_DISABLE_PROMPT=1
 if [[ -n "$HIDE_GIT_PROMPT" ]]; then
