@@ -1,6 +1,6 @@
 [theme]
 light = "quiet_light"
-dark = "ataraxia"
+dark = "base16_default_dark"
 
 
 [editor]
