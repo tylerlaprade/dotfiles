@@ -33,7 +33,7 @@
   },
   "tilesize": {
     "type": "float",
-    "value": 31.0
+    "value": 73.0
   },
   "wvous-br-corner": {
     "type": "int",
