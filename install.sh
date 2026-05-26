@@ -80,6 +80,25 @@ if command -v cargo &>/dev/null; then
   pid_cw=$!
 fi
 
+# Quiet Light helix theme (github.com/tylerlaprade/helix-quiet-light-theme)
+echo "  [helix-theme] starting..."
+(
+  THEME_DIR="$HOME/Code/helix-quiet-light-theme"
+  if [[ ! -d "$THEME_DIR" ]]; then
+    mkdir -p "$(dirname "$THEME_DIR")"
+    git clone git@github.com:tylerlaprade/helix-quiet-light-theme.git "$THEME_DIR" >"$LOGDIR/helix-theme.log" 2>&1 \
+      || git clone https://github.com/tylerlaprade/helix-quiet-light-theme.git "$THEME_DIR" >>"$LOGDIR/helix-theme.log" 2>&1
+  fi
+  if [[ -f "$THEME_DIR/quiet_light.toml" ]]; then
+    mkdir -p "$HOME/.config/helix/themes"
+    ln -sf "$THEME_DIR/quiet_light.toml" "$HOME/.config/helix/themes/quiet_light.toml"
+    echo "  [helix-theme] done"
+  else
+    echo "  [helix-theme] FAILED — see $LOGDIR/helix-theme.log"
+  fi
+) &
+pid_helix_theme=$!
+
 # Bun
 if ! command -v bun &>/dev/null; then
   echo "  [bun] starting..."
@@ -110,6 +129,7 @@ wait $pid_brew 2>/dev/null
 [[ -n "${pid_cargo:-}" ]] && wait $pid_cargo 2>/dev/null
 [[ -n "${pid_cw:-}" ]] && wait $pid_cw 2>/dev/null
 [[ -n "${pid_bun:-}" ]] && wait $pid_bun 2>/dev/null
+wait $pid_helix_theme 2>/dev/null
 wait $pid_sourcery 2>/dev/null
 [[ -n "${pid_claude:-}" ]] && wait $pid_claude 2>/dev/null
 
