@@ -1,7 +1,11 @@
 [theme]
 light = "quiet_light"
-dark = "base16_default_dark"
+dark = "adwaita-dark"
 
+[editor.inline-blame]
+show = "cursor-line"
+format = "{author} • {time-ago} • {title}"
+auto-fetch = true
 
 [editor]
 scrolloff = 20
@@ -33,11 +37,6 @@ hidden = false
 
 [editor.soft-wrap]
 enable = true
-
-# Not yet in stable release
-# https://github.com/helix-editor/helix/pull/13133
-[editor.inline-blame]
-show = "cursor-line"
 
 [keys.normal]
 d = "delete_selection_noyank"
