@@ -207,7 +207,7 @@ fi
 # Upgrade global uv tools (sourcery, etc.)
 uv tool upgrade --all >/dev/null 2>&1 || true
 
-# Upgrade global Cargo tools, including wax when installed via Cargo.
+# Upgrade global Cargo tools.
 if command -v cargo >/dev/null 2>&1; then
   cargo install cargo-update >/dev/null 2>&1 || true
   cargo install-update -a >/dev/null 2>&1 || true

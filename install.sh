@@ -20,7 +20,7 @@ if ! command -v brew &>/dev/null; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
 
-# 2. Rust toolchain (needed before wax)
+# 2. Rust toolchain
 if ! command -v rustup &>/dev/null; then
   echo "Installing Rust..."
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
@@ -28,11 +28,6 @@ if ! command -v rustup &>/dev/null; then
 fi
 rustup component add rust-analyzer 2>/dev/null || true
 
-# 3. Wax (fast Homebrew-compatible package manager)
-if command -v cargo &>/dev/null && ! command -v wax &>/dev/null; then
-  echo "Installing wax..."
-  cargo install waxpkg 2>/dev/null || true
-fi
 export PATH="$HOME/.local/bin:$PATH"
 
 # 4. Everything else in parallel
@@ -55,7 +50,7 @@ pid_brew=$!
 # Cargo crates
 if command -v cargo &>/dev/null; then
   echo "  [cargo] starting..."
-  (cargo install cargo-binstall 2>/dev/null; cargo binstall -y cargo-insta cargo-workspaces 2>/dev/null; echo "  [cargo] done") &
+  (cargo install cargo-binstall 2>/dev/null; cargo binstall -y bacon cargo-insta cargo-workspaces codebook-lsp genemichaels hk 2>/dev/null; echo "  [cargo] done") &
   pid_cargo=$!
 fi
 
