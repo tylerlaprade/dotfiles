@@ -15,6 +15,7 @@ line-number = "relative"
 color-modes = true
 true-color = true
 auto-completion = false
+insecure = true
 
 [editor.cursor-shape]
 insert = "bar"
