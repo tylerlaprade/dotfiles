@@ -278,10 +278,15 @@ else
 fi
 current_time=$(TZ="America/New_York" date +"%-I:%M %p")
 model_name=$(echo "$input" | jq -r '.model.display_name // empty')
+effort_level=$(echo "$input" | jq -r '.effort.level // empty')
 
 # Line 1: model · context bar · rates · time
 parts=()
-[ -n "$model_name" ] && parts+=("${DIM}${model_name}${RESET}")
+if [ -n "$model_name" ]; then
+  model_part="${DIM}${model_name}"
+  [ -n "$effort_level" ] && model_part="${model_part} ${effort_level}"
+  parts+=("${model_part}${RESET}")
+fi
 parts+=("$ctx_info")
 cost_display="" cost_color=""
 if [ "${rate_5h:-0}" -ge 100 ]; then
