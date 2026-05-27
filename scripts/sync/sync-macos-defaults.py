@@ -364,6 +364,11 @@ if applied_domains:
 # Login items — merge with on-disk file to preserve items from other machines
 # ---------------------------------------------------------------------------
 
+# Apps that register their own login item (via SMAppService) — tracking them
+# here creates a parallel legacy SharedFileList entry that races the app's
+# own launcher.
+LOGIN_ITEMS_SKIP = {"Hyperkey"}
+
 LOGIN_ITEMS_PATH = os.path.join(SETUP_DIR, "login-items.json")
 raw = subprocess.run(
     ["osascript", "-e", 'tell application "System Events" to get the {name, path} of every login item'],
@@ -379,6 +384,7 @@ if raw.returncode == 0 and raw.stdout.strip():
     current_items = [
         {"name": n, "path": p.replace(home, "~", 1) if p.startswith(home) else p}
         for n, p in zip(names, paths)
+        if n not in LOGIN_ITEMS_SKIP
     ]
 
 existing_items = []
@@ -392,6 +398,8 @@ except Exception:
 seen_names = {item["name"] for item in current_items}
 merged = list(current_items)
 for item in existing_items:
+    if item["name"] in LOGIN_ITEMS_SKIP:
+        continue
     if item["name"] not in seen_names:
         merged.append(item)
         seen_names.add(item["name"])

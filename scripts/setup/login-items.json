@@ -12,16 +12,8 @@
     "path": "/Applications/Discord.app"
   },
   {
-    "name": "Graphite",
-    "path": "/Applications/Graphite.app"
-  },
-  {
     "name": "Claude",
     "path": "/Applications/Claude.app"
-  },
-  {
-    "name": "Hyperkey",
-    "path": "/Applications/Hyperkey.app"
   },
   {
     "name": "Google Calendar",
