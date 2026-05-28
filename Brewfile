@@ -3,6 +3,7 @@ tap "withgraphite/tap"
 brew "bat"
 brew "bottom"
 brew "brush", args: ["HEAD"]
+brew "caddy"
 brew "cosign"
 brew "difftastic"
 brew "direnv"
