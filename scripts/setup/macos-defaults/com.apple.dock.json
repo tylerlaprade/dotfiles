@@ -35,6 +35,10 @@
     "type": "float",
     "value": 73.0
   },
+  "workspaces-auto-swoosh": {
+    "type": "bool",
+    "value": true
+  },
   "wvous-br-corner": {
     "type": "int",
     "value": 1
