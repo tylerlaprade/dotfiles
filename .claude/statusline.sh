@@ -3,9 +3,9 @@ input=$(cat)
 cd "$(echo "$input" | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 
 # .used_percentage is clamped to 0-100 by CC, so it can't show overflow.
-# Compute % from raw tokens in .current_usage divided by .context_window_size
-# (so 100% = 200k in 200k mode, 100% = 1M in 1M mode).
-pct=$(echo "$input" | jq -r '.context_window | ((.current_usage // {}) as $u | (($u.input_tokens // 0) + ($u.cache_creation_input_tokens // 0) + ($u.cache_read_input_tokens // 0)) * 100 / (.context_window_size // 200000)) | round')
+# Compute % from raw tokens in .current_usage divided by a fixed 200k
+# (so 100% = 200k always, and 1M mode overflows past 100%).
+pct=$(echo "$input" | jq -r '.context_window | ((.current_usage // {}) as $u | (($u.input_tokens // 0) + ($u.cache_creation_input_tokens // 0) + ($u.cache_read_input_tokens // 0)) * 100 / 200000) | round')
 
 RESET='\033[0m'
 WHITE='\033[97m'
