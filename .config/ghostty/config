@@ -15,4 +15,5 @@ scrollback-limit = 50000000
 selection-background = cell-foreground
 selection-foreground = cell-background
 shell-integration-features = no-title
+window-save-state = never
 theme = dark:phosphor,light:Ghostty Default Style Dark
