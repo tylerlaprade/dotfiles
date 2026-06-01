@@ -1,6 +1,8 @@
 ---
 name: codex
-description: Drives OpenAI's Codex CLI as a specialist executor in a driver/specialist loop. Use when user asks to "talk to codex", "ask codex", "codex review", "have codex look at this", or wants deep analysis/implementation delegated. Also use proactively for code review and architecture validation.
+description: Drive OpenAI's Codex CLI as a specialist executor in a driver/specialist loop — scope the work, dispatch async, run quality gates, iterate. Invoke with /codex.
+argument-hint: <task or question to delegate to codex>
+disable-model-invocation: true
 context: fork
 allowed-tools:
   - Bash(codex *)
@@ -56,7 +58,7 @@ Before touching codex, understand the task:
 - Read the relevant code (entry points, types, tests)
 - Identify what codex needs to analyze or build
 - Define success criteria: what does "done" look like?
-- Decide the sandbox mode: `-s read-only` for analysis, `--full-auto` for implementation
+- Decide the sandbox mode: `-s read-only` for analysis, `--dangerously-bypass-approvals-and-sandbox` for implementation
 
 ### 2. PROMPT — Craft a Precise Codex Prompt
 
@@ -95,8 +97,8 @@ Always launch with `-o` and `run_in_background: true`. Never block synchronously
 # Analysis/review (read-only)
 cd <project-dir> && cat /tmp/claude/codex-${CLAUDE_SESSION_ID}/prompt.md | codex exec -s read-only -o /tmp/claude/codex-${CLAUDE_SESSION_ID}/response.md - 2>&1
 
-# Implementation (sandboxed writes)
-cd <project-dir> && cat /tmp/claude/codex-${CLAUDE_SESSION_ID}/prompt.md | codex exec --full-auto -o /tmp/claude/codex-${CLAUDE_SESSION_ID}/response.md - 2>&1
+# Implementation (no codex sandbox, no approval prompts)
+cd <project-dir> && cat /tmp/claude/codex-${CLAUDE_SESSION_ID}/prompt.md | codex exec --dangerously-bypass-approvals-and-sandbox -o /tmp/claude/codex-${CLAUDE_SESSION_ID}/response.md - 2>&1
 
 # Short prompts — inline
 cd <project-dir> && echo "Review the auth module for race conditions" | codex exec -s read-only -o /tmp/claude/codex-${CLAUDE_SESSION_ID}/response.md - 2>&1
@@ -196,7 +198,7 @@ For topics needing current info, use `/perplexity` first, then enrich the codex 
 1. `/perplexity` for up-to-date context
 2. Include findings in codex prompt under CONTEXT
 3. Codex analyzes with full context + codebase awareness
-4. Use codex `--search` flag when it needs live web results directly
+4. Use `codex --search exec ...` when it needs live web results directly (the `--search` flag goes *before* `exec`, not after)
 
 ## Anti-Patterns
 
@@ -214,11 +216,3 @@ Report to the user:
 - **Codex findings** — Key results from codex's analysis or changes it made
 - **Gate results** — Test/lint/build outcomes (pass/fail with details on failures)
 - **Decision** — Iterating (with what follow-up) or shipping (with summary of what landed)
-
-## Sandbox Modes
-
-| Flag | Use |
-|------|-----|
-| `-s read-only` | Analysis, reviews, research (no file writes) |
-| `--full-auto` | Implementation, fixes (sandboxed writes) |
-| (default) | Normal with approval prompts |
