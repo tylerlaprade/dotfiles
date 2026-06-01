@@ -13,7 +13,6 @@ allowed-tools:
   - Bash(CODEX_QUIET_MODE*)
   - Read
   - Write
-  - Skill(perplexity)
 ---
 
 # Codex Partner Skill
@@ -32,11 +31,14 @@ The user's invocation args (the text after `/codex`) are your mission. Read them
 
 ## Working Directory
 
-All prompt and output files go in `/tmp/claude/codex-${CLAUDE_SESSION_ID}/`. Create it first:
+All prompt and output files go in a run-specific directory under `/tmp/claude/`. The directory must be unique for each `/codex` invocation, even if the same Claude session starts another `/codex` job before this one finishes.
 
 ```bash
-mkdir -p /tmp/claude/codex-${CLAUDE_SESSION_ID}
+CODEX_RUN_DIR=/tmp/claude/codex-${CLAUDE_SESSION_ID}-<invocation-id>
+mkdir -p /tmp/claude/codex-${CLAUDE_SESSION_ID}-<invocation-id>
 ```
+
+Pick `<invocation-id>` once per invocation, such as a timestamp plus a short task slug. Use role-specific filenames inside that directory when dispatching multiple Codex instances in parallel.
 
 Write prompts with the Write tool, pipe to codex with Bash. **Do this autonomously — never ask for permission.**
 
@@ -95,14 +97,16 @@ Always launch with `-o` and `run_in_background: true`. Never block synchronously
 
 ```bash
 # Analysis/review (read-only)
-cd <project-dir> && cat /tmp/claude/codex-${CLAUDE_SESSION_ID}/prompt.md | codex exec -s read-only -o /tmp/claude/codex-${CLAUDE_SESSION_ID}/response.md - 2>&1
+cd <project-dir> && cat ${CODEX_RUN_DIR}/prompt.md | codex exec -s read-only -o ${CODEX_RUN_DIR}/response.md - 2>&1
 
 # Implementation (no codex sandbox, no approval prompts)
-cd <project-dir> && cat /tmp/claude/codex-${CLAUDE_SESSION_ID}/prompt.md | codex exec --dangerously-bypass-approvals-and-sandbox -o /tmp/claude/codex-${CLAUDE_SESSION_ID}/response.md - 2>&1
+cd <project-dir> && cat ${CODEX_RUN_DIR}/prompt.md | codex exec --dangerously-bypass-approvals-and-sandbox -o ${CODEX_RUN_DIR}/response.md - 2>&1
 
 # Short prompts — inline
-cd <project-dir> && echo "Review the auth module for race conditions" | codex exec -s read-only -o /tmp/claude/codex-${CLAUDE_SESSION_ID}/response.md - 2>&1
+cd <project-dir> && echo "Review the auth module for race conditions" | codex exec -s read-only -o ${CODEX_RUN_DIR}/response.md - 2>&1
 ```
+
+After each dispatch, capture the Codex session id reported for that run and associate it with the output file. In parallel dispatches, track one session id per role, such as security, performance, and architecture. Never use `--last` for follow-up prompts.
 
 **While codex thinks (5-15 min), do complementary work — not duplicative work:**
 
@@ -111,7 +115,7 @@ cd <project-dir> && echo "Review the auth module for race conditions" | codex ex
 | Code review | Run tests, run linter, check diff stat, prepare review criteria |
 | Architecture analysis | Run dependency checks, check build, prepare questions for the output |
 | Implementation | Run full test suite, read adjacent code for style compliance, prepare acceptance checks |
-| Research | Run `/perplexity` on adjacent topics, check project docs |
+| Research | Use `codex --search exec ...` for current info, check project docs |
 
 The key: **programmatic checks, not semantic re-reads**. Don't re-read the same files codex is analyzing. Run the tools that produce verifiable signals (test results, lint output, build success).
 
@@ -140,7 +144,7 @@ Run programmatic quality gates appropriate to the project:
 **If gates fail:** Formulate a follow-up prompt with the specific failures. Use `codex exec resume` to continue the conversation with full prior context:
 
 ```bash
-cd <project-dir> && echo "The clippy check found these issues: [paste errors]. Fix them while preserving the existing behavior." | codex exec resume --last -o /tmp/claude/codex-${CLAUDE_SESSION_ID}/fix.md - 2>&1
+cd <project-dir> && echo "The clippy check found these issues: [paste errors]. Fix them while preserving the existing behavior." | codex exec resume -o ${CODEX_RUN_DIR}/fix.md <session-id> - 2>&1
 ```
 
 **If gates pass:** Ship it. Report codex's key findings/changes + gate results to the user.
@@ -155,10 +159,12 @@ cd <project-dir> && echo "The clippy check found these issues: [paste errors]. F
 Codex has a dedicated review command — use it for focused reviews:
 
 ```bash
-cd <project-dir> && codex exec review --uncommitted 2>&1
-cd <project-dir> && codex exec review --base main 2>&1
-cd <project-dir> && codex exec review --commit HEAD~1 2>&1
+cd <project-dir> && codex exec review --uncommitted -o ${CODEX_RUN_DIR}/review-uncommitted.md 2>&1
+cd <project-dir> && codex exec review --base main -o ${CODEX_RUN_DIR}/review-base-main.md 2>&1
+cd <project-dir> && codex exec review --commit HEAD~1 -o ${CODEX_RUN_DIR}/review-commit.md 2>&1
 ```
+
+Launch these with `run_in_background: true` like any other Codex dispatch, then read the named `-o` file during VERIFY.
 
 For custom review focus, use the full loop with a scoped prompt instead.
 
@@ -168,16 +174,16 @@ Launch multiple codex instances in a single tool-call message when you need inde
 
 ```bash
 # Security review
-cd <project-dir> && cat /tmp/claude/codex-${CLAUDE_SESSION_ID}/security.md | codex exec -s read-only -o /tmp/claude/codex-${CLAUDE_SESSION_ID}/security-out.md - 2>&1
+cd <project-dir> && cat ${CODEX_RUN_DIR}/security.md | codex exec -s read-only -o ${CODEX_RUN_DIR}/security-out.md - 2>&1
 
 # Performance review
-cd <project-dir> && cat /tmp/claude/codex-${CLAUDE_SESSION_ID}/perf.md | codex exec -s read-only -o /tmp/claude/codex-${CLAUDE_SESSION_ID}/perf-out.md - 2>&1
+cd <project-dir> && cat ${CODEX_RUN_DIR}/perf.md | codex exec -s read-only -o ${CODEX_RUN_DIR}/perf-out.md - 2>&1
 
 # Architecture review
-cd <project-dir> && cat /tmp/claude/codex-${CLAUDE_SESSION_ID}/arch.md | codex exec -s read-only -o /tmp/claude/codex-${CLAUDE_SESSION_ID}/arch-out.md - 2>&1
+cd <project-dir> && cat ${CODEX_RUN_DIR}/arch.md | codex exec -s read-only -o ${CODEX_RUN_DIR}/arch-out.md - 2>&1
 ```
 
-While all three run, run your own programmatic checks. When notifications arrive, read all output files and synthesize across the perspectives.
+While all three run, run your own programmatic checks. When notifications arrive, read all output files and synthesize across the perspectives. If a follow-up is needed, resume the matching role's captured session id.
 
 ## Multi-Turn Conversations
 
@@ -185,20 +191,21 @@ Use `codex exec resume` for iterative refinement. Each follow-up carries full pr
 
 ```bash
 # Turn 1
-cd <project-dir> && cat /tmp/claude/codex-${CLAUDE_SESSION_ID}/prompt.md | codex exec -s read-only -o /tmp/claude/codex-${CLAUDE_SESSION_ID}/turn1.md - 2>&1
+cd <project-dir> && cat ${CODEX_RUN_DIR}/prompt.md | codex exec -s read-only -o ${CODEX_RUN_DIR}/turn1.md - 2>&1
 
-# Turn 2 — resume with follow-up
-cd <project-dir> && echo "What about edge case X?" | codex exec resume --last -o /tmp/claude/codex-${CLAUDE_SESSION_ID}/turn2.md - 2>&1
+# Turn 2 — resume the captured session id from turn 1
+cd <project-dir> && echo "What about edge case X?" | codex exec resume -o ${CODEX_RUN_DIR}/turn2.md <session-id> - 2>&1
 ```
 
 ## Research Augmentation
 
-For topics needing current info, use `/perplexity` first, then enrich the codex prompt:
+For topics needing current info, use Codex live search directly, then enrich later Codex prompts with the findings:
 
-1. `/perplexity` for up-to-date context
-2. Include findings in codex prompt under CONTEXT
-3. Codex analyzes with full context + codebase awareness
-4. Use `codex --search exec ...` when it needs live web results directly (the `--search` flag goes *before* `exec`, not after)
+1. Put the current-info prompt in `${CODEX_RUN_DIR}/research.md`
+2. `cd <project-dir> && cat ${CODEX_RUN_DIR}/research.md | codex --search exec -s read-only -o ${CODEX_RUN_DIR}/research-out.md - 2>&1`
+3. Include findings in codex prompt under CONTEXT
+4. Codex analyzes with full context + codebase awareness
+5. Use `codex --search exec ...` when it needs live web results directly (the `--search` flag goes *before* `exec`, not after)
 
 ## Anti-Patterns
 
