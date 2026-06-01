@@ -2,8 +2,9 @@
 # Source from .zshrc / .bashrc:  source ~/Code/dotfiles/scripts/bin/resume.sh
 # macOS-only: uses BSD `date -j -f` and `caffeinate`.
 #
-# No prompt arg → resumes the last session with prompt "continue".
-# Prompt arg   → starts a fresh session with that prompt.
+# No prompt arg → resumes the selected/latest session with prompt "continue".
+# Prompt arg   → resumes the selected/latest session with that prompt.
+# -n/--new     → starts a fresh session instead of resuming.
 #
 # Tool and time/duration may be passed in either order.
 # Bare numbers are rejected as ambiguous — durations need a unit suffix.
@@ -20,21 +21,63 @@
 #   7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
 #   3000s, 45m, 2h                duration in seconds/minutes/hours
 #
+# Options:
+#   -s, --session ID_OR_NAME            resume a specific claude/codex session
+#   -n, --new                           start a new session
+#   -h, --help                          show help
+#
 # Usage:
 #   resume claude                # resume last claude session at next 5h reset
 #   resume codex 7p              # resume last codex session at 7:00 PM
 #   resume 1220a claude          # resume last claude session at 12:20 AM
 #   resume codex 3000s           # resume last codex session in 3000 seconds
-#   resume 730p claude "do X"    # start new claude session at 7:30 PM with prompt "do X"
+#   resume codex -s 019... 7p    # resume a specific codex session at 7:00 PM
+#   resume 730p claude "do X"    # resume last claude session at 7:30 PM with prompt "do X"
+#   resume -n 730p claude "do X" # start new claude session at 7:30 PM with prompt "do X"
 
 resume() {
+  local session=""
+  local new_session=0
+  local -a args=()
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      -s|--session)
+        shift
+        [ -n "$1" ] || { echo "resume: --session requires a session id or name" >&2; return 1; }
+        session="$1" ;;
+      --session=*)
+        session="${1#--session=}"
+        [ -n "$session" ] || { echo "resume: --session requires a session id or name" >&2; return 1; } ;;
+      -n|--new)
+        new_session=1 ;;
+      -h|--help)
+        _resume_help
+        return 0 ;;
+      --)
+        shift
+        args+=("$@")
+        break ;;
+      -*)
+        echo "resume: unknown option '$1'" >&2
+        return 1 ;;
+      *)
+        args+=("$1") ;;
+    esac
+    shift
+  done
+  set -- "${args[@]}"
+  if [ -n "$session" ] && (( new_session )); then
+    echo "resume: --session and --new cannot be used together" >&2
+    return 1
+  fi
+
   local a1="$1" a2="$2"
 
   local tool time_str
   if [[ $a1 == codex || $a1 == claude ]]; then
     tool="$a1"
     if [[ $a2 == codex || $a2 == claude ]]; then
-      echo "resume: got two tool names; expected <codex|claude> [time|duration] [prompt]" >&2
+      echo "resume: got two tool names; expected <codex|claude> [time|duration] [--session ID] [--new] [prompt]" >&2
       return 1
     fi
     time_str="$a2"
@@ -43,8 +86,7 @@ resume() {
     tool="$a2"; time_str="$a1"
     shift 2
   else
-    echo "Usage: resume <codex|claude> [time|duration] [prompt]" >&2
-    echo "       (tool and time may be in either order; omit time to wait for next 5h reset)" >&2
+    _resume_help >&2
     return 1
   fi
 
@@ -98,11 +140,17 @@ resume() {
     esac
   fi
 
-  local prompt action new=0
+  local action new=0
+  local -a prompt_args=()
   if [ -n "$1" ]; then
-    prompt="$1"; action="Starting new"; new=1
+    prompt_args=("$1")
+  elif (( ! new_session )); then
+    prompt_args=("continue")
+  fi
+  if (( new_session )); then
+    action="Starting new"; new=1
   else
-    prompt="continue"; action="Resuming"
+    action="Resuming"
   fi
 
   local -a cmd
@@ -111,21 +159,28 @@ resume() {
       if (( new )); then
         cmd=(codex --dangerously-bypass-approvals-and-sandbox)
       else
-        # `codex resume` takes [SESSION_ID] [PROMPT] positionals. With --last and a
-        # prompt, the prompt would land in the SESSION_ID slot. Extract the latest
-        # rollout's UUID and pass it explicitly so the prompt lands correctly.
-        local latest_rollout latest_uuid
-        latest_rollout=$(command ls ~/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | sort -r | head -1)
-        if [ -z "$latest_rollout" ]; then
-          echo "resume: no codex session rollouts in ~/.codex/sessions — cannot resume" >&2
-          return 1
+        local codex_session="$session"
+        if [ -z "$codex_session" ]; then
+          # `codex resume` takes [SESSION_ID] [PROMPT] positionals. With --last and a
+          # prompt, the prompt would land in the SESSION_ID slot. Extract the latest
+          # rollout's UUID and pass it explicitly so the prompt lands correctly.
+          local latest_rollout
+          latest_rollout=$(command ls ~/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | sort -r | head -1)
+          if [ -z "$latest_rollout" ]; then
+            echo "resume: no codex session rollouts in ~/.codex/sessions — cannot resume" >&2
+            return 1
+          fi
+          codex_session=$(basename "$latest_rollout" | sed -E 's/^rollout-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}-(.+)\.jsonl$/\1/')
         fi
-        latest_uuid=$(basename "$latest_rollout" | sed -E 's/^rollout-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}-(.+)\.jsonl$/\1/')
-        cmd=(codex resume --dangerously-bypass-approvals-and-sandbox "$latest_uuid")
+        cmd=(codex resume --dangerously-bypass-approvals-and-sandbox "$codex_session")
       fi ;;
     claude)
       cmd=(claude --dangerously-skip-permissions)
-      (( new )) || cmd+=(-c) ;;
+      if [ -n "$session" ]; then
+        cmd+=(--resume "$session")
+      else
+        (( new )) || cmd+=(-c)
+      fi ;;
   esac
 
   local target_clock
@@ -161,7 +216,39 @@ resume() {
     wait "$spin_pid" 2>/dev/null
     printf "\r\033[K\033]2;\007"
     exec "$@"
-  ' _ "$label" "$target_clock" "$delay" "${cmd[@]}" "$prompt"
+  ' _ "$label" "$target_clock" "$delay" "${cmd[@]}" "${prompt_args[@]}"
+}
+
+_resume_help() {
+  cat <<'EOF'
+Usage: resume <codex|claude> [time|duration] [options] [prompt]
+
+Delay-launch a claude or codex session, keeping the machine awake.
+Tool, time/duration, and options may be passed in any order.
+
+No prompt arg resumes the selected/latest session with prompt "continue".
+Prompt arg resumes the selected/latest session with that prompt.
+Use -n/--new to start a fresh session instead of resuming.
+
+Time/duration:
+  7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
+  3000s, 45m, 2h                duration in seconds/minutes/hours
+  omitted                       next rate-limit reset
+
+Options:
+  -s, --session ID_OR_NAME       resume a specific claude/codex session
+  -n, --new                      start a new session
+  -h, --help                     show this help
+
+Examples:
+  resume claude
+  resume codex 7p
+  resume 1220a claude
+  resume codex 3000s
+  resume codex -s 019... 7p
+  resume 730p claude "do X"
+  resume -n 730p claude "do X"
+EOF
 }
 
 _resume_clock_delay() {
