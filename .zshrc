@@ -51,8 +51,7 @@ claude() {
     _key=$(git config --global user.signingkey 2>/dev/null)
     if [ -n "$_key" ]; then
       gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
-      echo | gpg --batch --sign --local-user "$_key" -o /dev/null 2>/dev/null \
-        || echo | gpg --sign --local-user "$_key" -o /dev/null 2>/dev/null
+      echo | gpg --sign --local-user "$_key" -o /dev/null 2>/dev/null
     fi
   fi
 
