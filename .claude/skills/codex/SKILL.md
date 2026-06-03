@@ -3,7 +3,6 @@ name: codex
 description: Drive OpenAI's Codex CLI as a specialist executor in a driver/specialist loop — scope the work, dispatch async, run quality gates, iterate. Invoke with /codex.
 argument-hint: <task or question to delegate to codex>
 disable-model-invocation: true
-context: fork
 allowed-tools:
   - Bash(codex *)
   - Bash(cat /tmp/claude/codex-*)
@@ -27,7 +26,7 @@ The user has OpenAI Max plan so don't hold back on usage.
 
 ## User Directive
 
-The user's invocation args (the text after `/codex`) are your mission. Read them carefully — they tell you **what** to do and **how** to engage with codex. If no args are provided, ask the parent conversation what it needs.
+The user's invocation args (the text after `/codex`) are your mission. Read them carefully — they tell you **what** to do and **how** to engage with codex. This skill runs **inline** in the current conversation, so you already have the full context of what's been discussed — use it when scoping and prompting codex. If no args are provided, infer the task from the conversation so far; only ask the user when it's genuinely ambiguous.
 
 ## Working Directory
 
