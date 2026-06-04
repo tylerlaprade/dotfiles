@@ -5,7 +5,6 @@
     "CLAUDE_CODE_DISABLE_1M_CONTEXT": "0",
     "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1",
     "CLAUDE_CODE_DISABLE_TERMINAL_TITLE": "1",
-    "CLAUDE_CODE_EFFORT_LEVEL": "xhigh",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
     "MAX_THINKING_TOKENS": "63999"
@@ -59,6 +58,7 @@
       }
     ]
   },
+  "enableWorkflows": true,
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh",
@@ -120,6 +120,7 @@
   "preferredNotifChannel": "terminal_bell",
   "autoCompactEnabled": true,
   "remoteControlAtStartup": true,
+  "effortLevel": "xhigh",
   "inputNeededNotifEnabled": false,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
@@ -128,5 +129,5 @@
   "feedbackSurveyState": {
     "lastShownTime": 9999999999999
   },
-  "enableWorkflows": true
+  "skipWorkflowUsageWarning": true
 }
