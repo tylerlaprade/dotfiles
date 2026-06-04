@@ -54,7 +54,7 @@ if command -v cargo &>/dev/null; then
   pid_cargo=$!
 fi
 
-# cw (Rust "change workspace" CLI — github.com/tylerlaprade/cw)
+# cw (Rust numbered-workspace dev-CLI — github.com/tylerlaprade/cw)
 if command -v cargo &>/dev/null; then
   echo "  [cw] starting..."
   (
