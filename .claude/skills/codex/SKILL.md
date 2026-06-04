@@ -92,20 +92,30 @@ DO NOT:
 
 ### 3. DISPATCH — Launch Codex Async
 
-Always launch with `-o` and `run_in_background: true`. Never block synchronously.
+Always launch with `-o` and `run_in_background: true`. Never block synchronously. Tee the run output to a log file so the session-id banner survives for later `resume`.
 
 ```bash
 # Analysis/review (read-only)
-cd <project-dir> && cat ${CODEX_RUN_DIR}/prompt.md | codex exec -s read-only -o ${CODEX_RUN_DIR}/response.md - 2>&1
+cd <project-dir> && cat ${CODEX_RUN_DIR}/prompt.md | codex exec -s read-only -o ${CODEX_RUN_DIR}/response.md - 2>&1 | tee ${CODEX_RUN_DIR}/response.log
 
 # Implementation (no codex sandbox, no approval prompts)
-cd <project-dir> && cat ${CODEX_RUN_DIR}/prompt.md | codex exec --dangerously-bypass-approvals-and-sandbox -o ${CODEX_RUN_DIR}/response.md - 2>&1
+cd <project-dir> && cat ${CODEX_RUN_DIR}/prompt.md | codex exec --dangerously-bypass-approvals-and-sandbox -o ${CODEX_RUN_DIR}/response.md - 2>&1 | tee ${CODEX_RUN_DIR}/response.log
 
 # Short prompts — inline
-cd <project-dir> && echo "Review the auth module for race conditions" | codex exec -s read-only -o ${CODEX_RUN_DIR}/response.md - 2>&1
+cd <project-dir> && echo "Review the auth module for race conditions" | codex exec -s read-only -o ${CODEX_RUN_DIR}/response.md - 2>&1 | tee ${CODEX_RUN_DIR}/response.log
 ```
 
-After each dispatch, capture the Codex session id reported for that run and associate it with the output file. In parallel dispatches, track one session id per role, such as security, performance, and architecture. Never use `--last` for follow-up prompts.
+The `-o` file holds the final message (the deliverable); the `.log` file holds the banner + progress (where the session id lives).
+
+After each dispatch, capture the Codex session id so you can `resume` it later. The id is **not** in the `-o` file — it's printed in the startup banner on the run's output stream (`session id: <uuid>`). Because you launch in the background and read the run's captured output, grep it out once the run finishes:
+
+```bash
+grep -aoE 'session id: [0-9a-f-]+' <run-output> | head -1 | awk '{print $3}'
+```
+
+In parallel dispatches, track one session id per role, such as security, performance, and architecture. Never use `--last` for follow-up prompts — it's ambiguous when multiple runs are in flight.
+
+`-o` writes only Codex's **final message**, not the full transcript. That's the deliverable for analysis/implementation runs. For `exec review`, the final message is the prose summary; if you need the structured findings (file, line, severity) add `--json` and parse the event stream instead.
 
 **While codex thinks (5-15 min), do complementary work — not duplicative work:**
 
@@ -143,8 +153,10 @@ Run programmatic quality gates appropriate to the project:
 **If gates fail:** Formulate a follow-up prompt with the specific failures. Use `codex exec resume` to continue the conversation with full prior context:
 
 ```bash
-cd <project-dir> && echo "The clippy check found these issues: [paste errors]. Fix them while preserving the existing behavior." | codex exec resume -o ${CODEX_RUN_DIR}/fix.md <session-id> - 2>&1
+cd <project-dir> && echo "The clippy check found these issues: [paste errors]. Fix them while preserving the existing behavior." | codex exec resume <session-id> -o ${CODEX_RUN_DIR}/fix.md - 2>&1 | tee ${CODEX_RUN_DIR}/fix.log
 ```
+
+The session id is the first positional arg to `exec resume`; `-` (stdin) is the prompt. Resume preserves Codex's full prior context, so don't re-paste the original task — only the new instruction.
 
 **If gates pass:** Ship it. Report codex's key findings/changes + gate results to the user.
 
@@ -190,10 +202,10 @@ Use `codex exec resume` for iterative refinement. Each follow-up carries full pr
 
 ```bash
 # Turn 1
-cd <project-dir> && cat ${CODEX_RUN_DIR}/prompt.md | codex exec -s read-only -o ${CODEX_RUN_DIR}/turn1.md - 2>&1
+cd <project-dir> && cat ${CODEX_RUN_DIR}/prompt.md | codex exec -s read-only -o ${CODEX_RUN_DIR}/turn1.md - 2>&1 | tee ${CODEX_RUN_DIR}/turn1.log
 
-# Turn 2 — resume the captured session id from turn 1
-cd <project-dir> && echo "What about edge case X?" | codex exec resume -o ${CODEX_RUN_DIR}/turn2.md <session-id> - 2>&1
+# Turn 2 — resume the session id captured from turn1.log
+cd <project-dir> && echo "What about edge case X?" | codex exec resume <session-id> -o ${CODEX_RUN_DIR}/turn2.md - 2>&1 | tee ${CODEX_RUN_DIR}/turn2.log
 ```
 
 ## Research Augmentation
