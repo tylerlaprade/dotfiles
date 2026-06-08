@@ -113,14 +113,15 @@
     }
   },
   "alwaysThinkingEnabled": true,
+  "effortLevel": "xhigh",
   "promptSuggestionEnabled": false,
   "showClearContextOnPlanAccept": true,
   "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
   "theme": "auto",
   "preferredNotifChannel": "terminal_bell",
   "autoCompactEnabled": true,
   "remoteControlAtStartup": true,
-  "effortLevel": "xhigh",
   "inputNeededNotifEnabled": false,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
@@ -128,6 +129,5 @@
   "voiceEnabled": true,
   "feedbackSurveyState": {
     "lastShownTime": 9999999999999
-  },
-  "skipWorkflowUsageWarning": true
+  }
 }
