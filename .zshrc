@@ -111,7 +111,7 @@ claude() {
       _monitor=$!
     fi
 
-    command claude --allow-dangerously-skip-permissions "${_args[@]}"
+    command claude --allow-dangerously-skip-permissions --settings '{"ultracode": true}' "${_args[@]}"
     local _exit=$?
     [ -n "$_monitor" ] && { kill $_monitor 2>/dev/null; wait $_monitor 2>/dev/null; }
 

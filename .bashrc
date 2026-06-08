@@ -38,7 +38,7 @@ zj() {
 }
 
 # Claude
-claude() { command claude --allow-dangerously-skip-permissions "$@"; }
+claude() { command claude --allow-dangerously-skip-permissions --settings '{"ultracode": true}' "$@"; }
 
 # cwc — change workspace (condor)
 _cw_root=$(git rev-parse --show-toplevel 2>/dev/null)
