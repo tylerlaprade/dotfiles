@@ -1,4 +1,5 @@
-#!/usr/bin/env -S uv run --script
+#!/usr/bin/python3
+# Apple's stable python3 on purpose — see sync-macos-defaults.py shebang note.
 """Bidirectional sync of Graphite preferences.
 
 Keeps non-secret preferences in sync between the repo file and local

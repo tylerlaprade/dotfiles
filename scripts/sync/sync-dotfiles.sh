@@ -1,6 +1,6 @@
 #!/bin/bash
 # Lightweight symlink sync — safe to run repeatedly.
-# Called from Claude Code SessionStart hook to keep links current.
+# Run by the com.tylerlaprade.sync-dotfiles LaunchAgent (at login and daily).
 
 _source="${BASH_SOURCE[0]}"
 while [[ -L "$_source" ]]; do
@@ -204,13 +204,20 @@ elif [[ -f "$gt_prefs" && ! -f "$gt_config" ]]; then
   cp "$gt_prefs" "$gt_config"
   echo "ℹ️  Copied Graphite preferences. Run 'gt auth' to add your auth token."
 fi
-# Upgrade global uv tools (sourcery, etc.)
-uv tool upgrade --all >/dev/null 2>&1 || true
+# Tool upgrades are slow (cargo recompiles from source) — at most once a day,
+# even when login-triggered runs stack up.
+upgrade_stamp="$HOME/.cache/sync-dotfiles-upgrade-stamp"
+if [[ -z "$(find "$upgrade_stamp" -mtime -1 2>/dev/null)" ]]; then
+  mkdir -p "$HOME/.cache" && touch "$upgrade_stamp"
 
-# Upgrade global Cargo tools.
-if command -v cargo >/dev/null 2>&1; then
-  cargo install cargo-update >/dev/null 2>&1 || true
-  cargo install-update -a >/dev/null 2>&1 || true
+  # Upgrade global uv tools (sourcery, etc.)
+  uv tool upgrade --all >/dev/null 2>&1 || true
+
+  # Upgrade global Cargo tools.
+  if command -v cargo >/dev/null 2>&1; then
+    cargo install cargo-update >/dev/null 2>&1 || true
+    cargo install-update -a >/dev/null 2>&1 || true
+  fi
 fi
 
 # macOS defaults — read current values and update snapshot

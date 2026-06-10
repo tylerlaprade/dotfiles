@@ -1,11 +1,14 @@
-#!/usr/bin/env -S uv run --script
+#!/usr/bin/python3
+# Apple's stable python3 on purpose: macOS Automation/AppData permissions are
+# keyed to the interpreter's binary path, and Homebrew uv/python move to a new
+# Cellar path on every release, re-triggering the permission prompt each time.
 """Bidirectional sync of macOS defaults using per-domain files.
 
 Each tracked domain gets its own JSON file under scripts/setup/macos-defaults/.
 Uses last-writer-wins (mtime) to decide direction per domain, matching the
 pattern used by sync-graphite.py and sync-vscode-settings.py.
 
-Called by sync-dotfiles.sh on each session start.
+Called by sync-dotfiles.sh (LaunchAgent: at login and daily).
 """
 
 import fnmatch
@@ -24,6 +27,12 @@ SUFFIXED_UUID_RE = re.compile(r"^[A-Z]+-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F
 ISO_DATETIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}")
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 HEX32PLUS_RE = re.compile(r"^[0-9a-fA-F]{32,}$")
+EPOCH_STRING_RE = re.compile(r"^[1-3]\d{9}(\.\d+)?$")  # epoch range 2001–2096, like the numeric check
+SIZE_STRING_RE = re.compile(r"^\{-?\d+(\.\d+)?, -?\d+(\.\d+)?\}$")
+RECT_STRING_RE = re.compile(r"^\{\{-?\d+(\.\d+)?, -?\d+(\.\d+)?\}, \{-?\d+(\.\d+)?, -?\d+(\.\d+)?\}\}$")
+# Unanchored: catches embedded tokens too ("Bearer eyJ…", JSON-serialized auth blobs)
+JWT_RE = re.compile(r"eyJ[A-Za-z0-9_-]{8,}\.eyJ")
+SECRET_KEY_RE = re.compile(r"token|secret|passw|credential|api[_-]?key", re.IGNORECASE)
 ACCOUNT_RECORD_KEYS = {"AccountID", "AccountAlternateDSID", "AccountDescription", "AccountAuthenticationType"}
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -109,7 +118,8 @@ def has_bytes(obj):
 
 
 def is_churn_scalar(val):
-    """Top-level scalar that's clearly state: timestamps, UUIDs, ISO datetimes, prefixed UUIDs."""
+    """Top-level scalar that's clearly state: timestamps (numeric or string), UUIDs,
+    ISO datetimes, prefixed UUIDs, window-geometry strings (NSRect/NSSize forms)."""
     if isinstance(val, bool):
         return False
     if isinstance(val, int) and 1_000_000_000 < val < 4_000_000_000:
@@ -118,6 +128,8 @@ def is_churn_scalar(val):
         return True
     if isinstance(val, str):
         if UUID_RE.match(val) or SUFFIXED_UUID_RE.match(val) or ISO_DATETIME_RE.match(val):
+            return True
+        if EPOCH_STRING_RE.match(val) or SIZE_STRING_RE.match(val) or RECT_STRING_RE.match(val):
             return True
     return False
 
@@ -130,6 +142,17 @@ def contains_email(val):
         return any(contains_email(v) for v in val.values())
     if isinstance(val, list):
         return any(contains_email(v) for v in val)
+    return False
+
+
+def contains_secret_string(val):
+    """Recursively scan for JWT-shaped strings (auth/session tokens)."""
+    if isinstance(val, str):
+        return bool(JWT_RE.search(val))
+    if isinstance(val, dict):
+        return any(contains_secret_string(v) for v in val.values())
+    if isinstance(val, list):
+        return any(contains_secret_string(v) for v in val)
     return False
 
 
@@ -197,6 +220,26 @@ def stabilize_number(domain, key, kind, value, existing):
     return kind, value
 
 
+def stabilize_string(key, value, existing):
+    """Preserve the prior serialization of JSON-in-string values when semantically
+    identical — apps re-serialize embedded JSON with nondeterministic key order
+    (e.g. AltTab's "exceptions"), which would otherwise churn the repo file."""
+    entry = existing.get(key)
+    if not entry or entry.get("type") != "string":
+        return value
+    old_value = entry.get("value")
+    if not isinstance(old_value, str) or old_value == value:
+        return value
+    try:
+        old_parsed = json.loads(old_value)
+        new_parsed = json.loads(value)
+    except ValueError:
+        return value
+    if isinstance(old_parsed, (dict, list)) and old_parsed == new_parsed:
+        return old_value
+    return value
+
+
 def export_domain(domain, blacklist, existing):
     """Export a single domain from system, returning entries dict or None."""
     raw = subprocess.run(["defaults", "export", domain, "-"], capture_output=True)
@@ -212,10 +255,13 @@ def export_domain(domain, blacklist, existing):
     for key in sorted(d.keys()):
         if any(fnmatch.fnmatch(key, pat) for pat in blacklist):
             continue
+        if SECRET_KEY_RE.search(key):
+            continue
         val = d[key]
         if (
             is_churn_scalar(val)
             or contains_email(val)
+            or contains_secret_string(val)
             or is_hex_keyed_dict(val)
             or is_apple_account_record(val)
             or contains_file_bookmark(val)
@@ -231,14 +277,14 @@ def export_domain(domain, blacklist, existing):
             kind, value = stabilize_number(domain, key, "float", val, existing)
             entries[key] = {"type": kind, "value": value}
         elif isinstance(val, str):
-            entries[key] = {"type": "string", "value": val}
+            entries[key] = {"type": "string", "value": stabilize_string(key, val, existing)}
         elif isinstance(val, (list, dict)):
             if has_bytes(val):
                 os.makedirs(plist_dir, exist_ok=True)
-                plist_file = os.path.join(plist_dir, f"{domain}.{key}.plist")
+                plist_file = os.path.join(plist_dir, f"{domain_file_name(domain)}.{key}.plist")
                 with open(plist_file, "wb") as pf:
                     plistlib.dump({key: val}, pf, fmt=plistlib.FMT_XML)
-                entries[key] = {"type": "plist-file", "file": f"macos-plists/{domain}.{key}.plist"}
+                entries[key] = {"type": "plist-file", "file": f"macos-plists/{domain_file_name(domain)}.{key}.plist"}
             else:
                 entries[key] = {"type": "plist", "value": normalize_plist_value(val)}
         elif isinstance(val, datetime):
@@ -252,10 +298,9 @@ def export_domain(domain, blacklist, existing):
 
 
 def run_defaults(args):
-    """Run defaults command, retry with sudo on permission failure."""
+    """Run a defaults command. No sudo retry: defaults run as root writes to
+    root's preference domain, not the user's."""
     result = subprocess.run(args, capture_output=True, text=True)
-    if result.returncode != 0 and "Could not write domain" in result.stderr:
-        result = subprocess.run(["sudo"] + args, capture_output=True, text=True)
     return result.returncode == 0
 
 
@@ -283,8 +328,13 @@ def apply_domain(domain, entries):
             os.unlink(tmp_path)
 
 
+def domain_file_name(domain):
+    # Slash-containing domains (com.apple.LaunchServices/...) must not create subdirs
+    return domain.replace("/", "--")
+
+
 def domain_path(domain):
-    return os.path.join(DOMAIN_DIR, f"{domain}.json")
+    return os.path.join(DOMAIN_DIR, f"{domain_file_name(domain)}.json")
 
 
 def read_domain_file(domain):
@@ -321,9 +371,10 @@ for domain in sorted(domains_to_export):
     if local_entries is None and repo_entries is None:
         continue
 
-    marker = os.path.join(MARKER_DIR, domain)
+    marker = os.path.join(MARKER_DIR, domain_file_name(domain))
     marker_mtime = os.path.getmtime(marker) if os.path.exists(marker) else 0
 
+    reconciled = True
     if repo_entries is not None and local_entries is not None:
         if repo_entries == local_entries:
             pass  # In sync
@@ -341,11 +392,15 @@ for domain in sorted(domains_to_export):
     elif local_entries is not None:
         # New domain, no repo file yet
         write_domain_file(domain, local_entries)
-    # else: domain in repo but app not installed — preserve file
+    else:
+        # Domain in repo but app not installed (or export failed) — preserve the
+        # file AND the marker, so a repo file that arrives later (git pull/edit)
+        # can still win once the domain appears.
+        reconciled = False
 
-    # Touch marker
-    with open(marker, "w") as f:
-        pass
+    if reconciled:
+        with open(marker, "w") as f:
+            pass
 
 # Restart affected services if we applied anything
 if applied_domains:
@@ -361,7 +416,9 @@ if applied_domains:
         subprocess.run(["killall", proc], stderr=subprocess.DEVNULL)
 
 # ---------------------------------------------------------------------------
-# Login items — merge with on-disk file to preserve items from other machines
+# Login items — mirror the live list. Deletions propagate; git history is the
+# archive for anything removed. (An empty/failed osascript read leaves the
+# file untouched rather than wiping it.)
 # ---------------------------------------------------------------------------
 
 # Apps that register their own login item (via SMAppService) — tracking them
@@ -369,41 +426,32 @@ if applied_domains:
 # own launcher.
 LOGIN_ITEMS_SKIP = {"Hyperkey"}
 
+# One name/path per line: immune to ", " inside names or paths, and items with
+# no path (SMAppService registrations report AppleScript's `missing value`)
+# come through as empty lines instead of the literal text "missing value".
+LOGIN_ITEMS_SCRIPT = """
+set output to ""
+tell application "System Events"
+    repeat with li in login items
+        set itemPath to path of li
+        if itemPath is missing value then set itemPath to ""
+        set output to output & (name of li) & linefeed & itemPath & linefeed
+    end repeat
+end tell
+return output
+"""
+
 LOGIN_ITEMS_PATH = os.path.join(SETUP_DIR, "login-items.json")
-raw = subprocess.run(
-    ["osascript", "-e", 'tell application "System Events" to get the {name, path} of every login item'],
-    capture_output=True, text=True
-)
-current_items = []
+raw = subprocess.run(["osascript", "-e", LOGIN_ITEMS_SCRIPT], capture_output=True, text=True)
 if raw.returncode == 0 and raw.stdout.strip():
-    parts = [p.strip() for p in raw.stdout.strip().split(", ")]
-    half = len(parts) // 2
-    names = parts[:half]
-    paths = parts[half:]
+    lines = raw.stdout.rstrip("\n").split("\n")
     home = os.path.expanduser("~")
     current_items = [
         {"name": n, "path": p.replace(home, "~", 1) if p.startswith(home) else p}
-        for n, p in zip(names, paths)
-        if n not in LOGIN_ITEMS_SKIP
+        for n, p in zip(lines[0::2], lines[1::2])
+        # Pathless items can't be recreated on a fresh machine — don't record them
+        if n and p and n not in LOGIN_ITEMS_SKIP
     ]
-
-existing_items = []
-try:
-    if os.path.exists(LOGIN_ITEMS_PATH):
-        with open(LOGIN_ITEMS_PATH) as f:
-            existing_items = json.load(f)
-except Exception:
-    pass
-
-seen_names = {item["name"] for item in current_items}
-merged = list(current_items)
-for item in existing_items:
-    if item["name"] in LOGIN_ITEMS_SKIP:
-        continue
-    if item["name"] not in seen_names:
-        merged.append(item)
-        seen_names.add(item["name"])
-
-with open(LOGIN_ITEMS_PATH, "w") as f:
-    json.dump(merged, f, indent=2)
-    f.write("\n")
+    with open(LOGIN_ITEMS_PATH, "w") as f:
+        json.dump(current_items, f, indent=2)
+        f.write("\n")

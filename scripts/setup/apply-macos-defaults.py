@@ -1,4 +1,5 @@
-#!/usr/bin/env -S uv run --script
+#!/usr/bin/python3
+# Apple's stable python3 on purpose — see sync-macos-defaults.py shebang note.
 """Apply macOS defaults from per-domain snapshot files.
 
 Reads scripts/setup/macos-defaults/*.json and writes each setting via
@@ -28,10 +29,9 @@ failed = []
 
 
 def run_defaults(args):
-    """Run defaults command, retry with sudo on permission failure."""
+    """Run a defaults command. No sudo retry: defaults run as root writes to
+    root's preference domain, not the user's."""
     result = subprocess.run(args, capture_output=True, text=True)
-    if result.returncode != 0 and "Could not write domain" in result.stderr:
-        result = subprocess.run(["sudo"] + args, capture_output=True, text=True)
     if result.returncode != 0:
         failed.append((args, result.stderr.strip()))
 
@@ -39,7 +39,9 @@ def run_defaults(args):
 for filename in sorted(os.listdir(DOMAIN_DIR)):
     if not filename.endswith(".json"):
         continue
-    domain = filename[:-5]  # strip .json
+    # Strip .json; "--" undoes sync-macos-defaults.py's slash sanitization
+    # (com.apple.LaunchServices--com.apple.launchservices.secure.json)
+    domain = filename[:-5].replace("--", "/")
 
     with open(os.path.join(DOMAIN_DIR, filename)) as f:
         entries = json.load(f)

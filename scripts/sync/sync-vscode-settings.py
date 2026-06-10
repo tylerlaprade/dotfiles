@@ -1,4 +1,5 @@
-#!/usr/bin/env -S uv run --script
+#!/usr/bin/python3
+# Apple's stable python3 on purpose — see sync-macos-defaults.py shebang note.
 """Bidirectional sync of VS Code settings with local-only secrets.
 
 Keeps non-secret top-level settings in sync between the repo file and the live
