@@ -34,9 +34,5 @@
   "UserPreferences": {
     "type": "bool",
     "value": true
-  },
-  "version": {
-    "type": "int",
-    "value": 1
   }
 }

@@ -3,10 +3,6 @@
     "type": "string",
     "value": "Name"
   },
-  "FXPreferredViewStyle": {
-    "type": "string",
-    "value": "icnv"
-  },
   "FXRemoveOldTrashItems": {
     "type": "bool",
     "value": true
@@ -28,10 +24,6 @@
     "value": false
   },
   "ShowRemovableMediaOnDesktop": {
-    "type": "bool",
-    "value": true
-  },
-  "ShowSidebar": {
     "type": "bool",
     "value": true
   },

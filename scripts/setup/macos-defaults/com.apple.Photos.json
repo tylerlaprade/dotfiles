@@ -7,10 +7,6 @@
     "type": "bool",
     "value": true
   },
-  "IPXDefaultIsRestoringViewControllers": {
-    "type": "bool",
-    "value": false
-  },
   "IPXDefaultShowLibraryChooserOnLaunch": {
     "type": "bool",
     "value": false
@@ -19,20 +15,16 @@
     "type": "bool",
     "value": true
   },
-  "LastCuratedLibraryFirstTimeExperienceReadinessLogged": {
-    "type": "int",
-    "value": 1
-  },
-  "LastKnownHasSharedLibrary": {
-    "type": "int",
-    "value": 1
-  },
-  "LastKnownHasSharedLibraryPreview": {
-    "type": "int",
-    "value": 0
-  },
   "PXRootSettingsHideWIPAlerts": {
     "type": "bool",
     "value": false
+  },
+  "RecentlyDeletedItemsConfirmed": {
+    "type": "bool",
+    "value": true
+  },
+  "photosGridAspectFit": {
+    "type": "int",
+    "value": 1
   }
 }

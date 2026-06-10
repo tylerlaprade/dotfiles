@@ -7,10 +7,6 @@
     "type": "bool",
     "value": true
   },
-  "HasMigratedDefaults": {
-    "type": "bool",
-    "value": true
-  },
   "Man Page Window Settings": {
     "type": "string",
     "value": "Man Page"

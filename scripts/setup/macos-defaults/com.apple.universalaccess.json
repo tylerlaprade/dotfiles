@@ -3,20 +3,28 @@
     "type": "bool",
     "value": false
   },
-  "closeViewZoomDisplayID": {
-    "type": "int",
-    "value": 0
-  },
-  "closeViewZoomFactor": {
-    "type": "float",
-    "value": 1.0
-  },
   "login": {
     "type": "bool",
     "value": false
   },
+  "mouseDriverIgnoreTrackpad": {
+    "type": "bool",
+    "value": true
+  },
+  "mouseDriverInitialDelay": {
+    "type": "float",
+    "value": 1.125
+  },
+  "mouseDriverPrevOptionKeyToggle": {
+    "type": "bool",
+    "value": true
+  },
   "sessionChange": {
     "type": "bool",
     "value": false
+  },
+  "useMouseKeysShortcutKeys": {
+    "type": "bool",
+    "value": true
   }
 }

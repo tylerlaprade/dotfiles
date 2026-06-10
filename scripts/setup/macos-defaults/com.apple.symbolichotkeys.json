@@ -105,13 +105,14 @@
         }
       },
       "164": {
-        "enabled": true,
+        "enabled": false,
         "value": {
           "parameters": [
-            1048576,
-            18446744073708503039
+            65535,
+            65535,
+            0
           ],
-          "type": "modifier"
+          "type": "standard"
         }
       },
       "17": {

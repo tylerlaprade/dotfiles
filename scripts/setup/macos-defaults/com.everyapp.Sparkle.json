@@ -1,0 +1,42 @@
+{
+  "SUAutomaticallyUpdate": {
+    "type": "bool",
+    "value": true
+  },
+  "SUEnableAutomaticChecks": {
+    "type": "bool",
+    "value": true
+  },
+  "SUScheduledCheckInterval": {
+    "type": "float",
+    "value": 3600.0
+  },
+  "guidedClean.hasCompletedBefore": {
+    "type": "bool",
+    "value": false
+  },
+  "hasCompletedCleanupOnboarding_migrated_v1": {
+    "type": "bool",
+    "value": true
+  },
+  "hasSeenWelcomeVideo": {
+    "type": "bool",
+    "value": true
+  },
+  "hasSetDefaultLaunchAtLogin": {
+    "type": "bool",
+    "value": true
+  },
+  "suggestionScheduler.executionHour": {
+    "type": "int",
+    "value": 0
+  },
+  "suggestionScheduler.isEnabled": {
+    "type": "bool",
+    "value": false
+  },
+  "suggestionScheduler.pollIntervalMinutes": {
+    "type": "int",
+    "value": 60
+  }
+}

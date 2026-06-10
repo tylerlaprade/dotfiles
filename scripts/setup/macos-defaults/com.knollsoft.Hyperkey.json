@@ -31,10 +31,6 @@
     "type": "int",
     "value": 2
   },
-  "lastVersion": {
-    "type": "string",
-    "value": "56"
-  },
   "launchOnLogin": {
     "type": "bool",
     "value": true

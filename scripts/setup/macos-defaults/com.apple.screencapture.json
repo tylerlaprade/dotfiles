@@ -11,10 +11,6 @@
     "type": "bool",
     "value": true
   },
-  "style": {
-    "type": "string",
-    "value": "display"
-  },
   "target": {
     "type": "string",
     "value": "file"

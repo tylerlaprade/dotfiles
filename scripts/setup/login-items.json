@@ -12,11 +12,15 @@
     "path": "/Applications/Discord.app"
   },
   {
+    "name": "Sparkle",
+    "path": "/Applications/Sparkle.app"
+  },
+  {
     "name": "Claude",
     "path": "/Applications/Claude.app"
   },
   {
-    "name": "Google Calendar",
-    "path": "~/Applications/Brave Browser Apps.localized/Google Calendar.app"
+    "name": "Monologue",
+    "path": "/Applications/Monologue.app"
   }
 ]

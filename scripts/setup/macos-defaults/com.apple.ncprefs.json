@@ -14,9 +14,5 @@
   "summarize_previews": {
     "type": "bool",
     "value": false
-  },
-  "version": {
-    "type": "int",
-    "value": 1
   }
 }

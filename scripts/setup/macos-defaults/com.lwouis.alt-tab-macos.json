@@ -1,15 +1,11 @@
 {
   "SUAutomaticallyUpdate": {
     "type": "bool",
-    "value": false
+    "value": true
   },
   "SUEnableAutomaticChecks": {
     "type": "bool",
-    "value": false
-  },
-  "SUSkippedVersion": {
-    "type": "string",
-    "value": "10.12.0"
+    "value": true
   },
   "alignThumbnails": {
     "type": "string",
@@ -41,7 +37,7 @@
   },
   "exceptions": {
     "type": "string",
-    "value": "[{\"hide\":\"1\",\"bundleIdentifier\":\"com.McAfee.McAfeeSafariHost\",\"ignore\":\"0\"},{\"hide\":\"1\",\"bundleIdentifier\":\"com.apple.finder\",\"ignore\":\"0\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.microsoft.rdc.macos\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.teamviewer.TeamViewer\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"org.virtualbox.app.VirtualBoxVM\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.parallels.\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.citrix.XenAppViewer\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.citrix.receiver.icaviewer.mac\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.nicesoftware.dcvviewer\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.vmware.fusion\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.apple.ScreenSharing\",\"ignore\":\"2\"},{\"hide\":\"0\",\"bundleIdentifier\":\"com.utmapp.UTM\",\"ignore\":\"2\"},{\"hide\":\"1\",\"bundleIdentifier\":\"com.granola.app\",\"ignore\":\"0\"},{\"hide\":\"1\",\"bundleIdentifier\":\"com.superultra.Homerow\",\"ignore\":\"0\"}]"
+    "value": "[{\"bundleIdentifier\":\"com.McAfee.McAfeeSafariHost\",\"hide\":\"1\",\"ignore\":\"0\"},{\"bundleIdentifier\":\"com.apple.finder\",\"hide\":\"1\",\"ignore\":\"0\"},{\"bundleIdentifier\":\"com.microsoft.rdc.macos\",\"hide\":\"0\",\"ignore\":\"2\"},{\"bundleIdentifier\":\"com.teamviewer.TeamViewer\",\"hide\":\"0\",\"ignore\":\"2\"},{\"bundleIdentifier\":\"org.virtualbox.app.VirtualBoxVM\",\"hide\":\"0\",\"ignore\":\"2\"},{\"bundleIdentifier\":\"com.parallels.\",\"hide\":\"0\",\"ignore\":\"2\"},{\"bundleIdentifier\":\"com.citrix.XenAppViewer\",\"hide\":\"0\",\"ignore\":\"2\"},{\"bundleIdentifier\":\"com.citrix.receiver.icaviewer.mac\",\"hide\":\"0\",\"ignore\":\"2\"},{\"bundleIdentifier\":\"com.nicesoftware.dcvviewer\",\"hide\":\"0\",\"ignore\":\"2\"},{\"bundleIdentifier\":\"com.vmware.fusion\",\"hide\":\"0\",\"ignore\":\"2\"},{\"bundleIdentifier\":\"com.apple.ScreenSharing\",\"hide\":\"0\",\"ignore\":\"2\"},{\"bundleIdentifier\":\"com.utmapp.UTM\",\"ignore\":\"2\",\"hide\":\"0\"},{\"bundleIdentifier\":\"com.granola.app\",\"ignore\":\"0\",\"hide\":\"1\"},{\"bundleIdentifier\":\"com.superultra.Homerow\",\"ignore\":\"0\",\"hide\":\"1\"}]"
   },
   "fadeOutAnimation": {
     "type": "string",
@@ -95,9 +91,41 @@
     "type": "string",
     "value": "2"
   },
-  "showTabsAsWindows": {
+  "showTabsAsWindows10": {
     "type": "string",
-    "value": "false"
+    "value": "0"
+  },
+  "showTabsAsWindows2": {
+    "type": "string",
+    "value": "0"
+  },
+  "showTabsAsWindows3": {
+    "type": "string",
+    "value": "0"
+  },
+  "showTabsAsWindows4": {
+    "type": "string",
+    "value": "0"
+  },
+  "showTabsAsWindows5": {
+    "type": "string",
+    "value": "0"
+  },
+  "showTabsAsWindows6": {
+    "type": "string",
+    "value": "0"
+  },
+  "showTabsAsWindows7": {
+    "type": "string",
+    "value": "0"
+  },
+  "showTabsAsWindows8": {
+    "type": "string",
+    "value": "0"
+  },
+  "showTabsAsWindows9": {
+    "type": "string",
+    "value": "0"
   },
   "showTitles": {
     "type": "string",
@@ -129,7 +157,7 @@
   },
   "updatePolicy": {
     "type": "string",
-    "value": "0"
+    "value": "2"
   },
   "vimKeysEnabled": {
     "type": "string",

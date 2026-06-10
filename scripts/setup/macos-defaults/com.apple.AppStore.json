@@ -1,8 +1,4 @@
 {
-  "ASAcknowledgedOnboardingVersion": {
-    "type": "int",
-    "value": 7
-  },
   "AutoPlayVideoSetting": {
     "type": "string",
     "value": "on"

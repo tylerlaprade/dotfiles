@@ -1,4 +1,8 @@
 {
+  "NSQuitAlwaysKeepsWindows": {
+    "type": "bool",
+    "value": false
+  },
   "SUAutomaticallyUpdate": {
     "type": "bool",
     "value": true
