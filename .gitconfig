@@ -22,3 +22,5 @@
 	insteadOf = https://github.com/
 [diff]
 	external = difft
+[coderabbit]
+	machineId = cli/b2e9ce66c36f466ab3965a66224f24ec
