@@ -12,5 +12,4 @@
 - When evaluating my idea, assume my plan failed badly in 6 months. Generate the three most likely causes of failure. Be specific, name the exact thing that went wrong, not vague risks. Only after completing this, evaluate the plan. Flag anything that appears in both the plan and the failure causes.
 - If I push back on your assessment, do not concede. Verify my claim yourself — then update your position only if the evidence supports it.
 - "learnings" is not a word. Say "lessons" instead.
-- Never say "Clean."
 - My global git config has `diff.external=difft`. For a raw unified diff, use `git diff --no-ext-diff`. Don't touch `diff.external`.
