@@ -50,8 +50,16 @@ claude() {
     local _key
     _key=$(git config --global user.signingkey 2>/dev/null)
     if [ -n "$_key" ]; then
+      export GPG_TTY=$(tty)   # refresh: point pinentry at the current terminal, not a stale one
       gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
-      echo | gpg --sign --local-user "$_key" -o /dev/null 2>/dev/null
+      # Prewarm sign; log outcome + tty context to /tmp so a silent failure is diagnosable.
+      local _gpglog=/tmp/claude-gpg-prewarm.log
+      if echo | gpg --sign --local-user "$_key" -o /dev/null 2>>"$_gpglog"; then
+        echo "[$(date '+%F %T')] prewarm OK   key=$_key GPG_TTY=$GPG_TTY tty=$(tty 2>/dev/null)" >> "$_gpglog"
+      else
+        local _rc=$?
+        echo "[$(date '+%F %T')] prewarm FAIL rc=$_rc key=$_key GPG_TTY=$GPG_TTY tty=$(tty 2>/dev/null)" >> "$_gpglog"
+      fi
     fi
   fi
 
