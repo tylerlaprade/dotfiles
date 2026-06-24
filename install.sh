@@ -119,6 +119,14 @@ for app in GarageBand iMovie Keynote Numbers Pages; do
   [[ -d "/Applications/$app.app" ]] && sudo rm -rf "/Applications/$app.app"
 done
 
+# Pin a static HostName so `uname -n` stops tracking the network-assigned name.
+# A hostname that flips breaks GPG's stale-lock reclamation (a dead-process lock
+# is only auto-broken when its recorded hostname matches the current one), which
+# wedges commit signing. Derive from this machine's own LocalHostName; skip if set.
+if ! scutil --get HostName &>/dev/null; then
+  sudo scutil --set HostName "$(scutil --get LocalHostName)"
+fi
+
 # Wait for background jobs
 wait $pid_brew 2>/dev/null
 [[ -n "${pid_cargo:-}" ]] && wait $pid_cargo 2>/dev/null
