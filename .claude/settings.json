@@ -7,6 +7,7 @@
     "CLAUDE_CODE_DISABLE_TERMINAL_TITLE": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "opus",
     "MAX_THINKING_TOKENS": "63999"
   },
   "includeGitInstructions": false,
@@ -32,7 +33,7 @@
       "Bash(git show *)",
       "Bash(git blame *)"
     ],
-    "defaultMode": "auto"
+    "defaultMode": "bypassPermissions"
   },
   "model": "fable",
   "hooks": {
@@ -56,6 +57,16 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tool_pid=\"$PPID\"; shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else session-guard register --tool claude --pid \"$tool_pid\"; fi"
+          }
+        ]
+      }
     ]
   },
   "enableWorkflows": true,
@@ -65,7 +76,9 @@
     "refreshInterval": 30
   },
   "enabledPlugins": {
+    "agent-browser@agent-browser": true,
     "code-simplifier@claude-plugins-official": false,
+    "coderabbit@claude-plugins-official": true,
     "codex@openai-codex": false,
     "compound-engineering@compound-engineering-plugin": false,
     "context7@claude-plugins-official": true,
@@ -78,9 +91,7 @@
     "skill-creator@claude-plugins-official": false,
     "superpowers@claude-plugins-official": false,
     "swift-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "agent-browser@agent-browser": true,
-    "coderabbit@claude-plugins-official": true
+    "typescript-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "agent-browser": {
@@ -113,7 +124,6 @@
     }
   },
   "alwaysThinkingEnabled": true,
-  "effortLevel": "xhigh",
   "promptSuggestionEnabled": false,
   "showClearContextOnPlanAccept": true,
   "skipDangerousModePermissionPrompt": true,
