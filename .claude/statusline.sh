@@ -45,6 +45,25 @@ tn_gradient() {
   fi
 }
 
+rate_usage_gradient() {
+  local val=$1
+  if [ "$val" -le 55 ]; then
+    r=181 g=189 b=104
+  elif [ "$val" -le 75 ]; then
+    local t=$(( (val - 55) * 100 / 20 ))
+    r=$(( 181 + (240 - 181) * t / 100 ))
+    g=$(( 189 + (198 - 189) * t / 100 ))
+    b=$(( 104 + (116 - 104) * t / 100 ))
+  elif [ "$val" -le 95 ]; then
+    local t=$(( (val - 75) * 100 / 20 ))
+    r=$(( 240 + (255 - 240) * t / 100 ))
+    g=$(( 198 - 198 * t / 100 ))
+    b=$(( 116 - 116 * t / 100 ))
+  else
+    r=255 g=0 b=0
+  fi
+}
+
 # Time-of-day color for the clock (weekdays 4:30-6:45pm, every day 9:30pm-1am ET).
 # White outside the windows; LERPs white→green→yellow→bright-red (nighttime inserts an
 # extra white→blue pre-phase so the green-fade starts from blue). Bold kicks in at the
@@ -223,8 +242,9 @@ format_rate() {
   if [ -n "$display_override" ]; then
     info="${display_color}${display_override}${RESET}"
   else
-    # Absolute usage gradient: 0-55% green, 55-80% green→yellow, 80-100% yellow→red
-    tn_gradient "$pct" 55 80 100
+    # Absolute hard-limit usage: 0-55% green, 55-75% green→yellow,
+    # 75-95% yellow→bright red, 95%+ bright red.
+    rate_usage_gradient "$pct"
     local pct_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
     local suffix="%"; [ "$pct" -ge 100 ] && suffix="%+"
     info="${pct_color}${pct}${suffix}${RESET}"
