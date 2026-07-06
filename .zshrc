@@ -45,6 +45,12 @@ zj() {
 
 # Claude: allow bypass-permissions + overage gate (requires ~/.claude/overage-gate)
 claude() {
+  # Shared protocol with statusline.sh (producer) and resume.sh — all three
+  # hardcode /tmp. A wrapper-local fallback dir would silently desync them.
+  local _override=/tmp/claude-overage-override
+  local _rf=/tmp/claude-rate-limits.json
+  local _killed=/tmp/claude-overage-killed
+
   # Prewarm GPG agent so pinentry never fires mid-Claude-session
   if command -v gpg >/dev/null 2>&1; then
     local _key
@@ -67,9 +73,8 @@ claude() {
 
   while true; do
     # Gate check (skip on resume — we already waited for reset)
-    if [ "$_resuming" = false ] && [ -f ~/.claude/overage-gate ] && [ ! -f /tmp/claude-overage-override ]; then
+    if [ "$_resuming" = false ] && [ -f ~/.claude/overage-gate ] && [ ! -f "$_override" ]; then
       local _threshold=${CLAUDE_OVERAGE_THRESHOLD:-95} _blocked=false
-      local _rf="/tmp/claude-rate-limits.json"
       if [ -f "$_rf" ]; then
         local _5h _7d _r5h _r7d _now
         _5h=$(jq -r '.five_hour // 0' "$_rf" 2>/dev/null)
@@ -85,14 +90,15 @@ claude() {
         fi
       fi
       if [ ! -f "$_rf" ] && [ "$_blocked" = false ]; then
+        # </dev/null: don't let the probe consume stdin piped to the real invocation
         if timeout 30s command claude --dangerously-skip-permissions --model haiku --verbose \
-             -p "ok" --output-format stream-json --max-turns 1 2>&1 \
+             -p "ok" --output-format stream-json --max-turns 1 </dev/null 2>&1 \
              | grep -q '"isUsingOverage":true'; then
           _blocked=true
         fi
       fi
       if [ "$_blocked" = true ]; then
-        echo "OVERAGE GATE: blocked. Override: touch /tmp/claude-overage-override" >&2
+        echo "OVERAGE GATE: blocked. Override: touch $_override" >&2
         return 1
       fi
     fi
@@ -104,14 +110,14 @@ claude() {
     done
 
     local _monitor=""
-    if [ "$_is_print" = true ] && [ -f ~/.claude/overage-gate ] && [ ! -f /tmp/claude-overage-override ]; then
+    if [ "$_is_print" = true ] && [ -f ~/.claude/overage-gate ] && [ ! -f "$_override" ]; then
       ( while true; do
           sleep 60
           if timeout 30s command claude --dangerously-skip-permissions --model haiku --verbose \
-               -p "ok" --output-format stream-json --max-turns 1 2>&1 \
+               -p "ok" --output-format stream-json --max-turns 1 </dev/null 2>&1 \
                | grep -q '"isUsingOverage":true'; then
             printf '%s monitor-kill\n' "$(date +%s)" >> /tmp/claude-overage-kills.log
-            touch /tmp/claude-overage-killed
+            touch "$_killed"
             pkill claude
             break
           fi
@@ -124,15 +130,15 @@ claude() {
     [ -n "$_monitor" ] && { kill $_monitor 2>/dev/null; wait $_monitor 2>/dev/null; }
 
     # Not an overage kill? Normal exit.
-    [ ! -f /tmp/claude-overage-killed ] && return $_exit
+    [ ! -f "$_killed" ] && return $_exit
     [ ! -f ~/.claude/overage-gate ] && return $_exit
 
     # Overage kill: find soonest reset time, sleep, then resume
     local _now _resume_at="" _r5h _r7d
     _now=$(date +%s)
-    if [ -f /tmp/claude-rate-limits.json ]; then
-      _r5h=$(jq -r '.resets_5h // 0' /tmp/claude-rate-limits.json 2>/dev/null)
-      _r7d=$(jq -r '.resets_7d // 0' /tmp/claude-rate-limits.json 2>/dev/null)
+    if [ -f "$_rf" ]; then
+      _r5h=$(jq -r '.resets_5h // 0' "$_rf" 2>/dev/null)
+      _r7d=$(jq -r '.resets_7d // 0' "$_rf" 2>/dev/null)
       for _t in $_r5h $_r7d; do
         [ "$_t" -gt "$_now" ] && { [ -z "$_resume_at" ] || [ "$_t" -lt "$_resume_at" ]; } && _resume_at=$_t
       done
@@ -143,7 +149,7 @@ claude() {
     local _reset_time=$(date -r $(( _now + _delay )) '+%-I:%M %p' 2>/dev/null)
     echo "OVERAGE GATE: Session paused. Resuming in ${_delay}s at ${_reset_time}..." >&2
     caffeinate -ims sleep "$_delay"
-    rm -f /tmp/claude-overage-killed
+    rm -f "$_killed"
     _args=(-c "The overage gate paused this session at the rate limit. The limit has now reset. Continue where you left off.")
     _resuming=true
   done
@@ -223,4 +229,3 @@ compdef _gt_yargs_completions gt
 # Must be last — wraps zsh widgets, breaks if loaded before other plugins
 # https://github.com/zsh-users/zsh-syntax-highlighting#why-must-zsh-syntax-highlightingzsh-be-sourced-at-the-end-of-the-zshrc-file
 source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-
