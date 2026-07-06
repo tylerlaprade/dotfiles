@@ -37,12 +37,40 @@
   },
   "model": "fable",
   "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "screenbuddy agent busy --tool claude --pid \"$PPID\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "screenbuddy agent busy --tool claude --pid \"$PPID\""
+          }
+        ]
+      }
+    ],
     "SessionEnd": [
       {
         "hooks": [
           {
             "type": "command",
             "command": "session-guard deregister"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "screenbuddy agent end"
           }
         ]
       }
@@ -64,6 +92,24 @@
           {
             "type": "command",
             "command": "tool_pid=\"$PPID\"; shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else session-guard register --tool claude --pid \"$tool_pid\"; fi"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "screenbuddy agent idle --tool claude --pid \"$PPID\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "screenbuddy agent busy --tool claude --pid \"$PPID\""
           }
         ]
       }
