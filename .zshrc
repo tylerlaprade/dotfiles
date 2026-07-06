@@ -173,6 +173,9 @@ claude() {
   done
 }
 
+# fableplan — Fable 5 plans, Opus 4.8 executes (wraps claude() above)
+[[ -f ~/Code/fableplan/fableplan.sh ]] && source ~/Code/fableplan/fableplan.sh
+
 # cwc — change workspace (condor): create workspace + start Claude
 # Prefer cw.sh from current repo (works from subdirs), fall back to any condor workspace
 _cw_root=$(git rev-parse --show-toplevel 2>/dev/null)
