@@ -11,9 +11,17 @@
     "type": "float",
     "value": 3600.0
   },
+  "continuousCleanup.hasCompletedSetup": {
+    "type": "bool",
+    "value": true
+  },
   "guidedClean.hasCompletedBefore": {
     "type": "bool",
-    "value": false
+    "value": true
+  },
+  "guidedClean.hasShownFeedback": {
+    "type": "bool",
+    "value": true
   },
   "hasCompletedCleanupOnboarding_migrated_v1": {
     "type": "bool",
