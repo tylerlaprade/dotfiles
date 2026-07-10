@@ -229,7 +229,7 @@ autoload -Uz add-zsh-hook
 add-zsh-hook precmd _set_tab_title
 add-zsh-hook preexec _set_tab_title
 
-# resume — delay-resume claude/codex sessions
+# resume — delay-resume claude/codex/grok sessions
 source ~/Code/dotfiles/scripts/bin/resume.sh
 
 # Source local secrets (not in repo)

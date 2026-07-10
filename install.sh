@@ -113,6 +113,13 @@ if ! command -v claude &>/dev/null; then
   pid_claude=$!
 fi
 
+# Grok CLI (native installer, auto-updates)
+if ! command -v grok &>/dev/null; then
+  echo "  [grok] starting..."
+  (curl -fsSL https://x.ai/cli/install.sh | bash >"$LOGDIR/grok.log" 2>&1 && echo "  [grok] done" || echo "  [grok] FAILED") &
+  pid_grok=$!
+fi
+
 
 # Remove macOS bloat (fast, no network)
 for app in GarageBand iMovie Keynote Numbers Pages; do
@@ -135,6 +142,7 @@ wait $pid_brew 2>/dev/null
 wait $pid_helix_theme 2>/dev/null
 wait $pid_sourcery 2>/dev/null
 [[ -n "${pid_claude:-}" ]] && wait $pid_claude 2>/dev/null
+[[ -n "${pid_grok:-}" ]] && wait $pid_grok 2>/dev/null
 
 # Node via fnm (needed for Codex CLI)
 if command -v fnm &>/dev/null; then

@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Pretty-print a Claude Code or Codex session transcript."""
+"""Pretty-print a Claude Code, Codex, or Grok session transcript."""
 
 import json
 import sys
+from pathlib import Path
 
 TEXT_BLOCK_TYPES = {"text", "input_text", "output_text"}
 
 SKIP_MARKERS = (
     "<user_instructions>", "<environment_context>",
     "<permissions instructions>", "# AGENTS.md instructions",
+    "<user_info>", "<system-reminder>", "<git_status>",
 )
 
 
@@ -63,6 +65,18 @@ def iter_messages(path):
                 elif not isinstance(content, str):
                     content = entry.get("content", "")
 
+            elif fmt == "grok":
+                if entry.get("synthetic_reason"):
+                    continue
+                etype = entry.get("type", "")
+                if etype in ("user", "human"):
+                    role = "user"
+                elif etype == "assistant":
+                    role = "assistant"
+                else:
+                    continue
+                content = entry.get("content", "")
+
             else:
                 # Codex — handle both legacy and current (wrapped payload) formats
                 etype = entry.get("type", "")
@@ -89,7 +103,11 @@ def iter_messages(path):
 
 
 def detect_format(path):
-    """Detect whether a session file is Claude Code or Codex format."""
+    """Detect whether a session file is Claude Code, Codex, or Grok format."""
+    path_obj = Path(path)
+    if path_obj.name == "chat_history.jsonl" or "/.grok/sessions/" in str(path_obj):
+        return "grok"
+
     with open(path, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
             line = line.strip()
@@ -108,12 +126,16 @@ def detect_format(path):
             # Current Codex format uses type: "session_meta"
             if entry.get("type") == "session_meta":
                 return "codex"
+            # Grok: top-level type user/assistant/system/reasoning/tool_result
+            # with synthetic_reason, or content blocks without message wrapper.
+            if entry.get("type") in ("reasoning", "tool_result") or "synthetic_reason" in entry:
+                return "grok"
     return "claude"
 
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Pretty-print a Claude Code or Codex session transcript")
+    parser = argparse.ArgumentParser(description="Pretty-print a Claude Code, Codex, or Grok session transcript")
     parser.add_argument("path", help="Path to a session .jsonl file")
     parser.add_argument("--pretty", action="store_true", help="Human-readable output instead of JSON")
     args = parser.parse_args()

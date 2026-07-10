@@ -1,4 +1,4 @@
-# resume — delay-launch a claude or codex session, keeping the machine awake
+# resume — delay-launch a claude, codex, or grok session, keeping the machine awake
 # Source from .zshrc / .bashrc:  source ~/Code/dotfiles/scripts/bin/resume.sh
 # macOS-only: uses BSD `date -j -f` and `caffeinate`.
 #
@@ -13,22 +13,28 @@
 #   claude: reads /tmp/claude-rate-limits.json (written by statusline.sh).
 #   codex:  reads the latest token_count event from the most recent
 #           ~/.codex/sessions/*/*/*/rollout-*.jsonl.
-# If 7d limit is exceeded, waits for 7d reset. Otherwise waits for next 5h
-# reset. Errors if no snapshot exists, or if 7d is not exceeded and there
-# is no active 5h window.
+#   grok:   reads the latest "billing: fetched credits config" event from
+#           ~/.grok/logs/unified.jsonl (creditUsagePercent + billingPeriodEnd).
+# Claude/codex: if 7d limit is exceeded, waits for 7d reset; otherwise waits
+# for next 5h reset. Errors if no snapshot exists, or if 7d is not exceeded
+# and there is no active 5h window.
+# Grok: weekly/monthly credit allotment (not a rolling 5h window). If usage
+# is at 100%, waits for period end; if under, starts immediately (delay 0).
 #
 # Time/duration formats:
 #   7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
 #   3000s, 45m, 2h                duration in seconds/minutes/hours
 #
 # Options:
-#   -s, --session ID_OR_NAME            resume a specific claude/codex session
+#   -s, --session ID_OR_NAME            resume a specific claude/codex/grok session
 #   -n, --new                           start a new session
 #   -h, --help                          show help
 #
 # Usage:
 #   resume claude                # resume last claude session at next 5h reset
+#   resume grok                  # if over credits, wait for period end; else now
 #   resume codex 7p              # resume last codex session at 7:00 PM
+#   resume grok 7p               # resume last grok session (cwd) at 7:00 PM
 #   resume 1220a claude          # resume last claude session at 12:20 AM
 #   resume codex 3000s           # resume last codex session in 3000 seconds
 #   resume codex -s 019... 7p    # resume a specific codex session at 7:00 PM
@@ -74,15 +80,15 @@ resume() {
   local a1="$1" a2="$2"
 
   local tool time_str
-  if [[ $a1 == codex || $a1 == claude ]]; then
+  if [[ $a1 == codex || $a1 == claude || $a1 == grok ]]; then
     tool="$a1"
-    if [[ $a2 == codex || $a2 == claude ]]; then
-      echo "resume: got two tool names; expected <codex|claude> [time|duration] [--session ID] [--new] [prompt]" >&2
+    if [[ $a2 == codex || $a2 == claude || $a2 == grok ]]; then
+      echo "resume: got two tool names; expected <codex|claude|grok> [time|duration] [--session ID] [--new] [prompt]" >&2
       return 1
     fi
     time_str="$a2"
     if [ -n "$time_str" ]; then shift 2; else shift 1; fi
-  elif [[ $a2 == codex || $a2 == claude ]]; then
+  elif [[ $a2 == codex || $a2 == claude || $a2 == grok ]]; then
     tool="$a2"; time_str="$a1"
     shift 2
   else
@@ -92,30 +98,60 @@ resume() {
 
   local delay
   if [ -z "$time_str" ]; then
-    local seven_day resets_5h resets_7d now
-    case "$tool" in
-      claude)
-        local rl_file="/tmp/claude-rate-limits.json"
-        [ -f "$rl_file" ] || { echo "resume: no rate-limit snapshot at $rl_file — statusline must run at least once first" >&2; return 1; }
-        IFS=$'\t' read -r seven_day resets_5h resets_7d < <(jq -r '[.seven_day // 0, .resets_5h // 0, .resets_7d // 0] | @tsv' "$rl_file") ;;
-      codex)
-        local latest
-        latest=$(command ls ~/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | sort -r | head -1)
-        [ -n "$latest" ] || { echo "resume: no codex session rollouts in ~/.codex/sessions — run codex at least once first" >&2; return 1; }
-        IFS=$'\t' read -r seven_day resets_5h resets_7d <<<"$(jq -rc 'select(.payload.rate_limits != null) | .payload.rate_limits | [(.secondary.used_percent // 0 | floor), (.primary.resets_at // 0), (.secondary.resets_at // 0)] | @tsv' "$latest" 2>/dev/null | tail -1)"
-        [ -n "$resets_5h" ] || { echo "resume: no rate_limits data in latest codex rollout — session too short" >&2; return 1; } ;;
-    esac
+    local now
     now=$(date +%s)
-    if [ "$seven_day" -ge 100 ]; then
-      [ "$resets_7d" -le "$now" ] && { echo "resume: over 7d limit (${seven_day}%) but resets_7d=$resets_7d is not in the future — snapshot stale" >&2; return 1; }
-      local target=$resets_7d
-      [ "$resets_5h" -gt "$target" ] && target=$resets_5h
-      delay=$(( target - now ))
-    elif [ "$resets_5h" -le "$now" ]; then
-      echo "resume: no active 5h window (resets_5h=$resets_5h, now=$now)" >&2
-      return 1
+    if [[ $tool == grok ]]; then
+      # Grok logs billing snapshots (creditUsagePercent + period end) into its
+      # unified log whenever a session fetches credits. No separate 5h window.
+      local log_file="${HOME}/.grok/logs/unified.jsonl"
+      [ -f "$log_file" ] || { echo "resume: no grok log at $log_file — run grok at least once first" >&2; return 1; }
+      local used_pct period_end
+      IFS=$'\t' read -r used_pct period_end < <(jq -rc '
+        select(.msg == "billing: fetched credits config")
+        | .ctx.config as $c
+        | [
+            ($c.creditUsagePercent // 0 | floor),
+            (
+              ($c.billingPeriodEnd // $c.currentPeriod.end // empty)
+              | sub("\\.[0-9]+"; "")
+              | sub("\\+00:00$"; "Z")
+              | fromdateiso8601
+            )
+          ]
+        | @tsv
+      ' "$log_file" 2>/dev/null | tail -1)
+      [ -n "$period_end" ] || { echo "resume: no billing credits data in $log_file — run grok at least once first" >&2; return 1; }
+      if [ "$used_pct" -ge 100 ]; then
+        [ "$period_end" -le "$now" ] && { echo "resume: over credit limit (${used_pct}%) but period_end=$period_end is not in the future — snapshot stale" >&2; return 1; }
+        delay=$(( period_end - now ))
+      else
+        delay=0
+      fi
     else
-      delay=$(( resets_5h - now ))
+      local seven_day resets_5h resets_7d
+      case "$tool" in
+        claude)
+          local rl_file="/tmp/claude-rate-limits.json"
+          [ -f "$rl_file" ] || { echo "resume: no rate-limit snapshot at $rl_file — statusline must run at least once first" >&2; return 1; }
+          IFS=$'\t' read -r seven_day resets_5h resets_7d < <(jq -r '[.seven_day // 0, .resets_5h // 0, .resets_7d // 0] | @tsv' "$rl_file") ;;
+        codex)
+          local latest
+          latest=$(command ls ~/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | sort -r | head -1)
+          [ -n "$latest" ] || { echo "resume: no codex session rollouts in ~/.codex/sessions — run codex at least once first" >&2; return 1; }
+          IFS=$'\t' read -r seven_day resets_5h resets_7d <<<"$(jq -rc 'select(.payload.rate_limits != null) | .payload.rate_limits | [(.secondary.used_percent // 0 | floor), (.primary.resets_at // 0), (.secondary.resets_at // 0)] | @tsv' "$latest" 2>/dev/null | tail -1)"
+          [ -n "$resets_5h" ] || { echo "resume: no rate_limits data in latest codex rollout — session too short" >&2; return 1; } ;;
+      esac
+      if [ "$seven_day" -ge 100 ]; then
+        [ "$resets_7d" -le "$now" ] && { echo "resume: over 7d limit (${seven_day}%) but resets_7d=$resets_7d is not in the future — snapshot stale" >&2; return 1; }
+        local target=$resets_7d
+        [ "$resets_5h" -gt "$target" ] && target=$resets_5h
+        delay=$(( target - now ))
+      elif [ "$resets_5h" -le "$now" ]; then
+        echo "resume: no active 5h window (resets_5h=$resets_5h, now=$now)" >&2
+        return 1
+      else
+        delay=$(( resets_5h - now ))
+      fi
     fi
   else
     local num rest
@@ -181,6 +217,15 @@ resume() {
       else
         (( new )) || cmd+=(-c)
       fi ;;
+    grok)
+      # Config may already set permission_mode=always-approve; pass it explicitly
+      # so delayed launches stay yolo even if config differs on another machine.
+      cmd=(grok --always-approve)
+      if [ -n "$session" ]; then
+        cmd+=(--resume "$session")
+      else
+        (( new )) || cmd+=(-c)
+      fi ;;
   esac
 
   local target_clock
@@ -221,9 +266,9 @@ resume() {
 
 _resume_help() {
   cat <<'EOF'
-Usage: resume <codex|claude> [time|duration] [options] [prompt]
+Usage: resume <codex|claude|grok> [time|duration] [options] [prompt]
 
-Delay-launch a claude or codex session, keeping the machine awake.
+Delay-launch a claude, codex, or grok session, keeping the machine awake.
 Tool, time/duration, and options may be passed in any order.
 
 No prompt arg resumes the selected/latest session with prompt "continue".
@@ -236,13 +281,15 @@ Time/duration:
   omitted                       next rate-limit reset
 
 Options:
-  -s, --session ID_OR_NAME       resume a specific claude/codex session
+  -s, --session ID_OR_NAME       resume a specific claude/codex/grok session
   -n, --new                      start a new session
   -h, --help                     show this help
 
 Examples:
   resume claude
+  resume grok
   resume codex 7p
+  resume grok 7p
   resume 1220a claude
   resume codex 3000s
   resume codex -s 019... 7p

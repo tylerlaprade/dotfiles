@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Search past Claude Code and Codex sessions using FTS5 full-text search."""
+"""Search past Claude Code, Codex, and Grok sessions using FTS5 full-text search."""
 
 import argparse
 import json
@@ -12,12 +12,15 @@ import time
 from datetime import datetime
 from glob import glob
 from pathlib import Path
+from urllib.parse import unquote
 
 CLAUDE_DIR = Path.home() / ".claude"
 CODEX_DIR = Path.home() / ".codex"
+GROK_DIR = Path.home() / ".grok"
 DB_PATH = Path.home() / ".recall.db"
 CLAUDE_PROJECTS_DIR = CLAUDE_DIR / "projects"
 CODEX_SESSIONS_DIR = CODEX_DIR / "sessions"
+GROK_SESSIONS_DIR = GROK_DIR / "sessions"
 
 
 def create_schema(conn):
@@ -69,6 +72,7 @@ def migrate_db_location():
 
 TEXT_BLOCK_TYPES = {"text", "input_text", "output_text"}
 CODEX_SKIP_MARKERS = ("<user_instructions>", "<environment_context>", "<permissions instructions>", "# AGENTS.md instructions")
+GROK_SKIP_MARKERS = ("<user_info>", "<system-reminder>", "<git_status>")
 
 
 def extract_text(content):
@@ -311,6 +315,93 @@ def parse_codex_session(path):
     return metadata, messages
 
 
+# — Grok session parser ————————————————————————————————————————————————————
+
+def parse_grok_session(path):
+    """Parse a Grok chat_history.jsonl, returning (metadata, messages).
+
+    Grok sessions live in ~/.grok/sessions/<url-encoded-cwd>/<uuid>/chat_history.jsonl.
+    Optional summary.json supplies cwd, title, and created_at.
+    """
+    path = Path(path)
+    session_dir = path.parent
+    session_id = session_dir.name
+    project = ""
+    slug = None
+    earliest_ts = None
+    messages = []
+
+    summary_path = session_dir / "summary.json"
+    if summary_path.is_file():
+        try:
+            with open(summary_path, "r", encoding="utf-8", errors="replace") as f:
+                summary = json.load(f)
+            info = summary.get("info") or {}
+            project = info.get("cwd") or summary.get("git_root_dir") or ""
+            slug = (
+                summary.get("generated_title")
+                or summary.get("session_summary")
+                or None
+            )
+            ts_ms = parse_iso_timestamp(summary.get("created_at"))
+            if ts_ms:
+                earliest_ts = ts_ms
+        except (OSError, PermissionError, json.JSONDecodeError, TypeError):
+            pass
+
+    if not project:
+        # Parent dir is percent-encoded absolute cwd, e.g. %2FUsers%2F...
+        project = unquote(session_dir.parent.name)
+
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                # Injected harness context, not real user turns
+                if entry.get("synthetic_reason"):
+                    continue
+
+                etype = entry.get("type", "")
+                if etype in ("user", "human"):
+                    role = "user"
+                elif etype == "assistant":
+                    role = "assistant"
+                else:
+                    continue
+
+                text = extract_text(entry.get("content", ""))
+                if not text:
+                    continue
+                if any(marker in text for marker in GROK_SKIP_MARKERS):
+                    continue
+
+                messages.append((role, text))
+
+    except (OSError, PermissionError) as e:
+        print(f"Warning: skipping {path}: {e}", file=sys.stderr)
+        return None
+
+    if not slug:
+        slug = session_id[:12]
+
+    metadata = {
+        "session_id": session_id,
+        "source": "grok",
+        "file_path": str(path),
+        "project": project or "",
+        "slug": slug,
+        "timestamp": earliest_ts or 0,
+    }
+    return metadata, messages
+
+
 # — Indexing ———————————————————————————————————————————————————————————————
 
 def index_sessions(conn, force=False):
@@ -329,7 +420,7 @@ def index_sessions(conn, force=False):
     except sqlite3.OperationalError:
         pass
 
-    # Collect files from both sources
+    # Collect files from all sources
     sources = []
 
     # Claude Code: ~/.claude/projects/**/*.jsonl
@@ -341,6 +432,11 @@ def index_sessions(conn, force=False):
     codex_pattern = str(CODEX_SESSIONS_DIR / "**" / "*.jsonl")
     for fpath in glob(codex_pattern, recursive=True):
         sources.append((fpath, "codex"))
+
+    # Grok: ~/.grok/sessions/**/chat_history.jsonl
+    grok_pattern = str(GROK_SESSIONS_DIR / "**" / "chat_history.jsonl")
+    for fpath in glob(grok_pattern, recursive=True):
+        sources.append((fpath, "grok"))
 
     indexed = 0
     skipped = 0
@@ -366,8 +462,10 @@ def index_sessions(conn, force=False):
 
         if source == "claude":
             result = parse_claude_session(fpath)
-        else:
+        elif source == "codex":
             result = parse_codex_session(fpath)
+        else:
+            result = parse_grok_session(fpath)
 
         if result is None:
             continue
@@ -500,11 +598,11 @@ def format_timestamp(ts_ms):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Search past Claude Code and Codex sessions")
+    parser = argparse.ArgumentParser(description="Search past Claude Code, Codex, and Grok sessions")
     parser.add_argument("query", help="Search query (FTS5 syntax: quotes for phrases, AND/OR/NOT)")
     parser.add_argument("--project", help="Filter to sessions from a specific project path (prefix match)")
     parser.add_argument("--days", type=int, help="Only sessions from last N days")
-    parser.add_argument("--source", choices=["claude", "codex"], help="Filter by source (claude or codex)")
+    parser.add_argument("--source", choices=["claude", "codex", "grok"], help="Filter by source (claude, codex, or grok)")
     parser.add_argument("--limit", type=int, default=10, help="Max results (default: 10)")
     parser.add_argument("--reindex", action="store_true", help="Force full rebuild of the index")
 

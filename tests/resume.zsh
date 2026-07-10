@@ -101,9 +101,9 @@ expect_no_cmd() {
 
 expected_help() {
   cat <<'EOF'
-Usage: resume <codex|claude> [time|duration] [options] [prompt]
+Usage: resume <codex|claude|grok> [time|duration] [options] [prompt]
 
-Delay-launch a claude or codex session, keeping the machine awake.
+Delay-launch a claude, codex, or grok session, keeping the machine awake.
 Tool, time/duration, and options may be passed in any order.
 
 No prompt arg resumes the selected/latest session with prompt "continue".
@@ -116,13 +116,15 @@ Time/duration:
   omitted                       next rate-limit reset
 
 Options:
-  -s, --session ID_OR_NAME       resume a specific claude/codex session
+  -s, --session ID_OR_NAME       resume a specific claude/codex/grok session
   -n, --new                      start a new session
   -h, --help                     show this help
 
 Examples:
   resume claude
+  resume grok
   resume codex 7p
+  resume grok 7p
   resume 1220a claude
   resume codex 3000s
   resume codex -s 019... 7p
@@ -220,6 +222,84 @@ test_claude_new_with_prompt() {
   expect_cmd $'claude\n--dangerously-skip-permissions\nnew prompt'
 }
 
+test_grok_continue() {
+  run_resume grok 0s
+  expect_status 0
+  expect_label "Resuming grok"
+  expect_cmd $'grok\n--always-approve\n-c\ncontinue'
+}
+
+test_grok_prompt_resumes() {
+  run_resume 0s grok "custom prompt"
+  expect_status 0
+  expect_label "Resuming grok"
+  expect_cmd $'grok\n--always-approve\n-c\ncustom prompt'
+}
+
+test_grok_session_with_prompt() {
+  run_resume grok --session grok-session 0s "custom prompt"
+  expect_status 0
+  expect_label "Resuming grok"
+  expect_cmd $'grok\n--always-approve\n--resume\ngrok-session\ncustom prompt'
+}
+
+test_grok_new_with_prompt() {
+  run_resume --new 0s grok "new prompt"
+  expect_status 0
+  expect_label "Starting new grok"
+  expect_cmd $'grok\n--always-approve\nnew prompt'
+}
+
+test_grok_new_without_prompt() {
+  run_resume --new grok 0s
+  expect_status 0
+  expect_label "Starting new grok"
+  expect_cmd $'grok\n--always-approve'
+}
+
+write_grok_billing() {
+  local used_pct="$1" period_end_iso="$2"
+  mkdir -p "$HOME/.grok/logs"
+  print -r -- "{\"ts\":\"2026-05-31T00:00:00Z\",\"src\":\"shell\",\"msg\":\"billing: fetched credits config\",\"ctx\":{\"config\":{\"creditUsagePercent\":${used_pct},\"currentPeriod\":{\"type\":\"USAGE_PERIOD_TYPE_WEEKLY\",\"start\":\"2026-05-24T00:00:00+00:00\",\"end\":\"${period_end_iso}\"},\"billingPeriodEnd\":\"${period_end_iso}\"}}}" \
+    > "$HOME/.grok/logs/unified.jsonl"
+}
+
+test_grok_under_limit_starts_now() {
+  # now is mocked to 1000; under-cap credits mean delay 0
+  write_grok_billing 42 "2026-05-31T00:25:00+00:00"
+  run_resume grok
+  expect_status 0
+  expect_label "Resuming grok"
+  expect_delay 0
+  expect_cmd $'grok\n--always-approve\n-c\ncontinue'
+}
+
+test_grok_at_limit_waits_for_period_end() {
+  # epoch 1500 = 1970-01-01T00:25:00Z; date mock returns now=1000 → delay 500
+  write_grok_billing 100 "1970-01-01T00:25:00+00:00"
+  run_resume grok
+  expect_status 0
+  expect_label "Resuming grok"
+  expect_delay 500
+  expect_cmd $'grok\n--always-approve\n-c\ncontinue'
+}
+
+test_grok_at_limit_stale_period_errors() {
+  write_grok_billing 100 "1970-01-01T00:00:00+00:00"
+  run_resume grok
+  expect_status 1
+  expect_stderr "resume: over credit limit (100%) but period_end=0 is not in the future — snapshot stale"
+  expect_no_cmd
+}
+
+test_grok_missing_billing_log_errors() {
+  rm -rf "$HOME/.grok"
+  run_resume grok
+  expect_status 1
+  expect_stderr "resume: no grok log at $HOME/.grok/logs/unified.jsonl — run grok at least once first"
+  expect_no_cmd
+}
+
 test_duration_seconds() {
   run_resume codex 3000s --session duration-session
   expect_status 0
@@ -247,7 +327,13 @@ test_bare_number_rejected() {
 test_two_tools_rejected() {
   run_resume codex claude
   expect_status 1
-  expect_stderr "resume: got two tool names; expected <codex|claude> [time|duration] [--session ID] [--new] [prompt]"
+  expect_stderr "resume: got two tool names; expected <codex|claude|grok> [time|duration] [--session ID] [--new] [prompt]"
+}
+
+test_two_tools_with_grok_rejected() {
+  run_resume grok codex
+  expect_status 1
+  expect_stderr "resume: got two tool names; expected <codex|claude|grok> [time|duration] [--session ID] [--new] [prompt]"
 }
 
 test_missing_session_value_rejected() {
@@ -303,11 +389,21 @@ run_case "claude default resumes with continue" test_claude_continue
 run_case "claude prompt resumes instead of starting new" test_claude_prompt_resumes
 run_case "claude explicit session accepts prompt" test_claude_session_with_prompt
 run_case "claude --new starts fresh with prompt" test_claude_new_with_prompt
+run_case "grok default resumes with continue" test_grok_continue
+run_case "grok prompt resumes instead of starting new" test_grok_prompt_resumes
+run_case "grok explicit session accepts prompt" test_grok_session_with_prompt
+run_case "grok --new starts fresh with prompt" test_grok_new_with_prompt
+run_case "grok --new starts fresh without prompt" test_grok_new_without_prompt
+run_case "grok under credit limit starts immediately" test_grok_under_limit_starts_now
+run_case "grok at credit limit waits for period end" test_grok_at_limit_waits_for_period_end
+run_case "grok at credit limit with stale period errors" test_grok_at_limit_stale_period_errors
+run_case "grok missing billing log errors" test_grok_missing_billing_log_errors
 run_case "duration seconds are parsed" test_duration_seconds
 run_case "duration minutes are parsed" test_duration_minutes
 run_case "duration hours are parsed" test_duration_hours
 run_case "bare numeric time is rejected" test_bare_number_rejected
 run_case "two tools are rejected" test_two_tools_rejected
+run_case "two tools including grok are rejected" test_two_tools_with_grok_rejected
 run_case "missing session value is rejected" test_missing_session_value_rejected
 run_case "session and new are rejected together" test_session_and_new_rejected
 run_case "removed thread option is rejected" test_thread_option_rejected

@@ -109,7 +109,7 @@ preexec() {
   fi
 }
 
-# resume — delay-resume claude/codex sessions
+# resume — delay-resume claude/codex/grok sessions
 source ~/Code/dotfiles/scripts/bin/resume.sh
 
 # Source local secrets
