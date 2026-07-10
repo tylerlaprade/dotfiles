@@ -13,3 +13,4 @@
 - If I push back on your assessment, do not concede. Verify my claim yourself — then update your position only if the evidence supports it.
 - "learnings" is not a word. Say "lessons" instead.
 - My global git config has `diff.external=difft`. For a raw unified diff, use `git diff --no-ext-diff`. Don't touch `diff.external`.
+- For Rust work, reuse the repository's configured Cargo target directory by default. If isolation is genuinely necessary, run Cargo through `session-guard cargo-target -- cargo ...`; it reuses one isolated `CARGO_TARGET_DIR` owned by the current agent session and retires it after that session ends. Never create an ad hoc target directory.
