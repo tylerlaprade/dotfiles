@@ -17,7 +17,11 @@
   },
   "ShowHardDrivesOnDesktop": {
     "type": "bool",
-    "value": false
+    "value": true
+  },
+  "ShowMountedServersOnDesktop": {
+    "type": "bool",
+    "value": true
   },
   "ShowPathbar": {
     "type": "bool",

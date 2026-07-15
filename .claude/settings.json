@@ -1,28 +1,5 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "agentPushNotifEnabled": true,
-  "alwaysThinkingEnabled": true,
-  "autoCompactEnabled": true,
-  "effortLevel": "high",
-  "enableWorkflows": true,
-  "enabledPlugins": {
-    "agent-browser@agent-browser": true,
-    "code-simplifier@claude-plugins-official": false,
-    "coderabbit@claude-plugins-official": true,
-    "codex@openai-codex": false,
-    "compound-engineering@compound-engineering-plugin": false,
-    "context7@claude-plugins-official": true,
-    "feature-dev@claude-plugins-official": false,
-    "hookify@claude-plugins-official": false,
-    "plugin-dev@claude-plugins-official": false,
-    "pr-review-toolkit@claude-plugins-official": false,
-    "ralph-loop@claude-plugins-official": false,
-    "rust-analyzer-lsp@claude-plugins-official": false,
-    "skill-creator@claude-plugins-official": false,
-    "superpowers@claude-plugins-official": false,
-    "swift-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
-  },
   "env": {
     "CLAUDE_CODE_BLOCKING_LIMIT_OVERRIDE": "9999999",
     "CLAUDE_CODE_DISABLE_1M_CONTEXT": "0",
@@ -33,121 +10,7 @@
     "CLAUDE_CODE_SUBAGENT_MODEL": "opus",
     "MAX_THINKING_TOKENS": "63999"
   },
-  "extraKnownMarketplaces": {
-    "agent-browser": {
-      "autoUpdate": true,
-      "source": {
-        "repo": "vercel-labs/agent-browser",
-        "source": "github"
-      }
-    },
-    "basedpyright-lsp": {
-      "autoUpdate": true,
-      "source": {
-        "repo": "tylerlaprade/basedpyright-lsp",
-        "source": "github"
-      }
-    },
-    "claude-plugins-official": {
-      "autoUpdate": true,
-      "source": {
-        "repo": "anthropics/claude-plugins-official",
-        "source": "github"
-      }
-    },
-    "openai-codex": {
-      "autoUpdate": true,
-      "source": {
-        "repo": "openai/codex-plugin-cc",
-        "source": "github"
-      }
-    }
-  },
-  "feedbackSurveyState": {
-    "lastShownTime": 9999999999999
-  },
-  "hooks": {
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "command": "screenbuddy agent busy --tool claude --pid \"$PPID\"",
-            "type": "command"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "hooks": [
-          {
-            "command": "screenbuddy agent busy --tool claude --pid \"$PPID\"",
-            "type": "command"
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "command": "screenbuddy agent end",
-            "type": "command"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "command": "session-guard deregister",
-            "type": "command"
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "command": "tool_pid=\"$PPID\"; shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else session-guard register --tool claude --pid \"$tool_pid\"; fi",
-            "type": "command"
-          }
-        ],
-        "matcher": "startup|resume"
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "command": "screenbuddy agent idle --tool claude --pid \"$PPID\"",
-            "type": "command"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "command": "tool_pid=\"$PPID\"; shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else session-guard register --tool claude --pid \"$tool_pid\"; fi",
-            "type": "command"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "command": "screenbuddy agent busy --tool claude --pid \"$PPID\"",
-            "type": "command"
-          }
-        ]
-      }
-    ]
-  },
   "includeGitInstructions": false,
-  "inputNeededNotifEnabled": false,
-  "model": "fable",
   "permissions": {
     "allow": [
       "Bash(gh pr list *)",
@@ -172,20 +35,149 @@
     ],
     "defaultMode": "bypassPermissions"
   },
-  "preferredNotifChannel": "terminal_bell",
+  "model": "claude-fable-5[1m]",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "screenbuddy agent busy --tool claude --pid \"$PPID\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "screenbuddy agent busy --tool claude --pid \"$PPID\""
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "screenbuddy agent end"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "session-guard deregister"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tool_pid=\"$PPID\"; shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else session-guard register --tool claude --pid \"$tool_pid\"; fi"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "screenbuddy agent idle --tool claude --pid \"$PPID\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tool_pid=\"$PPID\"; shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else session-guard register --tool claude --pid \"$tool_pid\"; fi"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "screenbuddy agent busy --tool claude --pid \"$PPID\""
+          }
+        ]
+      }
+    ]
+  },
+  "enableWorkflows": true,
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh",
+    "refreshInterval": 30
+  },
+  "enabledPlugins": {
+    "code-simplifier@claude-plugins-official": false,
+    "coderabbit@claude-plugins-official": true,
+    "codex@openai-codex": false,
+    "compound-engineering@compound-engineering-plugin": false,
+    "context7@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": false,
+    "hookify@claude-plugins-official": false,
+    "plugin-dev@claude-plugins-official": false,
+    "pr-review-toolkit@claude-plugins-official": false,
+    "ralph-loop@claude-plugins-official": false,
+    "rust-analyzer-lsp@claude-plugins-official": false,
+    "skill-creator@claude-plugins-official": false,
+    "superpowers@claude-plugins-official": false,
+    "swift-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "basedpyright-lsp": {
+      "source": {
+        "source": "github",
+        "repo": "tylerlaprade/basedpyright-lsp"
+      },
+      "autoUpdate": true
+    },
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      },
+      "autoUpdate": true
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      },
+      "autoUpdate": true
+    }
+  },
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "high",
   "promptSuggestionEnabled": false,
-  "remoteControlAtStartup": true,
   "showClearContextOnPlanAccept": true,
-  "skipAutoPermissionPrompt": true,
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
-  "statusLine": {
-    "command": "~/.claude/statusline.sh",
-    "refreshInterval": 30,
-    "type": "command"
-  },
-  "switchModelsOnFlag": false,
   "theme": "auto",
+  "preferredNotifChannel": "terminal_bell",
+  "autoCompactEnabled": true,
+  "switchModelsOnFlag": false,
+  "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": false,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
   "useAutoModeDuringPlan": true,
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "feedbackSurveyState": {
+    "lastShownTime": 9999999999999
+  }
 }
