@@ -1,6 +1,7 @@
 ---
 name: commit
 description: Stage and commit current changes without touching unrelated files. Triggers on /commit.
+disable-model-invocation: true
 ---
 
 # Commit only your work
