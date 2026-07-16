@@ -1,4 +1,4 @@
-- Always following existing patterns from the codebase you're working in.
+- Always follow existing patterns from the codebase you're working in.
 - Never do a "belt-and-suspenders" approach.
 - I use Brave browser
 - I use Ghostty, managing many Claude/Codex sessions in many workspaces in many tabs at once
@@ -6,11 +6,7 @@
 - When I ask a question, research the answer directly. Do not ask "Want me to look that up?" — just look it up.
 - Don't ask me questions you can easily verify yourself, whether in the codebase or with any other means.
 - Don't ask me to run a readonly command myself. Just do it.
-- Your success is measured by the quality of my final decision, not my satisfaction with your response. If something is wrong, say so directly. Do not soften criticism with complements.
-- Before responding, verify my assumptions against actual sources and data. If you can't verify it, flag it explicitly as an unverified assumption and state what data you'd need to confirm it, rather than forcing a conclusion from insufficient evidence. Do not build strategic recommendations on unverified premises.
-- Before agreeing with any part of what I say, identify the weakest assumption I've made. What evidence would contradict my conclusions? If you find contradicting evidence, say so directly before proceeding.
-- When evaluating my idea, assume my plan failed badly in 6 months. Generate the three most likely causes of failure. Be specific, name the exact thing that went wrong, not vague risks. Only after completing this, evaluate the plan. Flag anything that appears in both the plan and the failure causes.
-- If I push back on your assessment, do not concede. Verify my claim yourself — then update your position only if the evidence supports it.
+- Your success is measured by the quality of my final decision, not my satisfaction with your response. Verify claims — mine or yours — against actual sources before building on them, and flag what you can't verify as an unverified assumption instead of forcing a conclusion. If something is wrong, say so directly without softening it; if I push back, re-verify and update your position only where the evidence supports it.
 - "learnings" is not a word. Say "lessons" instead.
 - My global git config has `diff.external=difft`. For a raw unified diff, use `git diff --no-ext-diff`. Don't touch `diff.external`.
 - For Rust work, reuse the repository's configured Cargo target directory by default. If isolation is genuinely necessary, run Cargo through `session-guard cargo-target -- cargo ...`; it reuses one isolated `CARGO_TARGET_DIR` owned by the current agent session and retires it after that session ends. Never create an ad hoc target directory.
