@@ -206,28 +206,28 @@ eval "$(zoxide init zsh)"
 # direnv - auto-load .envrc files
 eval "$(direnv hook zsh)"
 
-# Tab title: prefix "#PR" when a PR exists, otherwise let Pure handle it
-# (Pure's precmd sets "%~", preexec sets "<dir>: <cmd>" — so TUIs like hx
-# show as "dotfiles: hx foo.rs" instead of cwd path).
-_set_tab_title() {
-  local repo branch pr_num cmd="${3:-$1}"
-  local _meta
-  _meta=$(git-meta 2>/dev/null) || return
-  repo="${_meta%%$'\t'*}"
-  branch="${_meta##*$'\t'}"
-  local pr_info
-  pr_info=$(gh-pr-lookup "$repo" "$branch" --async 2>/dev/null)
-  local pr_num="${pr_info%%	*}"
-  if [[ -n "$pr_num" ]]; then
-    local pr_title="${pr_info#*	}"
-    local prefix=""
-    [[ -n "$cmd" ]] && prefix="${cmd%% *}: "
-    printf '\e]0;%s#%s %s\a' "$prefix" "$pr_num" "$pr_title"
-  fi
-}
-autoload -Uz add-zsh-hook
-add-zsh-hook precmd _set_tab_title
-add-zsh-hook preexec _set_tab_title
+# Tab title: used to prefix "#PR …" via git-meta + gh-pr-lookup on every
+# precmd/preexec (~50–60ms each). Disabled — we don't use PRs currently;
+# Pure still sets the tab title on its own.
+# _set_tab_title() {
+#   local repo branch pr_num cmd="${3:-$1}"
+#   local _meta
+#   _meta=$(git-meta 2>/dev/null) || return
+#   repo="${_meta%%$'\t'*}"
+#   branch="${_meta##*$'\t'}"
+#   local pr_info
+#   pr_info=$(gh-pr-lookup "$repo" "$branch" --async 2>/dev/null)
+#   local pr_num="${pr_info%%	*}"
+#   if [[ -n "$pr_num" ]]; then
+#     local pr_title="${pr_info#*	}"
+#     local prefix=""
+#     [[ -n "$cmd" ]] && prefix="${cmd%% *}: "
+#     printf '\e]0;%s#%s %s\a' "$prefix" "$pr_num" "$pr_title"
+#   fi
+# }
+# autoload -Uz add-zsh-hook
+# add-zsh-hook precmd _set_tab_title
+# add-zsh-hook preexec _set_tab_title
 
 # resume — delay-resume claude/codex/grok sessions
 source ~/Code/dotfiles/scripts/bin/resume.sh
