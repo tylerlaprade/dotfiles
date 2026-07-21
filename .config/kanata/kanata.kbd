@@ -1,26 +1,51 @@
 ;; Kanata configuration for macOS with hold/tap remappings
-;; Based on home row mods (HRM) best practices
+;; Bilateral home-row mods: hold only activates with opposite-hand keys
 
 (defcfg
-  ;; macOS specific settings
   process-unmapped-keys yes
   ;; danger-enable-cmd yes
   log-layer-changes yes
-  ;; Let kanata grab whatever devices it can
+  concurrent-tap-hold yes
+  ;; Grab only the real keyboard. The VirtualHID device is kanata's *output*
+  ;; path (via Karabiner DriverKit); grabbing it creates a no-op/feedback loop.
+  macos-dev-names-include (
+    "Apple Internal Keyboard / Trackpad"
+  )
 )
 
-;; Timing variables for easy configuration
-(defvar
-  ;; HRM timings (faster for typing flow)
-  tap-time-hrm 175
-  hold-time-hrm 200
+;; Hand map for bilateral HRM. Keys not listed are "unknown-hand"
+;; (default: ignore — don't force tap/hold from them).
+(defhands
+  (left
+    q w e r t
+    a s d f g
+    z x c v b
+    1 2 3 4 5
+  )
+  (right
+    y u i o p
+    h j k l ;
+    n m , . /
+    6 7 8 9 0
+    - = [ ] \ '
+  )
+)
 
-  ;; Primary key timings (more forgiving)
+(defvar
+  ;; HRM hold decision timeout (ms). At ~100 WPM keystroke spacing is ~100–120ms;
+  ;; we do NOT promote to hold just because the next key is opposite-hand.
+  hold-time-hrm 220
+
+  ;; If any key was pressed within this many ms before the HRM key, force TAP.
+  ;; Continuous typing almost always has recent activity; intentional mods
+  ;; need a brief pause first (~prior-idle gap).
+  prior-idle-hrm 160
+
+  ;; Thumb / caps — not bilateral
   tap-time-primary 200
   hold-time-primary 250
 )
 
-;; Define source keys - we need the full layout for the extend layer to work properly
 (defsrc
   esc  f1   f2   f3   f4   f5   f6   f7   f8   f9   f10  f11  f12
   grv  1    2    3    4    5    6    7    8    9    0    -    =    bspc
@@ -30,64 +55,108 @@
   fn   lctl lalt lmet           spc           rmet ralt
 )
 
-;; Base layer - only remap what we need, rest passes through with '_'
+;; lmet/rmet passthrough: Monologue double-tap Cmd
 (deflayer base
   _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
   @cap @a   @s   @d   @f   _    _    @j   @k   @l   @scl _    _
   _    _    _    _    _    _    _    _    _    _    _    _
-  _    _    _    @lmt           @spc          @rmt @rat
+  _    _    _    _              @spc          _    @rat
 )
 
-;; Extend layer - activated by holding space
-;; Provides numbers, arrows, function keys, and navigation
 (deflayer extend
   _    _    _    _    _    _    _    _    _    _    _    _    _
   _    f1   f2   f3   f4   f5   f6   f7   f8   f9   f10  f11  f12  _
   _    S-1  S-2  S-3  S-4  S-5  S-6  S-7  S-8  S-9  S-0  _    _    _
   @cap @ea  @es  @ed  @ef  5    left @ej  @ek  @el  @escl del  _
   _    6    7    8    9    0    home pgdn pgup end  _    _
-  _    _    _    @lmt           _              @rmt @rat
+  _    _    _    _              _              _    @rat
 )
-
-;; Aliases for hold/tap configurations
 
 (defalias
-  ;; ========== Primary Key Remappings ==========
-  ;; These use longer timeouts for frequently used keys
-  
-  cap (tap-hold-press $tap-time-primary $hold-time-primary esc lctl)  ;; Caps Lock → Esc/Ctrl
-  rmt (tap-hold-press $tap-time-primary $hold-time-primary ret rmet)  ;; Right Cmd → Enter/Cmd
-  rat (tap-hold-press $tap-time-primary $hold-time-primary bspc ralt) ;; Right Alt → Backspace/Alt
-  lmt (tap-hold-press $tap-time-primary $hold-time-primary tab lmet)  ;; Left Cmd → Tab/Cmd
-  spc (tap-hold $tap-time-primary $hold-time-primary spc (layer-while-held extend)) ;; Space → Space/Extend
-  
-  ;; ========== Base Layer Home Row Mods (CSAG order) ==========
-  ;; Left hand: Ctrl, Shift, Alt, Cmd (pinky to index)
-  a (tap-hold-press $tap-time-hrm $hold-time-hrm a lctl)
-  s (tap-hold-press $tap-time-hrm $hold-time-hrm s lsft)  
-  d (tap-hold-press $tap-time-hrm $hold-time-hrm d lalt)
-  f (tap-hold-press $tap-time-hrm $hold-time-hrm f lmet)
-  
-  ;; Right hand: Cmd, Alt, Shift, Ctrl (index to pinky)
-  j (tap-hold-press $tap-time-hrm $hold-time-hrm j rmet)
-  k (tap-hold-press $tap-time-hrm $hold-time-hrm k ralt)
-  l (tap-hold-press $tap-time-hrm $hold-time-hrm l rsft)
-  scl (tap-hold-press $tap-time-hrm $hold-time-hrm ; rctl)
-  
-  ;; ========== Extend Layer HRMs ==========
-  ;; Same modifiers, but tap produces numbers/arrows instead of letters
-  
-  ;; Left hand → numbers 1-4 with modifiers
-  ea (tap-hold-press $tap-time-hrm $hold-time-hrm 1 lctl)
-  es (tap-hold-press $tap-time-hrm $hold-time-hrm 2 lsft)
-  ed (tap-hold-press $tap-time-hrm $hold-time-hrm 3 lalt)
-  ef (tap-hold-press $tap-time-hrm $hold-time-hrm 4 lmet)
-  
-  ;; Right hand → arrow keys with modifiers (vim-like)
-  ej (tap-hold-press $tap-time-hrm $hold-time-hrm left rmet)  ;; J → ←
-  ek (tap-hold-press $tap-time-hrm $hold-time-hrm down ralt)  ;; K → ↓
-  el (tap-hold-press $tap-time-hrm $hold-time-hrm up rsft)    ;; L → ↑
-  escl (tap-hold-press $tap-time-hrm $hold-time-hrm rght rctl) ;; ; → →
+  ;; Caps / thumbs
+  cap (tap-hold-press $tap-time-primary $hold-time-primary esc lctl)
+  rat (tap-hold-press $tap-time-primary $hold-time-primary bspc ralt)
+  spc (tap-hold $tap-time-primary $hold-time-primary spc (layer-while-held extend))
+
+  ;; ========== Bilateral home-row mods (fast-typist tuned) ==========
+  ;; Why plain opposite-hand still ate "fi" in "definition":
+  ;;   f (left/Cmd) was still down when i (right) landed → treated as Cmd+i.
+  ;; Fix:
+  ;;   opposite-hand-release — hold only if the *other* key is pressed AND
+  ;;     released while the HRM key is still held (intentional chord).
+  ;;     Typing digraphs release the first key first → tap.
+  ;;   require-prior-idle — mid-stream typing has recent key activity → force tap.
+  ;; Left: Ctrl Shift Alt Cmd
+  a (tap-hold-opposite-hand-release $hold-time-hrm a lctl
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+  s (tap-hold-opposite-hand-release $hold-time-hrm s lsft
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+  d (tap-hold-opposite-hand-release $hold-time-hrm d lalt
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+  f (tap-hold-opposite-hand-release $hold-time-hrm f lmet
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+
+  ;; Right: Cmd Alt Shift Ctrl
+  j (tap-hold-opposite-hand-release $hold-time-hrm j rmet
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+  k (tap-hold-opposite-hand-release $hold-time-hrm k ralt
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+  l (tap-hold-opposite-hand-release $hold-time-hrm l rsft
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+  scl (tap-hold-opposite-hand-release $hold-time-hrm ; rctl
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+
+  ;; Extend-layer HRMs (same rules)
+  ea (tap-hold-opposite-hand-release $hold-time-hrm 1 lctl
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+  es (tap-hold-opposite-hand-release $hold-time-hrm 2 lsft
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+  ed (tap-hold-opposite-hand-release $hold-time-hrm 3 lalt
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+  ef (tap-hold-opposite-hand-release $hold-time-hrm 4 lmet
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+
+  ej (tap-hold-opposite-hand-release $hold-time-hrm left rmet
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+  ek (tap-hold-opposite-hand-release $hold-time-hrm down ralt
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+  el (tap-hold-opposite-hand-release $hold-time-hrm up rsft
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
+  escl (tap-hold-opposite-hand-release $hold-time-hrm rght rctl
+      (same-hand tap)
+      (timeout hold)
+      (require-prior-idle $prior-idle-hrm))
 )
+
