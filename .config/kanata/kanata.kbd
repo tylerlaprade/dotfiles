@@ -4,7 +4,8 @@
 (defcfg
   process-unmapped-keys yes
   ;; danger-enable-cmd yes
-  log-layer-changes yes
+  ;; log-layer-changes off while typing: less noise, tiny bit less work per key
+  log-layer-changes no
   concurrent-tap-hold yes
   ;; Grab only the real keyboard. The VirtualHID device is kanata's *output*
   ;; path (via Karabiner DriverKit); grabbing it creates a no-op/feedback loop.
@@ -32,18 +33,17 @@
 )
 
 (defvar
-  ;; HRM hold decision timeout (ms). At ~100 WPM keystroke spacing is ~100–120ms;
-  ;; we do NOT promote to hold just because the next key is opposite-hand.
-  hold-time-hrm 220
+  ;; HRM hold decision timeout (ms). Only after a real pause (prior-idle miss).
+  hold-time-hrm 170
 
-  ;; If any key was pressed within this many ms before the HRM key, force TAP.
-  ;; Continuous typing almost always has recent activity; intentional mods
-  ;; need a brief pause first (~prior-idle gap).
-  prior-idle-hrm 160
+  ;; Force TAP on press if any key was hit within this window.
+  ;; Main snappiness lever for 100+ WPM. 280 still left soft spots at
+  ;; natural micro-pauses; 400 covers those. Mods need ~0.4s quiet first.
+  prior-idle-hrm 400
 
-  ;; Thumb / caps — not bilateral
-  tap-time-primary 200
-  hold-time-primary 250
+  ;; Space / caps / thumbs
+  tap-time-primary 160
+  hold-time-primary 180
 )
 
 (defsrc
@@ -76,9 +76,15 @@
 
 (defalias
   ;; Caps / thumbs
-  cap (tap-hold-press $tap-time-primary $hold-time-primary esc lctl)
-  rat (tap-hold-press $tap-time-primary $hold-time-primary bspc ralt)
-  spc (tap-hold $tap-time-primary $hold-time-primary spc (layer-while-held extend))
+  cap (tap-hold-press $tap-time-primary $hold-time-primary esc lctl
+      (require-prior-idle $prior-idle-hrm))
+  rat (tap-hold-press $tap-time-primary $hold-time-primary bspc ralt
+      (require-prior-idle $prior-idle-hrm))
+  ;; Space: mid-stream instant tap (same prior-idle idea). Hold still opens
+  ;; extend after a pause — without this, every word boundary felt soft.
+  spc (tap-hold $tap-time-primary $hold-time-primary spc (layer-while-held extend)
+      (require-prior-idle $prior-idle-hrm))
+
 
   ;; ========== Bilateral home-row mods (fast-typist tuned) ==========
   ;; Why plain opposite-hand still ate "fi" in "definition":
