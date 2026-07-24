@@ -35,7 +35,6 @@
     ],
     "defaultMode": "bypassPermissions"
   },
-  "model": "claude-fable-5[1m]",
   "hooks": {
     "PostToolUse": [
       {
@@ -81,7 +80,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tool_pid=\"$PPID\"; shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else session-guard register --tool claude --pid \"$tool_pid\"; fi"
+            "command": "[ \"$CLAUDE_CODE_ENTRYPOINT\" = cli ] || exit 0; tool_pid=\"$PPID\"; shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else session-guard register --tool claude --pid \"$tool_pid\"; fi"
           }
         ]
       }
@@ -99,7 +98,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tool_pid=\"$PPID\"; shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else session-guard register --tool claude --pid \"$tool_pid\"; fi"
+            "command": "[ \"$CLAUDE_CODE_ENTRYPOINT\" = cli ] || exit 0; tool_pid=\"$PPID\"; shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else session-guard register --tool claude --pid \"$tool_pid\"; fi"
           }
         ]
       }
