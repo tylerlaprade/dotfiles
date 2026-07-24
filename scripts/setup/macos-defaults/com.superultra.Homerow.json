@@ -21,7 +21,7 @@
   },
   "show-menubar-icon": {
     "type": "bool",
-    "value": false
+    "value": true
   },
   "use-search-predicate": {
     "type": "bool",

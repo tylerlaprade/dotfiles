@@ -33,7 +33,7 @@
   },
   "launchOnLogin": {
     "type": "bool",
-    "value": true
+    "value": false
   },
   "quickHyperKeycode": {
     "type": "int",
