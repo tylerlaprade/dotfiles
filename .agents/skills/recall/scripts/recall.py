@@ -2,6 +2,8 @@
 """Search past Claude Code, Codex, and Grok sessions using FTS5 full-text search."""
 
 import argparse
+import fcntl
+import hashlib
 import json
 import os
 import re
@@ -9,6 +11,7 @@ import sqlite3
 import sys
 import math
 import time
+from contextlib import contextmanager
 from datetime import datetime
 from glob import glob
 from pathlib import Path
@@ -18,9 +21,44 @@ CLAUDE_DIR = Path.home() / ".claude"
 CODEX_DIR = Path.home() / ".codex"
 GROK_DIR = Path.home() / ".grok"
 DB_PATH = Path.home() / ".recall.db"
+DB_LOCK_PATH = Path.home() / ".recall.db.lock"
 CLAUDE_PROJECTS_DIR = CLAUDE_DIR / "projects"
 CODEX_SESSIONS_DIR = CODEX_DIR / "sessions"
 GROK_SESSIONS_DIR = GROK_DIR / "sessions"
+
+
+# Stop waiting for the indexer after this long and search the index as it stands.
+# Without a cap, one stalled holder hangs every other session with no output.
+LOCK_WAIT_SECONDS = 20
+
+
+@contextmanager
+def index_lock():
+    """Serialize index updates.
+
+    Yields (lock_file, have_lock, already_current). Index only while holding the
+    lock; `already_current` is true when another process finished indexing while
+    we waited. Stamp `lock_file` by file descriptor after indexing so waiters can
+    see the index is fresh.
+    """
+    with open(DB_LOCK_PATH, "a", encoding="utf-8") as lock_file:
+        observed_mtime_ns = os.fstat(lock_file.fileno()).st_mtime_ns
+        deadline = time.monotonic() + LOCK_WAIT_SECONDS
+        while True:
+            try:
+                fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    print(
+                        "Another process is still indexing; skipping the index update.",
+                        file=sys.stderr,
+                    )
+                    yield lock_file, False, False
+                    return
+                time.sleep(0.1)
+        # Closing the file releases the lock on every path, exceptions included.
+        yield lock_file, True, os.fstat(lock_file.fileno()).st_mtime_ns != observed_mtime_ns
 
 
 def create_schema(conn):
@@ -32,7 +70,10 @@ def create_schema(conn):
             project TEXT,
             slug TEXT,
             timestamp INTEGER,
-            mtime REAL
+            mtime REAL,
+            byte_offset INTEGER DEFAULT 0,
+            tail_hash TEXT,
+            parser_version INTEGER DEFAULT 0
         );
 
         CREATE VIRTUAL TABLE IF NOT EXISTS messages USING fts5(
@@ -56,6 +97,23 @@ def migrate_schema(conn):
     except sqlite3.OperationalError:
         conn.execute("ALTER TABLE sessions ADD COLUMN file_path TEXT DEFAULT ''")
         conn.commit()
+    # Existing rows get byte_offset 0, so each session is read in full once more
+    # and picks up an offset from then on. No rebuild needed.
+    try:
+        conn.execute("SELECT byte_offset FROM sessions LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE sessions ADD COLUMN byte_offset INTEGER DEFAULT 0")
+        conn.commit()
+    try:
+        conn.execute("SELECT tail_hash FROM sessions LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE sessions ADD COLUMN tail_hash TEXT")
+        conn.commit()
+    try:
+        conn.execute("SELECT parser_version FROM sessions LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE sessions ADD COLUMN parser_version INTEGER DEFAULT 0")
+        conn.commit()
 
 
 def migrate_db_location():
@@ -68,6 +126,83 @@ def migrate_db_location():
             old_extra = Path(str(old_path) + suffix)
             if old_extra.exists():
                 old_extra.rename(Path(str(DB_PATH) + suffix))
+
+
+# Claude and Codex only ever append to a transcript. Grok rewrites the whole of
+# chat_history.jsonl through a temp file on every save, so a byte offset into it
+# means nothing and those files are always read in full.
+APPEND_ONLY_SOURCES = {"claude", "codex"}
+
+# Bytes before the resume point that must still match for a tail read to be safe.
+# Claude can drop a message mid-file, which shifts every later byte and lands
+# inside this window; 4 KB is far more than one message line.
+TAIL_WINDOW = 4096
+
+# Stored per session. Bump it when a parser starts keeping or dropping different
+# text, so already-indexed sessions get read again instead of keeping a mix of
+# old and new parsing forever.
+PARSER_VERSION = 1
+
+
+CHUNK_BYTES = 1 << 20
+
+
+def read_complete_lines(path, start=0):
+    """Yield (line, offset just past it) for whole lines from `start`.
+
+    Read a chunk at a time, because the largest transcript here is a gigabyte
+    and reading it whole would cost several times that in memory. A transcript
+    an agent is writing right now can end mid-line, and that trailing fragment
+    is left for the next run rather than parsed into half a message.
+    """
+    with open(path, "rb") as f:
+        f.seek(start)
+        offset = start
+        pending = b""
+        while True:
+            chunk = f.read(CHUNK_BYTES)
+            if not chunk:
+                return
+            pending += chunk
+            cut = pending.rfind(b"\n")
+            if cut == -1:
+                continue
+            block, pending = pending[: cut + 1], pending[cut + 1:]
+            for raw in block.splitlines(keepends=True):
+                offset += len(raw)
+                yield raw.decode("utf-8", errors="replace"), offset
+
+
+def tail_hash_at(path, offset):
+    """Fingerprint the bytes just before `offset` — what we indexed up to.
+
+    Comparing this against the stored value answers the only question a tail
+    read depends on: is the file still the one we left off in the middle of?
+    """
+    window = min(TAIL_WINDOW, offset)
+    if window <= 0:
+        return None
+    try:
+        with open(path, "rb") as f:
+            f.seek(offset - window)
+            data = f.read(window)
+    except OSError:
+        return None
+    if len(data) != window:
+        return None
+    return hashlib.sha256(data).hexdigest()
+
+
+def resume_offset(path, offset, tail_hash, parser_version):
+    """Offset to resume parsing from, or 0 when the file must be read in full.
+
+    A file that was only appended to still carries the bytes we hashed last
+    time. One that was truncated, replaced, or had a message removed from the
+    middle does not, and gets re-read from the start.
+    """
+    if not offset or not tail_hash or parser_version != PARSER_VERSION:
+        return 0
+    return offset if tail_hash_at(path, offset) == tail_hash else 0
 
 
 TEXT_BLOCK_TYPES = {"text", "input_text", "output_text"}
@@ -110,91 +245,99 @@ def parse_iso_timestamp(ts_str):
 
 # — Claude Code session parser —————————————————————————————————————————————
 
-def parse_claude_session(path):
-    """Parse a Claude Code JSONL session file, returning (metadata, messages)."""
+def parse_claude_session(path, start=0):
+    """Parse a Claude Code JSONL session file.
+
+    Returns (metadata, messages, end_offset). With `start` past 0 only the
+    bytes after it are read, so metadata reflects the tail alone and the
+    caller keeps what it already stored.
+    """
     session_id = Path(path).stem
     project = None
     slug = None
     earliest_ts = None
     messages = []
 
+    end_offset = start
+
     try:
-        with open(path, "r", encoding="utf-8", errors="replace") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    entry = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
+        for line, line_end in read_complete_lines(path, start):
+            end_offset = line_end
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
 
-                etype = entry.get("type", "")
+            etype = entry.get("type", "")
 
-                # Extract cwd from any entry
-                if not project:
-                    cwd = entry.get("cwd", "")
-                    if cwd:
-                        project = cwd
+            # Extract cwd from any entry
+            if not project:
+                cwd = entry.get("cwd", "")
+                if cwd:
+                    project = cwd
 
-                # Extract slug from any entry
-                if not slug:
-                    slug = entry.get("slug", "") or entry.get("leafName", "")
+            # Extract slug from any entry
+            if not slug:
+                slug = entry.get("slug", "") or entry.get("leafName", "")
 
-                # Parse timestamp
-                ts_raw = entry.get("timestamp")
-                ts_ms = parse_iso_timestamp(ts_raw)
-                if ts_ms and (earliest_ts is None or ts_ms < earliest_ts):
-                    earliest_ts = ts_ms
+            # Parse timestamp
+            ts_raw = entry.get("timestamp")
+            ts_ms = parse_iso_timestamp(ts_raw)
+            if ts_ms and (earliest_ts is None or ts_ms < earliest_ts):
+                earliest_ts = ts_ms
 
-                # Determine role: check both "type" and "role" fields
-                role = entry.get("role", "")
-                if role not in ("user", "assistant"):
-                    if etype == "user" or etype == "human":
-                        role = "user"
-                    elif etype == "assistant":
-                        role = "assistant"
-                    else:
-                        continue
-
-                # Extract text content — handle multiple formats:
-                # 1. {message: {content: "..."}} or {message: {content: [{type:"text",...}]}}
-                # 2. {content: "..."} or {content: [...]}
-                content = entry.get("message", {})
-                if isinstance(content, dict):
-                    content = content.get("content", "")
-                elif isinstance(content, str):
-                    # message field is a plain string
-                    pass
+            # Determine role: check both "type" and "role" fields
+            role = entry.get("role", "")
+            if role not in ("user", "assistant"):
+                if etype == "user" or etype == "human":
+                    role = "user"
+                elif etype == "assistant":
+                    role = "assistant"
                 else:
-                    content = entry.get("content", "")
+                    continue
 
-                text = extract_text(content)
-                if text:
-                    messages.append((role, text))
+            # Extract text content — handle multiple formats:
+            # 1. {message: {content: "..."}} or {message: {content: [{type:"text",...}]}}
+            # 2. {content: "..."} or {content: [...]}
+            content = entry.get("message", {})
+            if isinstance(content, dict):
+                content = content.get("content", "")
+            elif isinstance(content, str):
+                # message field is a plain string
+                pass
+            else:
+                content = entry.get("content", "")
+
+            text = extract_text(content)
+            if text:
+                messages.append((role, text))
 
     except (OSError, PermissionError) as e:
         print(f"Warning: skipping {path}: {e}", file=sys.stderr)
         return None
-
-    if not slug:
-        slug = session_id[:12]
 
     metadata = {
         "session_id": session_id,
         "source": "claude",
         "file_path": path,
         "project": project or "",
-        "slug": slug,
+        "slug": slug or "",
         "timestamp": earliest_ts or 0,
     }
-    return metadata, messages
+    return metadata, messages, end_offset
 
 
 # — Codex session parser ———————————————————————————————————————————————————
 
-def parse_codex_session(path):
-    """Parse a Codex JSONL session file, returning (metadata, messages).
+def parse_codex_session(path, start=0):
+    """Parse a Codex JSONL session file.
+
+    Returns (metadata, messages, end_offset). With `start` past 0 only the
+    bytes after it are read, so metadata reflects the tail alone and the
+    caller keeps what it already stored.
 
     Codex sessions live in ~/.codex/sessions/YYYY/MM/DD/rollout-<ts>-<uuid>.jsonl.
     Supports two formats:
@@ -207,118 +350,110 @@ def parse_codex_session(path):
     earliest_ts = None
     messages = []
 
-    # Extract date from path: sessions/YYYY/MM/DD/rollout-...
-    path_match = re.search(r"sessions/(\d{4}/\d{2}/\d{2})/", path)
-    date_slug = path_match.group(1).replace("/", "-") if path_match else None
-
-    # Extract session UUID from filename: rollout-YYYY-MM-DDTHH-MM-SS-<uuid>.jsonl
-    uuid_match = re.search(
-        r"-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
-        session_id,
-    )
+    end_offset = start
 
     try:
-        with open(path, "r", encoding="utf-8", errors="replace") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    entry = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
+        for line, line_end in read_complete_lines(path, start):
+            end_offset = line_end
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
 
-                # Skip state snapshots (legacy format)
-                if entry.get("record_type") == "state":
-                    continue
+            # Skip state snapshots (legacy format)
+            if entry.get("record_type") == "state":
+                continue
 
-                # Parse timestamp (present in both formats at top level)
-                ts_raw = entry.get("timestamp")
-                if ts_raw:
-                    ts_ms = parse_iso_timestamp(ts_raw)
-                    if ts_ms and (earliest_ts is None or ts_ms < earliest_ts):
-                        earliest_ts = ts_ms
+            # Parse timestamp (present in both formats at top level)
+            ts_raw = entry.get("timestamp")
+            if ts_raw:
+                ts_ms = parse_iso_timestamp(ts_raw)
+                if ts_ms and (earliest_ts is None or ts_ms < earliest_ts):
+                    earliest_ts = ts_ms
 
-                etype = entry.get("type", "")
+            etype = entry.get("type", "")
 
-                # Current format: {type: "session_meta", payload: {id, cwd, ...}}
-                if etype == "session_meta":
-                    payload = entry.get("payload", {})
-                    entry_id = payload.get("id", "")
+            # Current format: {type: "session_meta", payload: {id, cwd, ...}}
+            if etype == "session_meta":
+                payload = entry.get("payload", {})
+                entry_id = payload.get("id", "")
+                if entry_id and session_id.startswith("rollout-"):
+                    session_id = entry_id
+                if not project:
+                    project = payload.get("cwd", "")
+                continue
+
+            # Current format: {type: "response_item", payload: {role, content, ...}}
+            # Legacy format: {role, content, ...} (no type or type="message")
+            if etype == "response_item":
+                payload = entry.get("payload", {})
+                role = payload.get("role", "")
+                content = payload.get("content", "")
+            elif etype in ("event_msg", "turn_context"):
+                continue
+            else:
+                # Legacy format — session metadata in first entry
+                if not project and "id" in entry and "instructions" in entry:
+                    entry_id = entry.get("id", "")
                     if entry_id and session_id.startswith("rollout-"):
                         session_id = entry_id
-                    if not project:
-                        project = payload.get("cwd", "")
                     continue
 
-                # Current format: {type: "response_item", payload: {role, content, ...}}
-                # Legacy format: {role, content, ...} (no type or type="message")
-                if etype == "response_item":
-                    payload = entry.get("payload", {})
-                    role = payload.get("role", "")
-                    content = payload.get("content", "")
-                elif etype in ("event_msg", "turn_context"):
-                    continue
-                else:
-                    # Legacy format — session metadata in first entry
-                    if not project and "id" in entry and "instructions" in entry:
-                        entry_id = entry.get("id", "")
-                        if entry_id and session_id.startswith("rollout-"):
-                            session_id = entry_id
-                        continue
+                role = entry.get("role", "")
+                content = entry.get("content", "")
 
-                    role = entry.get("role", "")
-                    content = entry.get("content", "")
+                # Legacy: extract cwd from <environment_context> blocks
+                if not project and isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict):
+                            text = block.get("text", "")
+                            if "Current working directory:" in text:
+                                cwd_match = re.search(
+                                    r"Current working directory:\s*(.+)", text
+                                )
+                                if cwd_match:
+                                    project = cwd_match.group(1).strip()
 
-                    # Legacy: extract cwd from <environment_context> blocks
-                    if not project and isinstance(content, list):
-                        for block in content:
-                            if isinstance(block, dict):
-                                text = block.get("text", "")
-                                if "Current working directory:" in text:
-                                    cwd_match = re.search(
-                                        r"Current working directory:\s*(.+)", text
-                                    )
-                                    if cwd_match:
-                                        project = cwd_match.group(1).strip()
+            # Only index user and assistant messages (skip developer/system)
+            if role not in ("user", "assistant"):
+                continue
 
-                # Only index user and assistant messages (skip developer/system)
-                if role not in ("user", "assistant"):
-                    continue
+            text = extract_text(content)
 
-                text = extract_text(content)
+            # Skip system/instruction blocks injected as user messages
+            if not text:
+                continue
+            if any(marker in text for marker in CODEX_SKIP_MARKERS):
+                continue
 
-                # Skip system/instruction blocks injected as user messages
-                if not text:
-                    continue
-                if any(marker in text for marker in CODEX_SKIP_MARKERS):
-                    continue
-
-                messages.append((role, text))
+            messages.append((role, text))
 
     except (OSError, PermissionError) as e:
         print(f"Warning: skipping {path}: {e}", file=sys.stderr)
         return None
-
-    if not slug:
-        short_id = uuid_match.group(1)[:8] if uuid_match else session_id[:8]
-        slug = f"{date_slug}-{short_id}" if date_slug else short_id
 
     metadata = {
         "session_id": session_id,
         "source": "codex",
         "file_path": path,
         "project": project or "",
-        "slug": slug,
+        "slug": slug or "",
         "timestamp": earliest_ts or 0,
     }
-    return metadata, messages
+    return metadata, messages, end_offset
 
 
 # — Grok session parser ————————————————————————————————————————————————————
 
-def parse_grok_session(path):
-    """Parse a Grok chat_history.jsonl, returning (metadata, messages).
+def parse_grok_session(path, start=0):
+    """Parse a Grok chat_history.jsonl.
+
+    Returns (metadata, messages, end_offset). With `start` past 0 only the
+    bytes after it are read; summary.json is re-read either way, since Grok
+    fills in the generated title after the session has begun.
 
     Grok sessions live in ~/.grok/sessions/<url-encoded-cwd>/<uuid>/chat_history.jsonl.
     Optional summary.json supplies cwd, title, and created_at.
@@ -353,53 +488,52 @@ def parse_grok_session(path):
         # Parent dir is percent-encoded absolute cwd, e.g. %2FUsers%2F...
         project = unquote(session_dir.parent.name)
 
+    end_offset = start
+
     try:
-        with open(path, "r", encoding="utf-8", errors="replace") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    entry = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
+        for line, line_end in read_complete_lines(path, start):
+            end_offset = line_end
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
 
-                # Injected harness context, not real user turns
-                if entry.get("synthetic_reason"):
-                    continue
+            # Injected harness context, not real user turns
+            if entry.get("synthetic_reason"):
+                continue
 
-                etype = entry.get("type", "")
-                if etype in ("user", "human"):
-                    role = "user"
-                elif etype == "assistant":
-                    role = "assistant"
-                else:
-                    continue
+            etype = entry.get("type", "")
+            if etype in ("user", "human"):
+                role = "user"
+            elif etype == "assistant":
+                role = "assistant"
+            else:
+                continue
 
-                text = extract_text(entry.get("content", ""))
-                if not text:
-                    continue
-                if any(marker in text for marker in GROK_SKIP_MARKERS):
-                    continue
+            text = extract_text(entry.get("content", ""))
+            if not text:
+                continue
+            if any(marker in text for marker in GROK_SKIP_MARKERS):
+                continue
 
-                messages.append((role, text))
+            messages.append((role, text))
 
     except (OSError, PermissionError) as e:
         print(f"Warning: skipping {path}: {e}", file=sys.stderr)
         return None
-
-    if not slug:
-        slug = session_id[:12]
 
     metadata = {
         "session_id": session_id,
         "source": "grok",
         "file_path": str(path),
         "project": project or "",
-        "slug": slug,
+        "slug": slug or "",
         "timestamp": earliest_ts or 0,
     }
-    return metadata, messages
+    return metadata, messages, end_offset
 
 
 # — Indexing ———————————————————————————————————————————————————————————————
@@ -412,13 +546,21 @@ def index_sessions(conn, force=False):
             DELETE FROM messages;
         """)
 
-    # Get existing mtimes keyed by file_path (stable across session_id changes)
+    # Get existing state keyed by file_path (stable across session_id changes)
     existing = {}
     try:
-        for row in conn.execute("SELECT file_path, session_id, mtime FROM sessions"):
-            existing[row[0]] = (row[1], row[2])
+        for row in conn.execute(
+            "SELECT file_path, session_id, mtime, byte_offset, tail_hash, "
+            "parser_version, project, slug, timestamp FROM sessions"
+        ):
+            existing[row[0]] = row[1:]
     except sqlite3.OperationalError:
         pass
+
+    # Which file already answers to each session id. Most ids come from the file
+    # name and are unique, but every workflow journal.jsonl derives the same one,
+    # and a shared id would mean a shared byte offset into different files.
+    claimed_by = {sid: fpath for fpath, (sid, *_) in existing.items()}
 
     # Collect files from all sources
     sources = []
@@ -439,7 +581,6 @@ def index_sessions(conn, force=False):
         sources.append((fpath, "grok"))
 
     indexed = 0
-    skipped = 0
 
     # Disable FTS5 automerge during bulk insert to avoid repeated segment merges
     conn.execute("INSERT INTO messages(messages, rank) VALUES('automerge', 0)")
@@ -450,62 +591,122 @@ def index_sessions(conn, force=False):
         except OSError:
             continue
 
-        if not force and fpath in existing and existing[fpath][1] == mtime:
-            skipped += 1
+        prior = existing.get(fpath)
+        if prior and prior[1] == mtime:
             continue
 
-        # Remove old data for this file if re-indexing
-        if fpath in existing:
-            old_sid = existing[fpath][0]
-            conn.execute("DELETE FROM sessions WHERE session_id = ?", (old_sid,))
-            conn.execute("DELETE FROM messages WHERE session_id = ?", (old_sid,))
+        # Read only what is new, where the source is one that only appends and
+        # the bytes we left off after are still the ones we hashed.
+        start = 0
+        if prior and source in APPEND_ONLY_SOURCES:
+            start = resume_offset(fpath, prior[2], prior[3], prior[4])
+
+        # Whatever is not being resumed gets replaced outright.
+        if prior and not start:
+            conn.execute("DELETE FROM sessions WHERE session_id = ?", (prior[0],))
+            conn.execute("DELETE FROM messages WHERE session_id = ?", (prior[0],))
 
         if source == "claude":
-            result = parse_claude_session(fpath)
+            result = parse_claude_session(fpath, start)
         elif source == "codex":
-            result = parse_codex_session(fpath)
+            result = parse_codex_session(fpath, start)
         else:
-            result = parse_grok_session(fpath)
+            result = parse_grok_session(fpath, start)
 
         if result is None:
             continue
 
-        metadata, messages = result
+        metadata, messages, end_offset = result
+        # Only record a resume point for a source we would resume from.
+        if source not in APPEND_ONLY_SOURCES:
+            end_offset = 0
+        tail_hash = tail_hash_at(fpath, end_offset)
 
-        conn.execute(
-            "INSERT OR REPLACE INTO sessions (session_id, source, file_path, project, slug, timestamp, mtime) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (metadata["session_id"], metadata["source"], metadata["file_path"],
-             metadata["project"], metadata["slug"], metadata["timestamp"], mtime),
-        )
+        if start:
+            # Only the tail was read, so keep the metadata already stored unless
+            # this run turned up something better. The earliest timestamp can
+            # only have been seen at the head of the file.
+            session_id = prior[0]
+            stamps = [t for t in (prior[7], metadata["timestamp"]) if t]
+            conn.execute(
+                "UPDATE sessions SET project = ?, slug = ?, timestamp = ?, "
+                "mtime = ?, byte_offset = ?, tail_hash = ?, parser_version = ? "
+                "WHERE session_id = ?",
+                (prior[5] or metadata["project"], prior[6] or metadata["slug"],
+                 min(stamps) if stamps else 0,
+                 mtime, end_offset, tail_hash, PARSER_VERSION, session_id),
+            )
+        else:
+            session_id = metadata["session_id"]
+            owner = claimed_by.get(session_id)
+            if owner is not None and owner != fpath:
+                if os.path.exists(owner):
+                    # Both files are still here, so they need ids of their own.
+                    digest = hashlib.sha256(fpath.encode("utf-8")).hexdigest()[:8]
+                    session_id = f"{session_id}@{digest}"
+                else:
+                    # The file moved. This row inherits the id, so clear what
+                    # was indexed under it rather than adding a second copy.
+                    conn.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+            claimed_by[session_id] = fpath
+            conn.execute(
+                "INSERT OR REPLACE INTO sessions (session_id, source, file_path, project, slug, timestamp, mtime, byte_offset, tail_hash, parser_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (session_id, metadata["source"], metadata["file_path"],
+                 metadata["project"], metadata["slug"], metadata["timestamp"],
+                 mtime, end_offset, tail_hash, PARSER_VERSION),
+            )
 
         conn.executemany(
             "INSERT INTO messages (session_id, role, text) VALUES (?, ?, ?)",
-            [(metadata["session_id"], role, text) for role, text in messages],
+            [(session_id, role, text) for role, text in messages],
         )
 
         indexed += 1
 
+    # Only a full rebuild is worth merging every segment — 'optimize' rewrites the
+    # whole index, so running it after a handful of new sessions costs seconds and
+    # buys nothing. Restore automerge either way; the setting lives in the db file,
+    # and committing it alongside the inserts means a run killed part way through
+    # can't leave merging switched off.
+    conn.execute("INSERT INTO messages(messages, rank) VALUES('automerge', 4)")
+    if force and indexed > 0:
+        conn.execute("INSERT INTO messages(messages) VALUES('optimize')")
     conn.commit()
 
-    # Merge all FTS5 segments into one and restore automerge
-    if indexed > 0:
-        conn.execute("INSERT INTO messages(messages) VALUES('optimize')")
-        conn.execute("INSERT INTO messages(messages, rank) VALUES('automerge', 4)")
-        conn.commit()
-
-    # Get totals
-    total_sessions = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
-    total_messages = conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
-
-    return indexed, skipped, total_sessions, total_messages
+    return indexed
 
 
 # — Search —————————————————————————————————————————————————————————————————
+
+def sanitize_fts_query(query):
+    """Sanitize a query for FTS5 MATCH.
+
+    FTS5 reads a bare hyphen as the NOT operator, so 'claude-code' becomes
+    'claude NOT code' and errors out because there is no column named 'code'.
+    Splitting hyphenated words into separately quoted terms searches for what
+    was typed. Phrases the user quoted are left alone.
+    """
+    parts = []
+    in_quote = False
+    for segment in query.split('"'):
+        if in_quote:
+            parts.append(f'"{segment}"')
+        else:
+            segment = re.sub(
+                r"\b(\w+(?:-\w+)+)\b",
+                lambda m: " ".join(f'"{w}"' for w in m.group().split("-")),
+                segment,
+            )
+            parts.append(segment)
+        in_quote = not in_quote
+    return "".join(parts)
+
 
 def search(conn, query, project=None, days=None, source=None, limit=10):
     """Search indexed sessions."""
     # FTS5 auxiliary functions (bm25, snippet) don't work with GROUP BY.
     # Use a subquery to get the best-ranking rowid per session, then fetch snippets.
+    query = sanitize_fts_query(query)
     fts_params = [query]
     session_filter = ""
 
@@ -608,16 +809,28 @@ def main():
 
     args = parser.parse_args()
 
-    migrate_db_location()
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA synchronous=NORMAL")
-    create_schema(conn)
-    migrate_schema(conn)
-
-    # Index
+    # Index updates write to shared SQLite and FTS5 state. Serialize that phase,
+    # then release the lock so WAL-backed searches can run concurrently.
     t0 = time.time()
-    indexed, skipped, total_sessions, total_messages = index_sessions(conn, force=args.reindex)
+    with index_lock() as (lock_file, have_lock, already_current):
+        migrate_db_location()
+        # The index holds the text of every conversation, so keep it readable
+        # only by its owner. The umask covers the -wal and -shm files too.
+        old_umask = os.umask(0o077)
+        conn = sqlite3.connect(str(DB_PATH))
+        os.umask(old_umask)
+        os.chmod(str(DB_PATH), 0o600)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        create_schema(conn)
+        migrate_schema(conn)
+
+        if not have_lock or (already_current and not args.reindex):
+            indexed = 0
+        else:
+            indexed = index_sessions(conn, force=args.reindex)
+            os.utime(lock_file.fileno(), None)
+    # Counted from before the lock, so the number covers time spent waiting too.
     index_time = time.time() - t0
 
     if indexed > 0:
@@ -631,13 +844,17 @@ def main():
         conn.close()
         return
 
+    # Counting an FTS5 table walks the whole index, so pay for it outside the
+    # lock and only once we know there is a header to print.
+    total_sessions = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+    total_messages = conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
     print(f"Found {len(results)} sessions (index: {total_sessions} sessions, {total_messages} messages):\n")
 
     for i, (session_id, source, file_path, project, slug, timestamp, excerpt, rank) in enumerate(results, 1):
         date = format_timestamp(timestamp)
         src_tag = f"[{source}]" if source else ""
         proj_name = Path(project).name if project else "unknown"
-        print(f"[{i}] {date} | {slug} | {proj_name} {src_tag}")
+        print(f"[{i}] {date} | {slug or session_id[:12]} | {proj_name} {src_tag}")
         if project:
             print(f"    {project}")
         print(f"    ID: {session_id}")

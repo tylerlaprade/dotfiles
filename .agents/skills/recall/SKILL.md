@@ -5,8 +5,10 @@ description: >
   "find a past session", "recall a previous conversation", "search session history",
   "what did we discuss", "remember when we"
 metadata:
-  author: arjunkmrm
-  version: "0.2.3"
+  author: tylerlaprade
+  upstream: arjunkmrm/recall
+  fork: diverged from upstream 0.2.2
+  version: "0.3.0"
   license: MIT
 ---
 
@@ -58,6 +60,7 @@ python3 ~/.claude/skills/recall/scripts/recall.py --reindex "test"
 - **Boolean**: `rust AND async`, `tauri OR electron`, `NOT deprecated`
 - **Prefix**: `buffer*` — matches bufferStore, bufferMap, etc.
 - **Combined**: `"state machine" AND test`
+- **Hyphens**: `claude-code` is split into `"claude" "code"`, since FTS5 reads a bare `-` as NOT. Quote the phrase to search it exactly.
 
 ## After Finding a Match
 
@@ -87,8 +90,9 @@ If results are missing `File:` paths, run `--reindex` to backfill.
 
 ## Notes
 
-- Index is stored at `~/.recall.db` (SQLite FTS5, auto-migrated from `~/.claude/recall.db`)
+- Index is stored at `~/.recall.db` (SQLite FTS5, auto-migrated from `~/.claude/recall.db`), created readable only by you, with `~/.recall.db.lock` serializing index updates across concurrent sessions
 - Indexes `~/.claude/projects/` (Claude Code), `~/.codex/sessions/` (Codex), and `~/.grok/sessions/**/chat_history.jsonl` (Grok)
-- First run indexes all sessions (a few seconds); subsequent runs are incremental
+- First run indexes all sessions; after that only the bytes a session has added are read, except for Grok, which rewrites its whole history file on every save
+- Run tests with `python3 -m unittest discover tests -v` from the skill root
 - Only user and assistant messages are indexed (tool calls, thinking blocks, state snapshots, synthetic harness context skipped)
 - Results show `[claude]`, `[codex]`, or `[grok]` tags to indicate the source
