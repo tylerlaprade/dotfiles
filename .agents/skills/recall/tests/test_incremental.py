@@ -6,11 +6,13 @@ is a way for that property to break.
 """
 from __future__ import annotations
 
+import io
 import json
 import os
 import sqlite3
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
 
 from support import (
@@ -410,6 +412,98 @@ class Reindex(IndexingCase):
         self.assertEqual(value[0], 4)
 
 
+class VanishedFiles(IndexingCase):
+    """Tools age out their own transcripts. Nearly half the sessions in a
+    working index point at files that are gone, and the index is the only place
+    those conversations still exist."""
+
+    def test_a_deleted_file_keeps_its_messages(self):
+        path = self.corpus.claude_session("40404040-4040-4040-4040-404040404040",
+                                          [claude_entry("worth keeping")])
+        self.corpus.claude_session("41414141-4141-4141-4141-414141414141",
+                                   [claude_entry("still here")])
+        self.index()
+        session_id = self.session_row(path)[0]
+        os.remove(path)
+        self.index()
+        self.assertEqual(self.texts(session_id), ["worth keeping"])
+
+    def test_reindex_keeps_them_too(self):
+        """A rebuild re-reads what it can. It is not an instruction to forget
+        everything it cannot."""
+        path = self.corpus.claude_session("42424242-4242-4242-4242-424242424242",
+                                          [claude_entry("worth keeping")])
+        self.corpus.claude_session("43434343-4343-4343-4343-434343434343",
+                                   [claude_entry("still here")])
+        self.index()
+        session_id = self.session_row(path)[0]
+        os.remove(path)
+        self.index(force=True)
+        self.assertEqual(self.texts(session_id), ["worth keeping"])
+        self.assertEqual(len(contents(self.db)[0]), 2)
+
+    def test_an_unreadable_file_keeps_what_was_already_indexed(self):
+        """A permission error, or a transcript rotated away mid-scan, must cost
+        nothing that is already in the index."""
+        path = self.corpus.claude_session("44444444-4444-4444-4444-444444444444",
+                                          [claude_entry("indexed before the error")])
+        self.index()
+        session_id = self.session_row(path)[0]
+
+        os.chmod(path, 0o000)
+        self.addCleanup(os.chmod, path, 0o644)
+        self.corpus.stamp(path)
+        with redirect_stderr(io.StringIO()):
+            self.index()
+        self.assertEqual(self.texts(session_id), ["indexed before the error"])
+
+
+class InterruptedRebuild(IndexingCase):
+    def test_a_rebuild_that_dies_part_way_leaves_the_index_intact(self):
+        """The deletes belong to the run's transaction. Committing them first
+        would leave an empty index behind for as long as the rebuild takes,
+        and for good if it never finishes."""
+        self.corpus.claude_session("50505050-5050-5050-5050-505050505050",
+                                   [claude_entry("survives")])
+        self.index()
+        before = contents(self.db)
+
+        with pointed_at(self.corpus, self.db):
+            conn = connect(self.db)
+            try:
+                original = recall.parse_session
+
+                def explode(path, source, start=0):
+                    raise KeyboardInterrupt("killed mid-rebuild")
+
+                recall.parse_session = explode
+                with self.assertRaises(KeyboardInterrupt):
+                    recall.index_sessions(conn, force=True)
+                conn.rollback()
+            finally:
+                recall.parse_session = original
+                conn.close()
+
+        self.assertEqual(contents(self.db), before)
+
+
+class MalformedInput(IndexingCase):
+    def test_a_timestamp_that_is_not_a_number_costs_one_line(self):
+        """Not the whole run. An uncaught error here would discard every
+        session parsed before it, since nothing is committed until the end."""
+        path = self.corpus.claude_session("60606060-6060-6060-6060-606060606060",
+                                          [claude_entry("good line")])
+        self.corpus.write_raw(
+            path, '{"type":"user","timestamp":Infinity,"message":{"content":"bad line"}}\n')
+        self.index()
+        self.assertIn("good line", self.texts(self.session_row(path)[0]))
+
+    def test_parse_iso_timestamp_survives_anything(self):
+        for value in (float("inf"), float("nan"), "not a date", "", None, [], {}, True):
+            with self.subTest(value=value):
+                recall.parse_iso_timestamp(value)
+
+
 class ParserVersion(IndexingCase):
     def test_bumping_the_parser_version_forces_a_full_reread(self):
         path = self.corpus.claude_session("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
@@ -423,6 +517,24 @@ class ParserVersion(IndexingCase):
             self.index()
             self.assertEqual(self.session_row(path)[3], original + 1)
             self.assertEqual(sorted(self.texts(self.session_row(path)[0])), ["one", "two"])
+        finally:
+            recall.PARSER_VERSION = original
+
+    def test_a_bump_reaches_a_session_that_has_stopped_growing(self):
+        """The point of the version is that a change to what the parsers keep
+        applies to sessions already indexed. Skipping on mtime alone would
+        leave every finished session parsed the old way for good."""
+        path = self.corpus.claude_session("70707070-7070-7070-7070-707070707070",
+                                          [claude_entry("written once")])
+        self.index()
+        self.assertEqual(self.index(), 0)
+
+        original = recall.PARSER_VERSION
+        recall.PARSER_VERSION = original + 1
+        try:
+            self.assertEqual(self.index(), 1)
+            self.assertEqual(self.session_row(path)[3], original + 1)
+            self.assertEqual(self.texts(self.session_row(path)[0]), ["written once"])
         finally:
             recall.PARSER_VERSION = original
 

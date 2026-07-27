@@ -74,9 +74,8 @@ class LockBehaviour(unittest.TestCase):
 
     def test_a_run_takes_the_lock_and_reports_holding_it(self):
         with pointed_at(self.corpus, self.db):
-            with recall.index_lock() as (_, have_lock, already_current):
+            with recall.index_lock() as have_lock:
                 self.assertTrue(have_lock)
-                self.assertFalse(already_current)
 
     def test_a_waiter_gives_up_rather_than_hanging(self):
         self.corpus.claude_session("11111111-1111-1111-1111-111111111111",
@@ -84,7 +83,7 @@ class LockBehaviour(unittest.TestCase):
         with lock_held_elsewhere(self.lock):
             started = time.monotonic()
             with pointed_at(self.corpus, self.db):
-                with recall.index_lock() as (_, have_lock, _unused):
+                with recall.index_lock() as have_lock:
                     self.assertFalse(have_lock)
             waited = time.monotonic() - started
         self.assertGreaterEqual(waited, recall.LOCK_WAIT_SECONDS)
@@ -117,33 +116,20 @@ class LockBehaviour(unittest.TestCase):
             self.run_main("turn", "--reindex")
         self.assertEqual(self.session_count(), before)
 
-    def test_a_run_notices_that_someone_else_refreshed_the_index(self):
-        """A run that waits while another finishes indexing has nothing left to
-        do, and should search rather than scan everything a second time. The
-        signal is the lock file being stamped between our open and our lock."""
-        recall.LOCK_WAIT_SECONDS = 10
-        Path(self.lock).touch()
-        holder = open(self.lock, "a", encoding="utf-8")
-        fcntl.flock(holder, fcntl.LOCK_EX)
-
-        waiting = threading.Event()
-
-        def finish_indexing():
-            waiting.wait(timeout=5)
-            time.sleep(0.2)
-            os.utime(holder.fileno(), None)
-            holder.close()
-
-        releaser = threading.Thread(target=finish_indexing)
-        releaser.start()
-        try:
-            with pointed_at(self.corpus, self.db):
-                waiting.set()
-                with recall.index_lock() as (_lock, have_lock, already_current):
-                    self.assertTrue(have_lock)
-                    self.assertTrue(already_current)
-        finally:
-            releaser.join(timeout=10)
+    def test_a_waiter_reindexes_nothing_once_the_holder_has_finished(self):
+        """The waiter re-reads the sessions table after it gets the lock, so a
+        file the holder already indexed shows an unchanged mtime and is
+        skipped. No signalling between the two is needed."""
+        self.corpus.claude_session("55555555-5555-5555-5555-555555555555",
+                                   [claude_entry("a turn")])
+        self.run_main("turn")
+        with pointed_at(self.corpus, self.db):
+            conn = sqlite3.connect(self.db)
+            try:
+                recall.create_schema(conn)
+                self.assertEqual(recall.index_sessions(conn), 0)
+            finally:
+                conn.close()
 
 
 class ConcurrentIndexing(unittest.TestCase):
@@ -176,8 +162,8 @@ class ConcurrentIndexing(unittest.TestCase):
         def run():
             ready.wait()
             with pointed_at(self.corpus, self.db):
-                with recall.index_lock() as (lock_file, have_lock, already_current):
-                    if not have_lock or already_current:
+                with recall.index_lock() as have_lock:
+                    if not have_lock:
                         return
                     conn = sqlite3.connect(self.db)
                     conn.execute("PRAGMA journal_mode=WAL")
@@ -187,7 +173,6 @@ class ConcurrentIndexing(unittest.TestCase):
                         recall.index_sessions(conn)
                     finally:
                         conn.close()
-                    os.utime(lock_file.fileno(), None)
 
         threads = [threading.Thread(target=run) for _ in range(2)]
         for thread in threads:

@@ -5,6 +5,36 @@ Forked from [arjunkmrm/recall](https://github.com/arjunkmrm/recall) at 0.2.2 on
 third source is `pi` where ours is Grok, so the two cannot simply be merged.
 Versions below 0.2.3 are upstream's; from 0.2.3 on they are local.
 
+## 0.3.1 — 2026-07-27
+
+Everything here was found by testing the 0.3.0 work rather than reading it.
+
+- Stop `--reindex` from destroying sessions whose files are gone. It emptied
+  both tables and rebuilt from disk, so on this machine a rebuild silently
+  dropped 2960 of 6908 sessions — nearly half, and the index is the only place
+  they still exist. It now re-reads what it can and leaves the rest alone.
+- Keep the `--reindex` deletes inside the run's transaction. They were
+  committed before the rebuild started, so every concurrent search saw an empty
+  index for the length of the rebuild, and a run killed part way through left
+  it empty for good.
+- Stop a read error from pruning a session. The old rows were deleted before
+  the file was parsed, so a permission error, or a transcript rotated away
+  between the scan and the read, silently dropped what was already indexed.
+- Make `PARSER_VERSION` do its job. The mtime check returned before anything
+  looked at it, so a bump reached only sessions that were still growing —
+  99.7% of them would have kept their old parsing for good.
+- Quote any search term FTS5 would read as syntax, not just hyphenated ones.
+  `recall.py`, `CI/CD`, `v1.2.3` and `don't` each failed outright with a
+  syntax error and reported no matches.
+- Survive a timestamp that is a number but not a finite one. It raised out of
+  the parser, past the commit, and discarded the whole run's work.
+- Refuse `--limit 0` and below. SQLite read it as no limit and the results were
+  then sliced from the wrong end.
+- Drop the lock-file mtime signal. It let a run skip indexing when another had
+  finished a scan that started before the file it needed appeared. Re-reading
+  the sessions table after taking the lock answers the same question honestly,
+  and takes the mechanism out of the code.
+
 ## 0.3.0 — 2026-07-25
 
 - Index only the bytes added since the last run, rather than deleting and

@@ -11,6 +11,7 @@ import sqlite3
 import sys
 import math
 import time
+from collections import namedtuple
 from contextlib import contextmanager
 from datetime import datetime
 from glob import glob
@@ -34,15 +35,17 @@ LOCK_WAIT_SECONDS = 20
 
 @contextmanager
 def index_lock():
-    """Serialize index updates.
+    """Hold an exclusive lock while the index is updated.
 
-    Yields (lock_file, have_lock, already_current). Index only while holding the
-    lock; `already_current` is true when another process finished indexing while
-    we waited. Stamp `lock_file` by file descriptor after indexing so waiters can
-    see the index is fresh.
+    Indexing is one write transaction spanning every file it parses, so two
+    runs at once means one of them waits out SQLite's busy timeout and dies.
+    Two runs sharing a resume point would also both insert the same messages.
+
+    Yields True when the lock was taken. After LOCK_WAIT_SECONDS it gives up
+    and yields False, so one stalled run leaves every other session searching a
+    slightly stale index rather than hanging.
     """
     with open(DB_LOCK_PATH, "a", encoding="utf-8") as lock_file:
-        observed_mtime_ns = os.fstat(lock_file.fileno()).st_mtime_ns
         deadline = time.monotonic() + LOCK_WAIT_SECONDS
         while True:
             try:
@@ -51,14 +54,14 @@ def index_lock():
             except BlockingIOError:
                 if time.monotonic() >= deadline:
                     print(
-                        "Another process is still indexing; skipping the index update.",
+                        "Another process is indexing; searching the current index.",
                         file=sys.stderr,
                     )
-                    yield lock_file, False, False
+                    yield False
                     return
                 time.sleep(0.1)
         # Closing the file releases the lock on every path, exceptions included.
-        yield lock_file, True, os.fstat(lock_file.fileno()).st_mtime_ns != observed_mtime_ns
+        yield True
 
 
 def create_schema(conn):
@@ -85,35 +88,30 @@ def create_schema(conn):
     """)
 
 
+ADDED_COLUMNS = (
+    ("source", "TEXT DEFAULT 'claude'"),
+    ("file_path", "TEXT DEFAULT ''"),
+    ("byte_offset", "INTEGER DEFAULT 0"),
+    ("tail_hash", "TEXT"),
+    ("parser_version", "INTEGER DEFAULT 0"),
+)
+
+
 def migrate_schema(conn):
-    """Add columns if upgrading from an older schema."""
-    try:
-        conn.execute("SELECT source FROM sessions LIMIT 1")
-    except sqlite3.OperationalError:
-        conn.execute("ALTER TABLE sessions ADD COLUMN source TEXT DEFAULT 'claude'")
-        conn.commit()
-    try:
-        conn.execute("SELECT file_path FROM sessions LIMIT 1")
-    except sqlite3.OperationalError:
-        conn.execute("ALTER TABLE sessions ADD COLUMN file_path TEXT DEFAULT ''")
-        conn.commit()
-    # Existing rows get byte_offset 0, so each session is read in full once more
-    # and picks up an offset from then on. No rebuild needed.
-    try:
-        conn.execute("SELECT byte_offset FROM sessions LIMIT 1")
-    except sqlite3.OperationalError:
-        conn.execute("ALTER TABLE sessions ADD COLUMN byte_offset INTEGER DEFAULT 0")
-        conn.commit()
-    try:
-        conn.execute("SELECT tail_hash FROM sessions LIMIT 1")
-    except sqlite3.OperationalError:
-        conn.execute("ALTER TABLE sessions ADD COLUMN tail_hash TEXT")
-        conn.commit()
-    try:
-        conn.execute("SELECT parser_version FROM sessions LIMIT 1")
-    except sqlite3.OperationalError:
-        conn.execute("ALTER TABLE sessions ADD COLUMN parser_version INTEGER DEFAULT 0")
-        conn.commit()
+    """Add whatever columns an index built by an older version is missing.
+
+    Rows keep byte_offset 0, so each session is read in full once more and
+    picks up a resume point from then on. No rebuild needed.
+    """
+    present = {row[1] for row in conn.execute("PRAGMA table_info(sessions)")}
+    for name, definition in ADDED_COLUMNS:
+        if name not in present:
+            conn.execute(f"ALTER TABLE sessions ADD COLUMN {name} {definition}")
+    if "parser_version" not in present:
+        # Sessions already indexed were parsed by the parsers as they stand.
+        # Stamping them says so, rather than making every one be read again.
+        conn.execute("UPDATE sessions SET parser_version = ?", (PARSER_VERSION,))
+    conn.commit()
 
 
 def migrate_db_location():
@@ -143,34 +141,49 @@ TAIL_WINDOW = 4096
 # old and new parsing forever.
 PARSER_VERSION = 1
 
-
-CHUNK_BYTES = 1 << 20
+# What the index already holds for one session file.
+Indexed = namedtuple(
+    "Indexed",
+    "session_id mtime byte_offset tail_hash parser_version project slug timestamp",
+)
 
 
 def read_complete_lines(path, start=0):
     """Yield (line, offset just past it) for whole lines from `start`.
 
-    Read a chunk at a time, because the largest transcript here is a gigabyte
-    and reading it whole would cost several times that in memory. A transcript
+    Iterating the file reads a buffer at a time, so the largest transcript here
+    being a gigabyte costs no more memory than its longest line. A transcript
     an agent is writing right now can end mid-line, and that trailing fragment
     is left for the next run rather than parsed into half a message.
     """
     with open(path, "rb") as f:
         f.seek(start)
         offset = start
-        pending = b""
-        while True:
-            chunk = f.read(CHUNK_BYTES)
-            if not chunk:
+        for raw in f:
+            # Only the last line can lack its newline, and only while it is
+            # still being written.
+            if not raw.endswith(b"\n"):
                 return
-            pending += chunk
-            cut = pending.rfind(b"\n")
-            if cut == -1:
-                continue
-            block, pending = pending[: cut + 1], pending[cut + 1:]
-            for raw in block.splitlines(keepends=True):
-                offset += len(raw)
-                yield raw.decode("utf-8", errors="replace"), offset
+            offset += len(raw)
+            yield raw.decode("utf-8", errors="replace"), offset
+
+
+def iter_entries(path, start=0):
+    """Yield (decoded entry, offset just past its line) for each JSON line.
+
+    Blank lines and lines that do not parse are skipped, the way every one of
+    these formats has always been read — a half-written or corrupt line should
+    cost one message, not the session.
+    """
+    for line, offset in read_complete_lines(path, start):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        yield entry, offset
 
 
 def tail_hash_at(path, offset):
@@ -230,16 +243,15 @@ def extract_text(content):
 
 def parse_iso_timestamp(ts_str):
     """Parse ISO 8601 timestamp string to epoch milliseconds."""
-    if not ts_str or not isinstance(ts_str, str):
-        if isinstance(ts_str, (int, float)):
-            return int(ts_str)
-        return None
     try:
+        if not ts_str or not isinstance(ts_str, str):
+            if isinstance(ts_str, (int, float)):
+                return int(ts_str)
+            return None
         # Handle "2026-03-03T00:26:57.352Z" format
-        ts_str = ts_str.replace("Z", "+00:00")
-        dt = datetime.fromisoformat(ts_str)
+        dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
         return int(dt.timestamp() * 1000)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return None
 
 
@@ -261,16 +273,7 @@ def parse_claude_session(path, start=0):
     end_offset = start
 
     try:
-        for line, line_end in read_complete_lines(path, start):
-            end_offset = line_end
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                entry = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-
+        for entry, end_offset in iter_entries(path, start):
             etype = entry.get("type", "")
 
             # Extract cwd from any entry
@@ -353,16 +356,7 @@ def parse_codex_session(path, start=0):
     end_offset = start
 
     try:
-        for line, line_end in read_complete_lines(path, start):
-            end_offset = line_end
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                entry = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-
+        for entry, end_offset in iter_entries(path, start):
             # Skip state snapshots (legacy format)
             if entry.get("record_type") == "state":
                 continue
@@ -491,16 +485,7 @@ def parse_grok_session(path, start=0):
     end_offset = start
 
     try:
-        for line, line_end in read_complete_lines(path, start):
-            end_offset = line_end
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                entry = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-
+        for entry, end_offset in iter_entries(path, start):
             # Injected harness context, not real user turns
             if entry.get("synthetic_reason"):
                 continue
@@ -536,85 +521,119 @@ def parse_grok_session(path, start=0):
     return metadata, messages, end_offset
 
 
+PARSERS = {
+    "claude": parse_claude_session,
+    "codex": parse_codex_session,
+    "grok": parse_grok_session,
+}
+
+
+def parse_session(path, source, start=0):
+    """Parse one session file with the parser for its source."""
+    return PARSERS[source](path, start)
+
+
 # — Indexing ———————————————————————————————————————————————————————————————
 
-def index_sessions(conn, force=False):
-    """Scan and index new/changed session files from all sources."""
-    if force:
-        conn.executescript("""
-            DELETE FROM sessions;
-            DELETE FROM messages;
-        """)
+def load_indexed_state(conn):
+    """What the index already knows, keyed by file path.
 
-    # Get existing state keyed by file_path (stable across session_id changes)
-    existing = {}
-    try:
+    Keyed by path rather than session id because a session id can change — Codex
+    takes its own from the first line of the file — while the path does not.
+    """
+    return {
+        row[0]: Indexed(*row[1:])
         for row in conn.execute(
             "SELECT file_path, session_id, mtime, byte_offset, tail_hash, "
             "parser_version, project, slug, timestamp FROM sessions"
-        ):
-            existing[row[0]] = row[1:]
-    except sqlite3.OperationalError:
-        pass
+        )
+    }
 
-    # Which file already answers to each session id. Most ids come from the file
-    # name and are unique, but every workflow journal.jsonl derives the same one,
-    # and a shared id would mean a shared byte offset into different files.
-    claimed_by = {sid: fpath for fpath, (sid, *_) in existing.items()}
 
-    # Collect files from all sources
-    sources = []
+def scan_session_files():
+    """Every session file on disk, paired with the tool that wrote it."""
+    patterns = (
+        (CLAUDE_PROJECTS_DIR / "**" / "*.jsonl", "claude"),
+        (CODEX_SESSIONS_DIR / "**" / "*.jsonl", "codex"),
+        (GROK_SESSIONS_DIR / "**" / "chat_history.jsonl", "grok"),
+    )
+    return [
+        (fpath, source)
+        for pattern, source in patterns
+        for fpath in glob(str(pattern), recursive=True)
+    ]
 
-    # Claude Code: ~/.claude/projects/**/*.jsonl
-    claude_pattern = str(CLAUDE_PROJECTS_DIR / "**" / "*.jsonl")
-    for fpath in glob(claude_pattern, recursive=True):
-        sources.append((fpath, "claude"))
 
-    # Codex: ~/.codex/sessions/**/*.jsonl
-    codex_pattern = str(CODEX_SESSIONS_DIR / "**" / "*.jsonl")
-    for fpath in glob(codex_pattern, recursive=True):
-        sources.append((fpath, "codex"))
+def claim_session_id(conn, session_id, fpath, claimed_by):
+    """Settle which file answers to `session_id`, recording it in `claimed_by`.
 
-    # Grok: ~/.grok/sessions/**/chat_history.jsonl
-    grok_pattern = str(GROK_SESSIONS_DIR / "**" / "chat_history.jsonl")
-    for fpath in glob(grok_pattern, recursive=True):
-        sources.append((fpath, "grok"))
+    Ids are derived from the file, and most are unique, but every workflow
+    journal.jsonl derives the same one. Two files that both still exist get an
+    id each. If the previous holder is gone the file was moved, so this row
+    inherits the id — and the messages indexed under it, which are the same
+    session's and would otherwise be left behind as a duplicate.
+    """
+    owner = claimed_by.get(session_id)
+    if owner is not None and owner != fpath:
+        if os.path.exists(owner):
+            digest = hashlib.sha256(fpath.encode("utf-8")).hexdigest()[:8]
+            session_id = f"{session_id}@{digest}"
+        else:
+            conn.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+    claimed_by[session_id] = fpath
+    return session_id
 
+
+def index_sessions(conn, force=False):
+    """Scan and index new/changed session files from all sources."""
+    existing = load_indexed_state(conn)
+
+    if force:
+        # Drop only what can be read again. Sessions whose files are gone —
+        # nearly half of them, once a tool has aged out its own transcripts —
+        # exist nowhere else, and a rebuild is no reason to lose them. These
+        # deletes stay in the run's transaction so an interrupted rebuild rolls
+        # back rather than leaving an empty index behind.
+        for fpath, prior in existing.items():
+            if os.path.exists(fpath):
+                conn.execute("DELETE FROM sessions WHERE session_id = ?", (prior.session_id,))
+                conn.execute("DELETE FROM messages WHERE session_id = ?", (prior.session_id,))
+        existing = {path: row for path, row in existing.items() if not os.path.exists(path)}
+
+    claimed_by = {row.session_id: path for path, row in existing.items()}
     indexed = 0
 
     # Disable FTS5 automerge during bulk insert to avoid repeated segment merges
     conn.execute("INSERT INTO messages(messages, rank) VALUES('automerge', 0)")
 
-    for fpath, source in sources:
+    for fpath, source in scan_session_files():
         try:
             mtime = os.path.getmtime(fpath)
         except OSError:
             continue
 
         prior = existing.get(fpath)
-        if prior and prior[1] == mtime:
+        if prior and prior.mtime == mtime and prior.parser_version == PARSER_VERSION:
             continue
 
         # Read only what is new, where the source is one that only appends and
         # the bytes we left off after are still the ones we hashed.
         start = 0
         if prior and source in APPEND_ONLY_SOURCES:
-            start = resume_offset(fpath, prior[2], prior[3], prior[4])
+            start = resume_offset(fpath, prior.byte_offset, prior.tail_hash,
+                                  prior.parser_version)
+
+        result = parse_session(fpath, source, start)
+        # A file that could not be read keeps whatever is already indexed for
+        # it. Dropping the rows first would prune a session on a transient
+        # error, and the index is the only place some of them survive.
+        if result is None:
+            continue
 
         # Whatever is not being resumed gets replaced outright.
         if prior and not start:
-            conn.execute("DELETE FROM sessions WHERE session_id = ?", (prior[0],))
-            conn.execute("DELETE FROM messages WHERE session_id = ?", (prior[0],))
-
-        if source == "claude":
-            result = parse_claude_session(fpath, start)
-        elif source == "codex":
-            result = parse_codex_session(fpath, start)
-        else:
-            result = parse_grok_session(fpath, start)
-
-        if result is None:
-            continue
+            conn.execute("DELETE FROM sessions WHERE session_id = ?", (prior.session_id,))
+            conn.execute("DELETE FROM messages WHERE session_id = ?", (prior.session_id,))
 
         metadata, messages, end_offset = result
         # Only record a resume point for a source we would resume from.
@@ -623,32 +642,21 @@ def index_sessions(conn, force=False):
         tail_hash = tail_hash_at(fpath, end_offset)
 
         if start:
-            # Only the tail was read, so keep the metadata already stored unless
-            # this run turned up something better. The earliest timestamp can
-            # only have been seen at the head of the file.
-            session_id = prior[0]
-            stamps = [t for t in (prior[7], metadata["timestamp"]) if t]
+            # Only the tail was read, so merge the way a full read would: the
+            # first non-empty value wins, and the timestamp is the earliest
+            # seen anywhere in the file.
+            session_id = prior.session_id
+            stamps = [t for t in (prior.timestamp, metadata["timestamp"]) if t]
             conn.execute(
                 "UPDATE sessions SET project = ?, slug = ?, timestamp = ?, "
                 "mtime = ?, byte_offset = ?, tail_hash = ?, parser_version = ? "
                 "WHERE session_id = ?",
-                (prior[5] or metadata["project"], prior[6] or metadata["slug"],
+                (prior.project or metadata["project"], prior.slug or metadata["slug"],
                  min(stamps) if stamps else 0,
                  mtime, end_offset, tail_hash, PARSER_VERSION, session_id),
             )
         else:
-            session_id = metadata["session_id"]
-            owner = claimed_by.get(session_id)
-            if owner is not None and owner != fpath:
-                if os.path.exists(owner):
-                    # Both files are still here, so they need ids of their own.
-                    digest = hashlib.sha256(fpath.encode("utf-8")).hexdigest()[:8]
-                    session_id = f"{session_id}@{digest}"
-                else:
-                    # The file moved. This row inherits the id, so clear what
-                    # was indexed under it rather than adding a second copy.
-                    conn.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
-            claimed_by[session_id] = fpath
+            session_id = claim_session_id(conn, metadata["session_id"], fpath, claimed_by)
             conn.execute(
                 "INSERT OR REPLACE INTO sessions (session_id, source, file_path, project, slug, timestamp, mtime, byte_offset, tail_hash, parser_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (session_id, metadata["source"], metadata["file_path"],
@@ -678,28 +686,36 @@ def index_sessions(conn, force=False):
 
 # — Search —————————————————————————————————————————————————————————————————
 
-def sanitize_fts_query(query):
-    """Sanitize a query for FTS5 MATCH.
+# FTS5 reads these as syntax rather than as words to look for.
+FTS_OPERATORS = {"AND", "OR", "NOT", "NEAR"}
 
-    FTS5 reads a bare hyphen as the NOT operator, so 'claude-code' becomes
-    'claude NOT code' and errors out because there is no column named 'code'.
-    Splitting hyphenated words into separately quoted terms searches for what
-    was typed. Phrases the user quoted are left alone.
+
+def sanitize_fts_query(query):
+    """Quote the parts of a query FTS5 would otherwise read as syntax.
+
+    Punctuation in a search term is an error to FTS5, not a character to match:
+    a bare `-` means NOT, so `claude-code` becomes `claude NOT code` and fails
+    with `no such column: code`, and `recall.py`, `CI/CD` and `don't` fail the
+    same way. Quoting such a term searches for its words in order, which is
+    what someone typing it meant. Operators, prefix searches and phrases the
+    user quoted are left alone.
     """
     parts = []
-    in_quote = False
+    quoted = False
     for segment in query.split('"'):
-        if in_quote:
+        if quoted:
             parts.append(f'"{segment}"')
         else:
-            segment = re.sub(
-                r"\b(\w+(?:-\w+)+)\b",
-                lambda m: " ".join(f'"{w}"' for w in m.group().split("-")),
-                segment,
-            )
-            parts.append(segment)
-        in_quote = not in_quote
-    return "".join(parts)
+            parts.append(" ".join(quote_term(term) for term in segment.split()))
+        quoted = not quoted
+    return " ".join(part for part in parts if part)
+
+
+def quote_term(term):
+    """Quote one bare term unless FTS5 can already read it as written."""
+    if term in FTS_OPERATORS or re.fullmatch(r"\w+\*?", term):
+        return term
+    return '"{}"'.format(term.replace('"', ""))
 
 
 def search(conn, query, project=None, days=None, source=None, limit=10):
@@ -798,13 +814,22 @@ def format_timestamp(ts_ms):
         return "unknown"
 
 
+def positive_int(value):
+    """A result count. Zero or less reaches SQLite as "no limit" and then gets
+    sliced from the wrong end, so refuse it rather than answer wrongly."""
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError(f"must be 1 or more, got {number}")
+    return number
+
+
 def main():
     parser = argparse.ArgumentParser(description="Search past Claude Code, Codex, and Grok sessions")
     parser.add_argument("query", help="Search query (FTS5 syntax: quotes for phrases, AND/OR/NOT)")
     parser.add_argument("--project", help="Filter to sessions from a specific project path (prefix match)")
     parser.add_argument("--days", type=int, help="Only sessions from last N days")
     parser.add_argument("--source", choices=["claude", "codex", "grok"], help="Filter by source (claude, codex, or grok)")
-    parser.add_argument("--limit", type=int, default=10, help="Max results (default: 10)")
+    parser.add_argument("--limit", type=positive_int, default=10, help="Max results (default: 10)")
     parser.add_argument("--reindex", action="store_true", help="Force full rebuild of the index")
 
     args = parser.parse_args()
@@ -812,7 +837,7 @@ def main():
     # Index updates write to shared SQLite and FTS5 state. Serialize that phase,
     # then release the lock so WAL-backed searches can run concurrently.
     t0 = time.time()
-    with index_lock() as (lock_file, have_lock, already_current):
+    with index_lock() as have_lock:
         migrate_db_location()
         # The index holds the text of every conversation, so keep it readable
         # only by its owner. The umask covers the -wal and -shm files too.
@@ -825,11 +850,7 @@ def main():
         create_schema(conn)
         migrate_schema(conn)
 
-        if not have_lock or (already_current and not args.reindex):
-            indexed = 0
-        else:
-            indexed = index_sessions(conn, force=args.reindex)
-            os.utime(lock_file.fileno(), None)
+        indexed = index_sessions(conn, force=args.reindex) if have_lock else 0
     # Counted from before the lock, so the number covers time spent waiting too.
     index_time = time.time() - t0
 

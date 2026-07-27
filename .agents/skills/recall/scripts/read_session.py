@@ -2,7 +2,6 @@
 """Pretty-print a Claude Code, Codex, or Grok session transcript."""
 
 import json
-import sys
 from pathlib import Path
 
 TEXT_BLOCK_TYPES = {"text", "input_text", "output_text"}

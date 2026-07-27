@@ -67,24 +67,32 @@ class ReadCompleteLines(unittest.TestCase):
         self.assertEqual(lines, ["two\n", "three\n"])
         self.assertEqual(offset, 14)
 
-    def test_line_spanning_a_chunk_boundary(self):
-        """A single line longer than one read is common — assistant turns run to
-        megabytes — and must come back whole."""
-        long_line = "x" * (recall.CHUNK_BYTES * 2 + 17)
+    def test_a_line_far_longer_than_the_read_buffer(self):
+        """Assistant turns run to megabytes. One must come back whole however
+        many buffers it takes to read it."""
+        long_line = "x" * (4 << 20)
         path = self.write(f"first\n{long_line}\nlast\n")
         lines, offset = read_all(path)
         self.assertEqual(lines[1], long_line + "\n")
         self.assertEqual(len(lines), 3)
         self.assertEqual(offset, os.path.getsize(path))
 
-    def test_multibyte_character_split_across_a_chunk_boundary(self):
-        """Chunks are cut at byte counts, so a 3-byte character can straddle
-        one. Splitting it would corrupt the text on the way into the index."""
-        filler = "a" * (recall.CHUNK_BYTES - 1)
-        path = self.write(f"{filler}中文\n")
-        lines, _ = read_all(path)
-        self.assertEqual(lines, [filler + "中文\n"])
-        self.assertNotIn("�", lines[0])
+    def test_multibyte_characters_survive_a_long_line(self):
+        """Offsets are byte counts and the text is decoded per line, so a
+        multi-byte character must neither be split nor throw the count off."""
+        path = self.write("a" * (1 << 20) + "中文\n")
+        lines, offset = read_all(path)
+        self.assertNotIn("\ufffd", lines[0])
+        self.assertTrue(lines[0].endswith("中文\n"))
+        self.assertEqual(offset, os.path.getsize(path))
+
+    def test_a_bare_carriage_return_does_not_end_a_line(self):
+        """Only a newline does. A stray CR inside a line is illegal JSON, but
+        it must not shift every offset after it."""
+        path = self.write('{"a":1}\r{"b":2}\n{"c":3}\n')
+        lines, offset = read_all(path)
+        self.assertEqual(len(lines), 2)
+        self.assertEqual(offset, os.path.getsize(path))
 
     def test_empty_file_yields_nothing(self):
         path = self.write("")

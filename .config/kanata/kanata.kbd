@@ -56,8 +56,10 @@
 )
 
 ;; lmet/rmet passthrough: Monologue double-tap Cmd
+;; F1–F12 → media (VirtualHID is not the Apple keyboard; macOS won't overlay media)
+;; Real F-keys: hold Space (extend) + number row
 (deflayer base
-  _    _    _    _    _    _    _    _    _    _    _    _    _
+  _    brdn brup mctl lpad bldn blup prev pp   next mute vold volu
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
   @cap @a   @s   @d   @f   _    _    @j   @k   @l   @scl _    _

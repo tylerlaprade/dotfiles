@@ -33,7 +33,11 @@
       "Bash(git show *)",
       "Bash(git blame *)"
     ],
-    "defaultMode": "bypassPermissions"
+    "defaultMode": "bypassPermissions",
+    "deny": [
+      "Bash(npx skills:*)",
+      "Bash(skills:*)"
+    ]
   },
   "hooks": {
     "PostToolUse": [
