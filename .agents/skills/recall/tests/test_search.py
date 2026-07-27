@@ -7,10 +7,13 @@ name. These cover the sanitizing that stops that, and prove it end to end.
 from __future__ import annotations
 
 import io
+import sqlite3
 import sys
 import tempfile
+import time
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
+from datetime import datetime, timezone
 from pathlib import Path
 
 from support import Corpus, claude_entry, connect, index, pointed_at, recall
@@ -131,3 +134,127 @@ class DatabasePermissions(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Ranking(unittest.TestCase):
+    """Recent sessions should come first among equally good matches. The blend
+    that exists to do that was pushing them down the page instead."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.corpus = Corpus(self.tmp / "corpus")
+        self.db = str(self.tmp / "index.db")
+
+    def seed(self, ages_in_days):
+        """One session per age, each matching the query exactly as well."""
+        now_ms = time.time() * 1000
+        for i, age in enumerate(ages_in_days):
+            ts = datetime.fromtimestamp(
+                (now_ms - age * 86_400_000) / 1000, tz=timezone.utc)
+            self.corpus.claude_session(
+                f"{i:08d}-0000-0000-0000-000000000000",
+                [claude_entry("distinctivetoken and some padding words",
+                              ts=ts.isoformat().replace("+00:00", "Z"))])
+        index(self.corpus, self.db)
+
+    def search(self, query, **kwargs):
+        with pointed_at(self.corpus, self.db):
+            conn = connect(self.db)
+            try:
+                return recall.search(conn, query, **kwargs)
+            finally:
+                conn.close()
+
+    def test_the_most_recent_of_equal_matches_comes_first(self):
+        self.seed([400, 200, 1])
+        results = self.search("distinctivetoken", limit=3)
+        self.assertEqual(len(results), 3)
+        timestamps = [row[5] for row in results]
+        self.assertEqual(timestamps, sorted(timestamps, reverse=True))
+
+    def test_a_session_with_no_timestamp_is_treated_as_oldest(self):
+        self.seed([1])
+        self.corpus.claude_session("99999999-9999-9999-9999-999999999999",
+                                   [claude_entry("distinctivetoken and some padding words")])
+        index(self.corpus, self.db)
+        results = self.search("distinctivetoken", limit=2)
+        self.assertEqual(results[-1][5], 0)
+
+
+class RolesAreNotSearchable(unittest.TestCase):
+    """`role` holds the literal words "user" and "assistant". Indexing it made
+    both behave as wildcards matching most of the corpus."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.corpus = Corpus(self.tmp / "corpus")
+        self.db = str(self.tmp / "index.db")
+        self.corpus.claude_session("11111111-1111-1111-1111-111111111111", [
+            claude_entry("a question about rust"),
+            claude_entry("an answer about rust", role="assistant"),
+        ])
+        self.corpus.claude_session("22222222-2222-2222-2222-222222222222",
+                                   [claude_entry("the word assistant appears here")])
+        index(self.corpus, self.db)
+
+    def search(self, query):
+        with pointed_at(self.corpus, self.db):
+            conn = connect(self.db)
+            try:
+                return recall.search(conn, query, limit=10)
+            finally:
+                conn.close()
+
+    def test_searching_a_role_name_finds_only_real_text(self):
+        results = self.search("assistant")
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0][0], "22222222-2222-2222-2222-222222222222")
+
+    def test_a_role_word_does_not_silently_narrow_a_query(self):
+        self.assertEqual(len(self.search("rust")), 1)
+        self.assertEqual(len(self.search("user rust")), 0)
+
+
+class MessageColumnMigration(unittest.TestCase):
+    def test_an_index_with_searchable_roles_is_rebuilt_in_place(self):
+        """Rebuilt from the rows it already holds — many indexed sessions have
+        no file left to re-read."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        db = str(Path(tmp.name) / "old.db")
+        conn = sqlite3.connect(db)
+        conn.executescript("""
+            CREATE VIRTUAL TABLE messages USING fts5(
+                session_id UNINDEXED, role, text, tokenize='porter unicode61');
+        """)
+        conn.execute("INSERT INTO messages VALUES ('gone', 'assistant', 'irreplaceable text')")
+        conn.commit()
+        self.assertEqual(conn.execute(
+            "SELECT COUNT(*) FROM messages WHERE messages MATCH 'assistant'").fetchone()[0], 1)
+
+        with redirect_stderr(io.StringIO()):
+            recall.migrate_message_columns(conn)
+
+        self.assertEqual(conn.execute("SELECT text FROM messages").fetchone()[0],
+                         "irreplaceable text")
+        self.assertEqual(conn.execute(
+            "SELECT COUNT(*) FROM messages WHERE messages MATCH 'assistant'").fetchone()[0], 0)
+        self.assertEqual(conn.execute(
+            "SELECT COUNT(*) FROM messages WHERE messages MATCH 'irreplaceable'").fetchone()[0], 1)
+        conn.close()
+
+    def test_an_already_migrated_index_is_left_alone(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        conn = sqlite3.connect(str(Path(tmp.name) / "new.db"))
+        recall.create_schema(conn)
+        before = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE name = 'messages'").fetchone()[0]
+        recall.migrate_message_columns(conn)
+        self.assertEqual(conn.execute(
+            "SELECT sql FROM sqlite_master WHERE name = 'messages'").fetchone()[0], before)
+        conn.close()

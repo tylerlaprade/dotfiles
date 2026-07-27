@@ -81,7 +81,7 @@ def create_schema(conn):
 
         CREATE VIRTUAL TABLE IF NOT EXISTS messages USING fts5(
             session_id UNINDEXED,
-            role,
+            role UNINDEXED,
             text,
             tokenize='porter unicode61'
         );
@@ -111,6 +111,38 @@ def migrate_schema(conn):
         # Sessions already indexed were parsed by the parsers as they stand.
         # Stamping them says so, rather than making every one be read again.
         conn.execute("UPDATE sessions SET parser_version = ?", (PARSER_VERSION,))
+    conn.commit()
+
+
+def migrate_message_columns(conn):
+    """Rebuild the message index if it still searches the role column.
+
+    With `role` indexed, searching for "user" or "assistant" matched the role
+    of almost every message rather than its text — 87% of rows for
+    "assistant" — so those words behaved as wildcards and silently narrowed
+    any query containing them. FTS5 column options cannot be altered, so the
+    table is rebuilt from the rows already in it. Nothing is re-read from
+    disk, which matters because many indexed sessions no longer have a file.
+    """
+    schema = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE name = 'messages'").fetchone()
+    if not schema or "role UNINDEXED" in schema[0]:
+        return
+
+    print("Rebuilding the message index so roles are no longer searchable...",
+          file=sys.stderr)
+    conn.executescript("""
+        CREATE VIRTUAL TABLE messages_rebuilt USING fts5(
+            session_id UNINDEXED,
+            role UNINDEXED,
+            text,
+            tokenize='porter unicode61'
+        );
+        INSERT INTO messages_rebuilt(session_id, role, text)
+            SELECT session_id, role, text FROM messages;
+        DROP TABLE messages;
+        ALTER TABLE messages_rebuilt RENAME TO messages;
+    """)
     conn.commit()
 
 
@@ -786,8 +818,11 @@ def search(conn, query, project=None, days=None, source=None, limit=10):
             recency_boost = math.exp(-0.693 * age_days / 30)  # half-life = 30 days
         else:
             recency_boost = 0.0
-        # Blend: 80% BM25, 20% recency. Recency term scales with typical BM25 magnitude.
-        blended_rank = rank * (1 - 0.2 * recency_boost)
+        # Blend: 80% BM25, 20% recency. bm25 is negative and results sort
+        # ascending, so a recent session has to be made *more* negative to move
+        # up. Subtracting instead would push it down the page — which is what
+        # this did until it was measured.
+        blended_rank = rank * (1 + 0.2 * recency_boost)
 
         results.append((session_id, meta[0], meta[1], meta[2], meta[3], meta[4], "", blended_rank))
 
@@ -861,6 +896,7 @@ def main():
         conn.execute("PRAGMA synchronous=NORMAL")
         create_schema(conn)
         migrate_schema(conn)
+        migrate_message_columns(conn)
 
         indexed = index_sessions(conn, force=args.reindex) if have_lock else 0
     # Counted from before the lock, so the number covers time spent waiting too.

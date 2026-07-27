@@ -5,6 +5,36 @@ Forked from [arjunkmrm/recall](https://github.com/arjunkmrm/recall) at 0.2.2 on
 third source is `pi` where ours is Grok, so the two cannot simply be merged.
 Versions below 0.2.3 are upstream's; from 0.2.3 on they are local.
 
+## 0.3.2 — 2026-07-27
+
+Two of these had been wrong since before the fork, and both were found by
+measuring search results rather than reading the code.
+
+- The recency bias ran backwards. bm25 scores are negative and results sort
+  ascending, so multiplying by `(1 - 0.2 * boost)` moved recent sessions
+  *later*. The feature added to surface recent work was burying it: across 15
+  real queries it made the top ten older in ten of them and newer in none, and
+  in two it pushed the single best match off the first page entirely.
+- Roles were searchable. `role` held the literal words "user" and "assistant"
+  and was an indexed column, so searching either matched 87% of every message
+  in the index — 172,673 rows of 197,795, of which only 5,038 actually said
+  the word. Any query containing "user" was silently narrowed to user turns.
+  The index is rebuilt in place from the rows it already holds, since many
+  indexed sessions no longer have a file to re-read.
+- Fetch excerpts only for results that are shown. Search over-fetches three
+  times the requested rows so re-ranking has room, then discarded two thirds
+  of the excerpts it had just built, one FTS5 query each. `the` went from
+  5.41s to 1.36s and `code` from 1.01s to 0.48s.
+- `read_session.py` hid messages the index holds. It applied every skip marker
+  to every format while the indexer applies each source's markers only to that
+  source, so a Claude turn carrying a `<system-reminder>` was searchable but
+  refused to print. It now shares the marker sets and `extract_text` with
+  `recall.py` rather than keeping a copy that had drifted.
+- The test suite indexed the real home. The concurrency test entered the
+  fixture's global-swapping context manager inside each thread, so one thread
+  restored the real session directories while the other was still scanning —
+  3877 real files read on every run, and 33s instead of 2.2s.
+
 ## 0.3.1 — 2026-07-27
 
 Everything here was found by testing the 0.3.0 work rather than reading it.
