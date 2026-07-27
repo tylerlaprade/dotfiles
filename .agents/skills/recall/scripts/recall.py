@@ -777,13 +777,6 @@ def search(conn, query, project=None, days=None, source=None, limit=10):
         if not meta:
             continue
 
-        # Get snippet from the best-matching row
-        snippet_row = conn.execute(
-            "SELECT snippet(messages, 2, '**', '**', '...', 20) FROM messages WHERE messages MATCH ? AND session_id = ? LIMIT 1",
-            (query, session_id),
-        ).fetchone()
-        excerpt = snippet_row[0] if snippet_row else ""
-
         # Apply recency bias: blend BM25 score with a time-decay boost.
         # BM25 rank is negative (more negative = better match).
         # Recency boost: 1.0 for today, decaying with a half-life of 30 days.
@@ -796,11 +789,30 @@ def search(conn, query, project=None, days=None, source=None, limit=10):
         # Blend: 80% BM25, 20% recency. Recency term scales with typical BM25 magnitude.
         blended_rank = rank * (1 - 0.2 * recency_boost)
 
-        results.append((session_id, meta[0], meta[1], meta[2], meta[3], meta[4], excerpt, blended_rank))
+        results.append((session_id, meta[0], meta[1], meta[2], meta[3], meta[4], "", blended_rank))
 
     # Re-sort by blended rank and trim to requested limit.
     results.sort(key=lambda r: r[7])
-    return results[:limit]
+    results = results[:limit]
+
+    # Excerpts cost a query each, so fetch them only for the rows that survived
+    # re-ranking rather than for every candidate. Any matching row will do —
+    # picking the best-ranking one costs roughly twice as much for an excerpt
+    # the reader cannot tell apart.
+    return [
+        row[:6] + (excerpt_for(conn, query, row[0]), row[7])
+        for row in results
+    ]
+
+
+def excerpt_for(conn, query, session_id):
+    """A highlighted line from this session that matched the query."""
+    row = conn.execute(
+        "SELECT snippet(messages, 2, '**', '**', '...', 20) FROM messages "
+        "WHERE messages MATCH ? AND session_id = ? LIMIT 1",
+        (query, session_id),
+    ).fetchone()
+    return row[0] if row else ""
 
 
 def format_timestamp(ts_ms):

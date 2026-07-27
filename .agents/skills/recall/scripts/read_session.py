@@ -2,29 +2,19 @@
 """Pretty-print a Claude Code, Codex, or Grok session transcript."""
 
 import json
+import sys
 from pathlib import Path
 
-TEXT_BLOCK_TYPES = {"text", "input_text", "output_text"}
+# Share the indexer's idea of what counts as text and what is harness noise,
+# so this prints exactly the messages /recall can return.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from recall import CODEX_SKIP_MARKERS, GROK_SKIP_MARKERS, extract_text  # noqa: E402
 
-SKIP_MARKERS = (
-    "<user_instructions>", "<environment_context>",
-    "<permissions instructions>", "# AGENTS.md instructions",
-    "<user_info>", "<system-reminder>", "<git_status>",
-)
-
-
-def extract_text(content):
-    """Extract plain text from message content (string or array format)."""
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        parts = [
-            block.get("text", "")
-            for block in content
-            if isinstance(block, dict) and block.get("type", "") in TEXT_BLOCK_TYPES
-        ]
-        return "\n".join(filter(None, parts))
-    return ""
+SKIP_MARKERS = {
+    "claude": (),
+    "codex": CODEX_SKIP_MARKERS,
+    "grok": GROK_SKIP_MARKERS,
+}
 
 
 def iter_messages(path):
@@ -95,7 +85,7 @@ def iter_messages(path):
                     continue
 
             text = extract_text(content)
-            if not text or any(marker in text for marker in SKIP_MARKERS):
+            if not text or any(marker in text for marker in SKIP_MARKERS[fmt]):
                 continue
 
             yield role, text
