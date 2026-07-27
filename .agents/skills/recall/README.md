@@ -40,6 +40,7 @@ Then use `/recall` in Claude Code, Codex, or Grok, or ask "find a past session w
 - Results ranked by BM25 with a slight recency bias (recent sessions get up to a 20% boost, decaying with a 30-day half-life)
 - Results tagged `[claude]`, `[codex]`, or `[grok]` with highlighted excerpts
 - Hyphenated search terms are split into quoted words, because FTS5 reads a bare `-` as NOT
+- Run it with no query at all to list recent sessions by date instead of searching
 - No dependencies — Python 3.9+ stdlib only. POSIX only, since it uses `fcntl` for locking
 
 ### Reading only what is new

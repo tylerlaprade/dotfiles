@@ -8,7 +8,7 @@ metadata:
   author: tylerlaprade
   upstream: arjunkmrm/recall
   fork: diverged from upstream 0.2.2
-  version: "0.3.0"
+  version: "0.4.0"
   license: MIT
 ---
 
@@ -19,7 +19,7 @@ Search all past Claude Code, Codex, and Grok sessions using full-text search wit
 ## Usage
 
 ```bash
-python3 ~/.claude/skills/recall/scripts/recall.py QUERY [--project PATH] [--days N] [--source claude|codex|grok] [--limit N] [--reindex]
+python3 ~/.claude/skills/recall/scripts/recall.py [QUERY] [--project PATH] [--days N] [--source claude|codex|grok] [--limit N] [--reindex]
 ```
 
 ## Examples
@@ -93,6 +93,7 @@ If results are missing `File:` paths, run `--reindex` to backfill.
 - Index is stored at `~/.recall.db` (SQLite FTS5, auto-migrated from `~/.claude/recall.db`), created readable only by you, with `~/.recall.db.lock` serializing index updates across concurrent sessions
 - Indexes `~/.claude/projects/` (Claude Code), `~/.codex/sessions/` (Codex), and `~/.grok/sessions/**/chat_history.jsonl` (Grok)
 - First run indexes all sessions; after that only the bytes a session has added are read, except for Grok, which rewrites its whole history file on every save
+- Omit the query to list recent sessions instead of searching
 - Run tests with `python3 -m unittest discover tests -v` from the skill root
 - Only user and assistant messages are indexed (tool calls, thinking blocks, state snapshots, synthetic harness context skipped)
 - Results show `[claude]`, `[codex]`, or `[grok]` tags to indicate the source

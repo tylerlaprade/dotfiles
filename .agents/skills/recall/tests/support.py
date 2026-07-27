@@ -54,6 +54,34 @@ def grok_entry(text, role="user"):
     return {"type": role, "content": text}
 
 
+# Entry types Claude Code writes alongside the conversation. Real transcripts
+# are largely made of these, and none of them is a message.
+CLAUDE_NON_MESSAGE_TYPES = (
+    "last-prompt", "mode", "permission-mode", "attachment", "agent-name",
+    "system", "custom-title", "file-history-snapshot", "summary",
+)
+
+# Entry types Grok writes that are not turns.
+GROK_NON_MESSAGE_TYPES = ("reasoning", "tool_result", "tool_call", "system")
+
+
+def claude_noise(cwd="/work/project"):
+    """The non-conversational entries a real Claude transcript is full of.
+
+    They carry text where the parser looks for it, so only the entry type
+    stops them being indexed. Fixtures without that prove nothing.
+    """
+    return [{"type": kind, "cwd": cwd,
+             "message": {"content": f"{kind} payload text"}}
+            for kind in CLAUDE_NON_MESSAGE_TYPES]
+
+
+def grok_noise():
+    """The same, for Grok: real text, dropped only because of the type."""
+    return [{"type": kind, "content": f"{kind} payload text"}
+            for kind in GROK_NON_MESSAGE_TYPES]
+
+
 class Corpus:
     """A synthetic ~/.claude, ~/.codex and ~/.grok laid out under one root."""
 

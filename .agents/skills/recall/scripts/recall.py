@@ -747,6 +747,35 @@ def index_sessions(conn, force=False):
 FTS_OPERATORS = {"AND", "OR", "NOT"}
 
 
+def list_sessions(conn, project=None, days=None, source=None, limit=10):
+    """The most recent sessions, with no text matching at all.
+
+    What you want when the question is "what was I working on" rather than
+    "where did I say X". The sessions table already holds everything a result
+    line shows, so this never touches the full-text index. Rows come back in
+    the shape search() returns, so there is one rendering path.
+    """
+    conditions, params = [], []
+    if project:
+        conditions.append("project LIKE ? || '%'")
+        params.append(project)
+    if days:
+        conditions.append("timestamp >= ?")
+        params.append(int((time.time() - days * 86400) * 1000))
+    if source:
+        conditions.append("source = ?")
+        params.append(source)
+
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    params.append(limit)
+    return [
+        row + ("", 0.0)
+        for row in conn.execute(
+            "SELECT session_id, source, file_path, project, slug, timestamp "
+            f"FROM sessions {where} ORDER BY timestamp DESC LIMIT ?", params)
+    ]
+
+
 def sanitize_fts_query(query):
     """Quote the parts of a query FTS5 would otherwise read as syntax.
 
@@ -897,7 +926,7 @@ def positive_int(value):
 
 def main():
     parser = argparse.ArgumentParser(description="Search past Claude Code, Codex, and Grok sessions")
-    parser.add_argument("query", help="Search query (FTS5 syntax: quotes for phrases, AND/OR/NOT)")
+    parser.add_argument("query", nargs="?", help="Search query (FTS5 syntax: quotes for phrases, AND/OR/NOT). Omit to list recent sessions instead of searching.")
     parser.add_argument("--project", help="Filter to sessions from a specific project path (prefix match)")
     parser.add_argument("--days", type=int, help="Only sessions from last N days")
     parser.add_argument("--source", choices=["claude", "codex", "grok"], help="Filter by source (claude, codex, or grok)")
@@ -936,11 +965,20 @@ def main():
     if indexed > 0:
         print(f"Indexed {indexed} sessions in {index_time:.1f}s", file=sys.stderr)
 
-    # Search
-    results = search(conn, args.query, project=args.project, days=args.days, source=args.source, limit=args.limit)
+    # Search for a query, or list what is there when there is none
+    if args.query:
+        results = search(conn, args.query, project=args.project, days=args.days,
+                         source=args.source, limit=args.limit)
+        nothing_found = "No matching sessions found."
+        header_verb = "Found"
+    else:
+        results = list_sessions(conn, project=args.project, days=args.days,
+                                source=args.source, limit=args.limit)
+        nothing_found = "No sessions in the time window."
+        header_verb = "Listed"
 
     if not results:
-        print("No matching sessions found.")
+        print(nothing_found)
         conn.close()
         return
 
@@ -948,7 +986,7 @@ def main():
     # lock and only once we know there is a header to print.
     total_sessions = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
     total_messages = conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
-    print(f"Found {len(results)} sessions (index: {total_sessions} sessions, {total_messages} messages):\n")
+    print(f"{header_verb} {len(results)} sessions (index: {total_sessions} sessions, {total_messages} messages):\n")
 
     for i, (session_id, source, file_path, project, slug, timestamp, excerpt, rank) in enumerate(results, 1):
         date = format_timestamp(timestamp)

@@ -392,5 +392,83 @@ class CorruptLines(unittest.TestCase):
         self.assertEqual(texts, ["after the corruption", "before the corruption"])
 
 
+
+class ListMode(unittest.TestCase):
+    """With no query, show what is there by recency rather than demanding a
+    keyword. Answers "what was I working on" instead of "where did I say X"."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.corpus = Corpus(self.tmp / "corpus")
+        self.db = str(self.tmp / "index.db")
+        now_ms = time.time() * 1000
+        for i, (project, age) in enumerate((("/work/alpha", 1),
+                                            ("/work/beta", 5),
+                                            ("/work/gamma", 200))):
+            ts = datetime.fromtimestamp((now_ms - age * 86_400_000) / 1000,
+                                        tz=timezone.utc)
+            self.corpus.claude_session(
+                f"{i:08d}-0000-0000-0000-000000000000",
+                [claude_entry("nothing in common", cwd=project,
+                              ts=ts.isoformat().replace("+00:00", "Z"))])
+        index(self.corpus, self.db)
+
+    def listed(self, **kwargs):
+        with pointed_at(self.corpus, self.db):
+            conn = connect(self.db)
+            try:
+                return recall.list_sessions(conn, **kwargs)
+            finally:
+                conn.close()
+
+    def test_lists_every_session_newest_first(self):
+        results = self.listed()
+        self.assertEqual([row[3] for row in results],
+                         ["/work/alpha", "/work/beta", "/work/gamma"])
+
+    def test_matches_no_text_at_all(self):
+        """Sessions with nothing in common still all come back."""
+        self.assertEqual(len(self.listed()), 3)
+
+    def test_rows_are_the_shape_search_returns(self):
+        """main() renders both through one loop, so the shapes must agree."""
+        with pointed_at(self.corpus, self.db):
+            conn = connect(self.db)
+            try:
+                searched = recall.search(conn, "nothing", limit=1)
+                listed = recall.list_sessions(conn, limit=1)
+            finally:
+                conn.close()
+        self.assertEqual(len(listed[0]), len(searched[0]))
+        self.assertEqual(listed[0][:6], searched[0][:6])
+
+    def test_the_filters_apply(self):
+        self.assertEqual([row[3] for row in self.listed(days=30)],
+                         ["/work/alpha", "/work/beta"])
+        self.assertEqual([row[3] for row in self.listed(project="/work/beta")],
+                         ["/work/beta"])
+        self.assertEqual(self.listed(source="codex"), [])
+
+    def test_the_limit_applies(self):
+        self.assertEqual(len(self.listed(limit=2)), 2)
+
+    def test_an_empty_window_lists_nothing(self):
+        self.assertEqual(self.listed(days=0, project="/nowhere"), [])
+
+    def test_main_lists_when_given_no_query(self):
+        saved = sys.argv
+        sys.argv = ["recall.py", "--limit", "2"]
+        out = io.StringIO()
+        try:
+            with pointed_at(self.corpus, self.db), redirect_stdout(out), \
+                    redirect_stderr(io.StringIO()):
+                recall.main()
+        finally:
+            sys.argv = saved
+        self.assertIn("Listed 2 sessions", out.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

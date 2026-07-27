@@ -5,6 +5,25 @@ Forked from [arjunkmrm/recall](https://github.com/arjunkmrm/recall) at 0.2.2 on
 third source is `pi` where ours is Grok, so the two cannot simply be merged.
 Versions below 0.2.3 are upstream's; from 0.2.3 on they are local.
 
+## 0.4.0 — 2026-07-27
+
+- Take list mode from upstream 0.4.1. Run `/recall` with no query and it lists
+  recent sessions by date rather than demanding a keyword — the answer to
+  "what was I working on" rather than "where did I say X". `--project`,
+  `--days`, `--source` and `--limit` all still apply, and it never touches the
+  full-text index.
+- Cover the parts of the tool the suite had never reached: `migrate_db_location`,
+  the Grok `summary.json` fields, and Claude and Grok transcripts made mostly of
+  the non-conversational entries real ones are full of. The fixtures now carry
+  text where the parsers look for it — without that the entry-type filter was
+  never actually exercised, and removing it failed nothing.
+- Stamp `parser_version` with the literal 1 on upgrade rather than whatever
+  the current version happens to be, which would have certified legacy rows as
+  parsed by a parser they never saw.
+- Drop `NEAR` from the operator list. A real one is written `NEAR(a b)`, which
+  splits on the space before it reaches the query sanitizer, so listing it only
+  looked like support.
+
 ## 0.3.3 — 2026-07-27
 
 Found by a fresh adversarial pass over the rewritten code. The first of these

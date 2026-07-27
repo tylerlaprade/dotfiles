@@ -666,3 +666,132 @@ class RebuildingTheMessageIndexIsAllOrNothing(IndexingCase):
                              "still findable")
         finally:
             conn.close()
+
+
+class RealisticClaudeTranscripts(IndexingCase):
+    """Most of a real Claude transcript is not conversation. Fixtures made only
+    of user and assistant turns never exercise the code that drops the rest."""
+
+    def test_only_the_conversation_is_indexed(self):
+        from support import claude_noise
+        path = self.corpus.claude_session("90909090-9090-9090-9090-909090909090",
+                                          claude_noise() + [claude_entry("a real turn")])
+        self.index()
+        self.assertEqual(self.texts(self.session_row(path)[0]), ["a real turn"])
+
+    def test_noise_between_turns_does_not_disturb_resuming(self):
+        from support import claude_noise
+        path = self.corpus.claude_session("91919191-9191-9191-9191-919191919191",
+                                          [claude_entry("first turn")])
+        self.index()
+        self.corpus.write(path, claude_noise() + [claude_entry("second turn")])
+        self.index()
+        self.assertEqual(self.texts(self.session_row(path)[0]),
+                         ["first turn", "second turn"])
+        self.assert_matches_rebuild()
+
+    def test_a_session_of_nothing_but_noise_indexes_no_messages(self):
+        from support import claude_noise
+        path = self.corpus.claude_session("92929292-9292-9292-9292-929292929292",
+                                          claude_noise())
+        self.index()
+        self.assertEqual(self.texts(self.session_row(path)[0]), [])
+
+    def test_grok_drops_its_own_non_conversational_entries(self):
+        from support import grok_noise
+        path = self.corpus.grok_session(GROK_UUID,
+                                        grok_noise() + [grok_entry("a real turn")])
+        self.index()
+        self.assertEqual(self.texts(self.session_row(path)[0]), ["a real turn"])
+
+    def test_grok_skips_synthetic_harness_entries(self):
+        path = self.corpus.grok_session(GROK_UUID, [
+            dict(grok_entry("injected context"), synthetic_reason="context"),
+            grok_entry("a real turn"),
+        ])
+        self.index()
+        self.assertEqual(self.texts(self.session_row(path)[0]), ["a real turn"])
+
+
+class GrokSummaryFields(IndexingCase):
+    """summary.json is the only source of a Grok session's title and time —
+    the transcript entries carry neither."""
+
+    def directory(self):
+        return self.corpus.grok / "%2Fwork%2Fproject" / GROK_UUID
+
+    def test_the_title_and_time_come_from_the_summary(self):
+        path = self.corpus.grok_session(GROK_UUID, [grok_entry("a turn")], summary={
+            "info": {"cwd": "/srv/app"},
+            "generated_title": "the session title",
+            "created_at": "2026-05-01T12:00:00.000Z",
+        })
+        self.index()
+        _, _, _, _, project, slug, timestamp = self.session_row(path)
+        self.assertEqual(project, "/srv/app")
+        self.assertEqual(slug, "the session title")
+        self.assertEqual(timestamp,
+                         recall.parse_iso_timestamp("2026-05-01T12:00:00.000Z"))
+
+    def test_the_git_root_stands_in_for_a_missing_cwd(self):
+        path = self.corpus.grok_session(GROK_UUID, [grok_entry("a turn")],
+                                        summary={"git_root_dir": "/srv/repo"})
+        self.index()
+        self.assertEqual(self.session_row(path)[4], "/srv/repo")
+
+    def test_the_session_summary_stands_in_for_a_missing_title(self):
+        path = self.corpus.grok_session(GROK_UUID, [grok_entry("a turn")],
+                                        summary={"session_summary": "a summary line"})
+        self.index()
+        self.assertEqual(self.session_row(path)[5], "a summary line")
+
+    def test_without_a_summary_the_project_comes_from_the_directory_name(self):
+        path = self.corpus.grok_session(GROK_UUID, [grok_entry("a turn")],
+                                        cwd="/home/u/my project")
+        self.index()
+        self.assertEqual(self.session_row(path)[4], "/home/u/my project")
+
+    def test_a_corrupt_summary_does_not_stop_the_session_being_indexed(self):
+        path = self.corpus.grok_session(GROK_UUID, [grok_entry("a turn")])
+        (self.directory() / "summary.json").write_text("{not json", encoding="utf-8")
+        self.corpus.stamp(path)
+        self.index()
+        self.assertEqual(self.texts(self.session_row(path)[0]), ["a turn"])
+
+
+class DatabaseLocationMigration(IndexingCase):
+    """The index used to live in ~/.claude. Moving it is the only reason an
+    upgrade from that era keeps its history."""
+
+    def test_an_index_at_the_old_path_is_moved(self):
+        with pointed_at(self.corpus, self.db):
+            old = recall.CLAUDE_DIR / "recall.db"
+            old.parent.mkdir(parents=True, exist_ok=True)
+            old.write_bytes(b"the old index")
+            for suffix in ("-wal", "-shm"):
+                Path(str(old) + suffix).write_bytes(b"sidecar" + suffix.encode())
+
+            recall.migrate_db_location()
+
+            self.assertFalse(old.exists())
+            self.assertEqual(Path(self.db).read_bytes(), b"the old index")
+            for suffix in ("-wal", "-shm"):
+                self.assertEqual(Path(self.db + suffix).read_bytes(),
+                                 b"sidecar" + suffix.encode())
+
+    def test_an_index_already_at_the_new_path_is_left_alone(self):
+        with pointed_at(self.corpus, self.db):
+            old = recall.CLAUDE_DIR / "recall.db"
+            old.parent.mkdir(parents=True, exist_ok=True)
+            old.write_bytes(b"the old index")
+            Path(self.db).write_bytes(b"the current index")
+
+            recall.migrate_db_location()
+
+            self.assertTrue(old.exists())
+            self.assertEqual(Path(self.db).read_bytes(), b"the current index")
+
+    def test_nothing_at_the_old_path_is_a_no_op(self):
+        with pointed_at(self.corpus, self.db):
+            recall.migrate_db_location()
+            self.assertFalse(Path(self.db).exists())
