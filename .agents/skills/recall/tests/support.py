@@ -113,12 +113,30 @@ class Corpus:
         return self.write(directory / "chat_history.jsonl", entries)
 
 
+_pointed_at_something = False
+
+
 @contextmanager
 def pointed_at(corpus, db_path):
-    """Point the recall module at a throwaway corpus and database."""
+    """Point the recall module at a throwaway corpus and database.
+
+    Not reentrant, and not safe to enter from more than one thread: it swaps
+    module globals, so a second exit would put the real session directories
+    back while the first was still using them. That mistake is silent — the
+    suite simply starts indexing whatever is in the real home — so it raises
+    here instead.
+    """
+    global _pointed_at_something
+    if _pointed_at_something:
+        raise RuntimeError(
+            "pointed_at is already active; it swaps module globals, so enter it "
+            "once around the work rather than inside each thread or helper"
+        )
+
     names = ("DB_PATH", "DB_LOCK_PATH", "CLAUDE_DIR",
              "CLAUDE_PROJECTS_DIR", "CODEX_SESSIONS_DIR", "GROK_SESSIONS_DIR")
     saved = {name: getattr(recall, name) for name in names}
+    _pointed_at_something = True
     recall.DB_PATH = Path(db_path)
     recall.DB_LOCK_PATH = Path(str(db_path) + ".lock")
     recall.CLAUDE_DIR = corpus.root / "claude"
@@ -128,6 +146,7 @@ def pointed_at(corpus, db_path):
     try:
         yield
     finally:
+        _pointed_at_something = False
         for name, value in saved.items():
             setattr(recall, name, value)
 

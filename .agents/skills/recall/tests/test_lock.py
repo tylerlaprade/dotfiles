@@ -161,24 +161,29 @@ class ConcurrentIndexing(unittest.TestCase):
 
         def run():
             ready.wait()
-            with pointed_at(self.corpus, self.db):
-                with recall.index_lock() as have_lock:
-                    if not have_lock:
-                        return
-                    conn = sqlite3.connect(self.db)
-                    conn.execute("PRAGMA journal_mode=WAL")
-                    try:
-                        recall.create_schema(conn)
-                        recall.migrate_schema(conn)
-                        recall.index_sessions(conn)
-                    finally:
-                        conn.close()
+            with recall.index_lock() as have_lock:
+                if not have_lock:
+                    return
+                conn = sqlite3.connect(self.db)
+                conn.execute("PRAGMA journal_mode=WAL")
+                try:
+                    recall.create_schema(conn)
+                    recall.migrate_schema(conn)
+                    recall.index_sessions(conn)
+                finally:
+                    conn.close()
 
-        threads = [threading.Thread(target=run) for _ in range(2)]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join(timeout=30)
+        # pointed_at swaps module globals, so it belongs out here. Entering it
+        # per thread would let one thread restore the real session directories
+        # while the other was still scanning them.
+        with pointed_at(self.corpus, self.db):
+            threads = [threading.Thread(target=run) for _ in range(2)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(timeout=30)
+            for thread in threads:
+                self.assertFalse(thread.is_alive(), "a thread did not finish")
 
         self.assertEqual(self.marker_count("appended once"), 1)
 
