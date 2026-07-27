@@ -256,5 +256,141 @@ class MessageColumnMigration(unittest.TestCase):
         conn.close()
 
 
+
+class Filters(unittest.TestCase):
+    """--project, --days and --limit had no test at all, so every one of them
+    could have been returning the wrong set of sessions."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.corpus = Corpus(self.tmp / "corpus")
+        self.db = str(self.tmp / "index.db")
+        now_ms = time.time() * 1000
+        for i, (project, age) in enumerate((("/work/alpha", 2),
+                                            ("/work/alphabet", 2),
+                                            ("/work/beta", 90))):
+            ts = datetime.fromtimestamp((now_ms - age * 86_400_000) / 1000,
+                                        tz=timezone.utc)
+            self.corpus.claude_session(
+                f"{i:08d}-0000-0000-0000-000000000000",
+                [claude_entry("sharedtoken here", cwd=project,
+                              ts=ts.isoformat().replace("+00:00", "Z"))])
+        index(self.corpus, self.db)
+
+    def search(self, query="sharedtoken", **kwargs):
+        with pointed_at(self.corpus, self.db):
+            conn = connect(self.db)
+            try:
+                return recall.search(conn, query, **kwargs)
+            finally:
+                conn.close()
+
+    def projects(self, results):
+        return sorted(row[3] for row in results)
+
+    def test_no_filter_finds_them_all(self):
+        self.assertEqual(len(self.search()), 3)
+
+    def test_project_matches_by_prefix(self):
+        """A prefix, not an exact match — searching a parent directory should
+        find the work done under it."""
+        self.assertEqual(self.projects(self.search(project="/work/alpha")),
+                         ["/work/alpha", "/work/alphabet"])
+
+    def test_project_excludes_what_it_should(self):
+        self.assertEqual(self.projects(self.search(project="/work/beta")),
+                         ["/work/beta"])
+
+    def test_project_matching_an_unknown_path_finds_nothing(self):
+        self.assertEqual(self.search(project="/nowhere"), [])
+
+    def test_days_keeps_only_recent_sessions(self):
+        self.assertEqual(self.projects(self.search(days=30)),
+                         ["/work/alpha", "/work/alphabet"])
+
+    def test_days_wide_enough_keeps_everything(self):
+        self.assertEqual(len(self.search(days=365)), 3)
+
+    def test_filters_combine(self):
+        self.assertEqual(self.projects(self.search(project="/work/alpha", days=30)),
+                         ["/work/alpha", "/work/alphabet"])
+        self.assertEqual(self.search(project="/work/beta", days=30), [])
+
+    def test_limit_is_honoured(self):
+        for limit in (1, 2, 3):
+            with self.subTest(limit=limit):
+                self.assertEqual(len(self.search(limit=limit)), limit)
+
+    def test_limit_must_be_positive(self):
+        """SQLite reads a limit below one as "no limit", after which the
+        results were sliced from the wrong end."""
+        for bad in ("0", "-1"):
+            with self.subTest(value=bad):
+                with self.assertRaises(Exception):
+                    recall.positive_int(bad)
+        self.assertEqual(recall.positive_int("5"), 5)
+
+
+class ResultsAreReadable(unittest.TestCase):
+    """The excerpt and the date are the whole of what a result shows."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.corpus = Corpus(self.tmp / "corpus")
+        self.db = str(self.tmp / "index.db")
+        self.corpus.claude_session("11111111-1111-1111-1111-111111111111", [
+            claude_entry("padding one", ts="2026-03-04T05:06:07.000Z"),
+            claude_entry("the distinctivetoken appears in this line"),
+            claude_entry("padding two"),
+        ])
+        index(self.corpus, self.db)
+
+    def test_the_excerpt_shows_the_matching_line_highlighted(self):
+        with pointed_at(self.corpus, self.db):
+            conn = connect(self.db)
+            try:
+                results = recall.search(conn, "distinctivetoken", limit=1)
+            finally:
+                conn.close()
+        excerpt = results[0][6]
+        self.assertIn("distinctivetoken", excerpt)
+        self.assertIn("**distinctivetoken**", excerpt)
+
+    def test_a_date_is_shown_rather_than_a_raw_number(self):
+        self.assertEqual(
+            recall.format_timestamp(recall.parse_iso_timestamp("2026-03-04T05:06:07.000Z")),
+            "2026-03-04")
+
+    def test_a_session_with_no_timestamp_says_so(self):
+        self.assertEqual(recall.format_timestamp(0), "unknown")
+        self.assertEqual(recall.format_timestamp(None), "unknown")
+
+
+class CorruptLines(unittest.TestCase):
+    def test_a_line_that_is_not_json_costs_one_line(self):
+        """Not the run. Nothing is committed until every file has been read, so
+        an error escaping here discards every session parsed before it."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        corpus = Corpus(Path(tmp.name) / "corpus")
+        db = str(Path(tmp.name) / "index.db")
+        path = corpus.claude_session("11111111-1111-1111-1111-111111111111",
+                                     [claude_entry("before the corruption")])
+        corpus.write_raw(path, '{"type": "user", "message": {"content": "trunca\n')
+        corpus.write(path, [claude_entry("after the corruption")])
+        index(corpus, db)
+
+        conn = sqlite3.connect(db)
+        try:
+            texts = sorted(row[0] for row in conn.execute("SELECT text FROM messages"))
+        finally:
+            conn.close()
+        self.assertEqual(texts, ["after the corruption", "before the corruption"])
+
+
 if __name__ == "__main__":
     unittest.main()

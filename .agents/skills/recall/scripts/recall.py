@@ -108,9 +108,11 @@ def migrate_schema(conn):
         if name not in present:
             conn.execute(f"ALTER TABLE sessions ADD COLUMN {name} {definition}")
     if "parser_version" not in present:
-        # Sessions already indexed were parsed by the parsers as they stand.
-        # Stamping them says so, rather than making every one be read again.
-        conn.execute("UPDATE sessions SET parser_version = ?", (PARSER_VERSION,))
+        # Anything indexed before this column existed was parsed by version 1.
+        # Saying so beats making every session be read again; stamping the
+        # current version instead would certify them as parsed by a parser they
+        # never saw, once it is bumped.
+        conn.execute("UPDATE sessions SET parser_version = 1")
     conn.commit()
 
 
@@ -739,8 +741,10 @@ def index_sessions(conn, force=False):
 
 # — Search —————————————————————————————————————————————————————————————————
 
-# FTS5 reads these as syntax rather than as words to look for.
-FTS_OPERATORS = {"AND", "OR", "NOT", "NEAR"}
+# FTS5 reads these as syntax rather than as words to look for. NEAR is left
+# out on purpose: a real one is written NEAR(a b), which splits on the space
+# before it gets here, so listing it would only look like support.
+FTS_OPERATORS = {"AND", "OR", "NOT"}
 
 
 def sanitize_fts_query(query):
