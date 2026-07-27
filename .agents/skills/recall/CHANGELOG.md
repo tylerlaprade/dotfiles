@@ -5,6 +5,36 @@ Forked from [arjunkmrm/recall](https://github.com/arjunkmrm/recall) at 0.2.2 on
 third source is `pi` where ours is Grok, so the two cannot simply be merged.
 Versions below 0.2.3 are upstream's; from 0.2.3 on they are local.
 
+## 0.3.3 — 2026-07-27
+
+Found by a fresh adversarial pass over the rewritten code. The first of these
+was a day old.
+
+- Rebuilding the message index is one transaction now. `executescript` commits
+  each statement as it runs, so a run killed during the 12-second rebuild left
+  a half-built table behind, and every run after that died on "table
+  messages_rebuilt already exists" with no way out but hand-editing SQLite.
+- Creating and migrating the schema now happen only with the lock held. They
+  are writes, and a run that gave up waiting was doing them anyway — crashing
+  where the timeout exists to fall back to searching.
+- `--reindex` no longer deletes a session before re-reading it. It deleted
+  every row whose file existed, then spent 35 seconds reading them; anything
+  that stopped being readable in between was simply gone. Each file is now
+  replaced only once it has been read, which is what the incremental path
+  already did.
+- Claiming a session id no longer deletes the session that held it. Two
+  workflow journals derive the same id, and when the holder's file aged out
+  the other inherited the id by deleting its messages — destroying a session
+  that existed nowhere else. Only a file the index has never seen can inherit
+  an id, which is the case that actually means the session moved.
+- An upgrade from before `file_path` was stored duplicated every message,
+  because the migration gives every existing row an empty path and they all
+  collapse onto one key. 42 sessions in this index held every message three
+  times as a result; they have been deduplicated.
+- A line of valid JSON that is not an object — `[1,2,3]`, `42`, `null` — ended
+  the whole run rather than being skipped like any other unusable line. Same
+  for a Grok `summary.json` that is not an object.
+
 ## 0.3.2 — 2026-07-27
 
 Two of these had been wrong since before the fork, and both were found by

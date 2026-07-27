@@ -541,3 +541,128 @@ class ParserVersion(IndexingCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NothingIsDeletedBeforeItIsReadAgain(IndexingCase):
+    """A rebuild that deletes up front loses any session that stops being
+    readable while it runs — and half of them have no file to re-read at all."""
+
+    def test_reindex_keeps_a_session_that_becomes_unreadable_mid_run(self):
+        path = self.corpus.claude_session("80808080-8080-8080-8080-808080808080",
+                                          [claude_entry("must survive")])
+        self.corpus.claude_session("81818181-8181-8181-8181-818181818181",
+                                   [claude_entry("also here")])
+        self.index()
+        session_id = self.session_row(path)[0]
+
+        os.chmod(path, 0o000)
+        self.addCleanup(os.chmod, path, 0o644)
+        with redirect_stderr(io.StringIO()):
+            self.index(force=True)
+        self.assertEqual(self.texts(session_id), ["must survive"])
+
+    def test_reindex_keeps_a_session_deleted_mid_run(self):
+        path = self.corpus.claude_session("82828282-8282-8282-8282-828282828282",
+                                          [claude_entry("must survive")])
+        self.index()
+        session_id = self.session_row(path)[0]
+        os.remove(path)
+        self.index(force=True)
+        self.assertEqual(self.texts(session_id), ["must survive"])
+
+
+class AnIdIsNeverTakenFromASessionThatSurvives(IndexingCase):
+    def test_a_colliding_file_does_not_delete_the_holder(self):
+        """Two workflow journals share a derived id. When the one holding the
+        bare id ages out, the other must not inherit it by deleting it."""
+        first = self.corpus.write(
+            self.corpus.claude / "proj" / "run-a" / "journal.jsonl",
+            [claude_entry("from run a")])
+        second = self.corpus.write(
+            self.corpus.claude / "proj" / "run-b" / "journal.jsonl",
+            [claude_entry("from run b")])
+        self.index()
+        kept = {self.session_row(first)[0]: "from run a",
+                self.session_row(second)[0]: "from run b"}
+
+        # Whichever holds the bare id, delete its file and re-read the other.
+        bare = next(sid for sid in kept if "@" not in sid)
+        gone = first if self.session_row(first)[0] == bare else second
+        survivor = second if gone is first else first
+        os.remove(gone)
+        self.corpus.write(survivor, [claude_entry("a later turn")])
+        self.index()
+
+        self.assertEqual(self.texts(bare), [kept[bare]])
+
+
+class MalformedJson(IndexingCase):
+    def test_a_json_line_that_is_not_an_object_costs_one_line(self):
+        path = self.corpus.claude_session("83838383-8383-8383-8383-838383838383",
+                                          [claude_entry("good line")])
+        self.corpus.write_raw(path, "[1, 2, 3]\n42\n\"a bare string\"\nnull\n")
+        self.corpus.write(path, [claude_entry("after the junk")])
+        self.index()
+        self.assertEqual(sorted(self.texts(self.session_row(path)[0])),
+                         ["after the junk", "good line"])
+
+    def test_a_grok_summary_that_is_not_an_object_is_ignored(self):
+        directory = self.corpus.grok / "%2Fwork%2Fproject" / GROK_UUID
+        path = self.corpus.grok_session(GROK_UUID, [grok_entry("a turn")])
+        (directory / "summary.json").write_text("[1, 2, 3]", encoding="utf-8")
+        self.corpus.stamp(path)
+        self.index()
+        self.assertEqual(self.texts(self.session_row(path)[0]), ["a turn"])
+
+
+class RebuildingTheMessageIndexIsAllOrNothing(IndexingCase):
+    def test_an_interrupted_rebuild_leaves_the_index_usable(self):
+        """It used to commit each statement as it went, so a run killed part
+        way through left a half-built table that every later run died on."""
+        self.corpus.claude_session("84848484-8484-8484-8484-848484848484",
+                                   [claude_entry("still findable")])
+        self.index()
+
+        conn = sqlite3.connect(self.db)
+        try:
+            conn.executescript("""
+                DROP TABLE messages;
+                CREATE VIRTUAL TABLE messages USING fts5(
+                    session_id UNINDEXED, role, text, tokenize='porter unicode61');
+                INSERT INTO messages VALUES ('s', 'user', 'still findable');
+            """)
+            conn.commit()
+
+            class DiesPartWay:
+                """Stands in for the process being killed mid-rebuild."""
+
+                def __init__(self, wrapped):
+                    self._wrapped = wrapped
+
+                def execute(self, sql, *args):
+                    if sql.strip().startswith("DROP TABLE messages"):
+                        raise KeyboardInterrupt("killed mid-rebuild")
+                    return self._wrapped.execute(sql, *args)
+
+                def __getattr__(self, name):
+                    return getattr(self._wrapped, name)
+
+            with redirect_stderr(io.StringIO()):
+                with self.assertRaises(KeyboardInterrupt):
+                    recall.migrate_message_columns(DiesPartWay(conn))
+
+            leftovers = [row[0] for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE name = 'messages_rebuilt'")]
+            self.assertEqual(leftovers, [])
+            self.assertEqual(conn.execute("SELECT text FROM messages").fetchone()[0],
+                             "still findable")
+
+            # And the next run completes it.
+            with redirect_stderr(io.StringIO()):
+                recall.migrate_message_columns(conn)
+            self.assertIn("role UNINDEXED", conn.execute(
+                "SELECT sql FROM sqlite_master WHERE name = 'messages'").fetchone()[0])
+            self.assertEqual(conn.execute("SELECT text FROM messages").fetchone()[0],
+                             "still findable")
+        finally:
+            conn.close()

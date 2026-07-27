@@ -132,10 +132,6 @@ class DatabasePermissions(unittest.TestCase):
         self.assertEqual(db.stat().st_mode & 0o777, 0o600)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class Ranking(unittest.TestCase):
     """Recent sessions should come first among equally good matches. The blend
     that exists to do that was pushing them down the page instead."""
@@ -258,3 +254,7 @@ class MessageColumnMigration(unittest.TestCase):
         self.assertEqual(conn.execute(
             "SELECT sql FROM sqlite_master WHERE name = 'messages'").fetchone()[0], before)
         conn.close()
+
+
+if __name__ == "__main__":
+    unittest.main()

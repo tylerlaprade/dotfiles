@@ -99,11 +99,19 @@ class LockBehaviour(unittest.TestCase):
         self.assertIn("Found 1 sessions", output)
 
     def test_a_waiter_that_gave_up_does_not_index(self):
+        """It also must not create or migrate the schema, which are writes the
+        lock holder may have the database busy for."""
         self.corpus.claude_session("33333333-3333-3333-3333-333333333333",
                                    [claude_entry("a turn")])
         with lock_held_elsewhere(self.lock):
             self.run_main("turn")
-        self.assertFalse(Path(self.db).exists() and self.session_count())
+        conn = sqlite3.connect(self.db)
+        try:
+            tables = {row[0] for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type IN ('table','view')")}
+        finally:
+            conn.close()
+        self.assertNotIn("sessions", tables)
 
     def test_reindex_does_not_rebuild_without_the_lock(self):
         """--reindex wipes both tables before refilling them. Doing that while

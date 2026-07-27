@@ -131,19 +131,27 @@ def migrate_message_columns(conn):
 
     print("Rebuilding the message index so roles are no longer searchable...",
           file=sys.stderr)
-    conn.executescript("""
-        CREATE VIRTUAL TABLE messages_rebuilt USING fts5(
-            session_id UNINDEXED,
-            role UNINDEXED,
-            text,
-            tokenize='porter unicode61'
-        );
-        INSERT INTO messages_rebuilt(session_id, role, text)
-            SELECT session_id, role, text FROM messages;
-        DROP TABLE messages;
-        ALTER TABLE messages_rebuilt RENAME TO messages;
-    """)
-    conn.commit()
+    # One transaction, opened explicitly. Left to itself sqlite3 commits each
+    # DDL statement as it runs, and a run killed part way through would leave a
+    # half-built table that every later run then died on.
+    conn.execute("BEGIN")
+    try:
+        conn.execute("""
+            CREATE VIRTUAL TABLE messages_rebuilt USING fts5(
+                session_id UNINDEXED,
+                role UNINDEXED,
+                text,
+                tokenize='porter unicode61'
+            )
+        """)
+        conn.execute("INSERT INTO messages_rebuilt(session_id, role, text) "
+                     "SELECT session_id, role, text FROM messages")
+        conn.execute("DROP TABLE messages")
+        conn.execute("ALTER TABLE messages_rebuilt RENAME TO messages")
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
 
 
 def migrate_db_location():
@@ -215,7 +223,10 @@ def iter_entries(path, start=0):
             entry = json.loads(line)
         except json.JSONDecodeError:
             continue
-        yield entry, offset
+        # Valid JSON that is not an object — a bare list or number — would
+        # reach entry.get() and end the run rather than the line.
+        if isinstance(entry, dict):
+            yield entry, offset
 
 
 def tail_hash_at(path, offset):
@@ -497,6 +508,8 @@ def parse_grok_session(path, start=0):
         try:
             with open(summary_path, "r", encoding="utf-8", errors="replace") as f:
                 summary = json.load(f)
+            if not isinstance(summary, dict):
+                raise TypeError("summary.json is not an object")
             info = summary.get("info") or {}
             project = info.get("cwd") or summary.get("git_root_dir") or ""
             slug = (
@@ -596,18 +609,21 @@ def scan_session_files():
     ]
 
 
-def claim_session_id(conn, session_id, fpath, claimed_by):
+def claim_session_id(conn, session_id, fpath, has_own_row, claimed_by):
     """Settle which file answers to `session_id`, recording it in `claimed_by`.
 
     Ids are derived from the file, and most are unique, but every workflow
-    journal.jsonl derives the same one. Two files that both still exist get an
-    id each. If the previous holder is gone the file was moved, so this row
-    inherits the id — and the messages indexed under it, which are the same
-    session's and would otherwise be left behind as a duplicate.
+    journal.jsonl derives the same one.
+
+    A file with a row of its own is a different session that happens to share a
+    name, so it gets an id of its own. Only a file the index has never seen can
+    inherit an id whose holder has gone — that is a session that moved, and its
+    messages move with it. Any other reading would delete a session to give its
+    id away, and for many of them the index is the only copy left.
     """
     owner = claimed_by.get(session_id)
     if owner is not None and owner != fpath:
-        if os.path.exists(owner):
+        if has_own_row or os.path.exists(owner):
             digest = hashlib.sha256(fpath.encode("utf-8")).hexdigest()[:8]
             session_id = f"{session_id}@{digest}"
         else:
@@ -621,16 +637,14 @@ def index_sessions(conn, force=False):
     existing = load_indexed_state(conn)
 
     if force:
-        # Drop only what can be read again. Sessions whose files are gone —
-        # nearly half of them, once a tool has aged out its own transcripts —
-        # exist nowhere else, and a rebuild is no reason to lose them. These
-        # deletes stay in the run's transaction so an interrupted rebuild rolls
-        # back rather than leaving an empty index behind.
-        for fpath, prior in existing.items():
-            if os.path.exists(fpath):
-                conn.execute("DELETE FROM sessions WHERE session_id = ?", (prior.session_id,))
-                conn.execute("DELETE FROM messages WHERE session_id = ?", (prior.session_id,))
-        existing = {path: row for path, row in existing.items() if not os.path.exists(path)}
+        # Forget every resume point so each file is read in full. The delete
+        # then happens per file, after it has been read — deleting up front
+        # loses any session that stops being readable during the rebuild, and
+        # sessions whose files are already gone are simply never revisited.
+        existing = {
+            path: row._replace(mtime=None, byte_offset=0, tail_hash=None)
+            for path, row in existing.items()
+        }
 
     claimed_by = {row.session_id: path for path, row in existing.items()}
     indexed = 0
@@ -688,7 +702,14 @@ def index_sessions(conn, force=False):
                  mtime, end_offset, tail_hash, PARSER_VERSION, session_id),
             )
         else:
-            session_id = claim_session_id(conn, metadata["session_id"], fpath, claimed_by)
+            session_id = claim_session_id(conn, metadata["session_id"], fpath,
+                                          prior is not None, claimed_by)
+            if prior is None:
+                # An id can already carry messages without `prior` knowing: a
+                # database upgraded from before file_path was stored has no
+                # path to match on. Clearing them stops a re-read stacking a
+                # second copy on top of the first.
+                conn.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
             conn.execute(
                 "INSERT OR REPLACE INTO sessions (session_id, source, file_path, project, slug, timestamp, mtime, byte_offset, tail_hash, parser_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (session_id, metadata["source"], metadata["file_path"],
@@ -894,11 +915,17 @@ def main():
         os.chmod(str(DB_PATH), 0o600)
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA synchronous=NORMAL")
-        create_schema(conn)
-        migrate_schema(conn)
-        migrate_message_columns(conn)
 
-        indexed = index_sessions(conn, force=args.reindex) if have_lock else 0
+        # Creating and migrating write to the database, so they need the lock
+        # as much as indexing does. Without it a run that gave up waiting would
+        # try DDL against a database the holder still has open, and die where
+        # it was supposed to fall back to searching.
+        indexed = 0
+        if have_lock:
+            create_schema(conn)
+            migrate_schema(conn)
+            migrate_message_columns(conn)
+            indexed = index_sessions(conn, force=args.reindex)
     # Counted from before the lock, so the number covers time spent waiting too.
     index_time = time.time() - t0
 
