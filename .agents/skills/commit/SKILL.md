@@ -8,4 +8,6 @@ disable-model-invocation: true
 
 Please STAGE (in hunks with `git add -p`, if needed) and commit your changes.
 Don't try to stash, reset, checkout, or otherwise touch any unrelated changes.
-The precommit hook autostashes - that's fine, ignore it.
+Commit normally so configured hooks can run. Afterward, verify the exact
+committed diff and final working tree status. Report any hook changes or
+warnings.
