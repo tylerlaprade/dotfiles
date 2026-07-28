@@ -33,12 +33,13 @@
       "Bash(git show *)",
       "Bash(git blame *)"
     ],
-    "defaultMode": "bypassPermissions",
     "deny": [
       "Bash(npx skills:*)",
       "Bash(skills:*)"
-    ]
+    ],
+    "defaultMode": "bypassPermissions"
   },
+  "model": "claude-fable-5[1m]",
   "hooks": {
     "PostToolUse": [
       {
