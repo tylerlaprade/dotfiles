@@ -38,7 +38,11 @@ zj() {
 }
 
 # Claude
-claude() { command claude --allow-dangerously-skip-permissions --settings '{"ultracode": true}' "$@"; }
+claude() {
+  local CLAUDE_CODE_SUBAGENT_MODEL="${CLAUDE_CODE_SUBAGENT_MODEL:-opus}"
+  export CLAUDE_CODE_SUBAGENT_MODEL
+  command claude --allow-dangerously-skip-permissions --settings '{"ultracode": true}' "$@"
+}
 
 # cwc — change workspace (condor)
 _cw_root=$(git rev-parse --show-toplevel 2>/dev/null)

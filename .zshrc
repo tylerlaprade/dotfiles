@@ -45,6 +45,9 @@ zj() {
 
 # Claude: allow bypass-permissions + overage gate (requires ~/.claude/overage-gate)
 claude() {
+  local CLAUDE_CODE_SUBAGENT_MODEL="${CLAUDE_CODE_SUBAGENT_MODEL:-opus}"
+  export CLAUDE_CODE_SUBAGENT_MODEL
+
   # Shared protocol with statusline.sh (producer) and resume.sh — all three
   # hardcode /tmp. A wrapper-local fallback dir would silently desync them.
   local _override=/tmp/claude-overage-override
