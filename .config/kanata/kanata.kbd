@@ -3,21 +3,22 @@
 ;; KEEP
 ;;   Caps: tap Esc / hold Ctrl
 ;;   F1–F12 → media
-;;   fn + Backspace family
-;;   Space hold → extend (nav only for now — arrows + jump keys)
-;;   Kid lock
+;;   Hold fn → delete family (native fn is not reliable through VirtualHID)
+;;   Tap fn  → send fn (input-source / Globe if macOS accepts it)
+;;   Space hold → extend (nav: hjkl arrows + jump keys)
+;;   Kid lock: both shifts held, then K on / B off
 ;;
-;; Space timing: require-prior-idle so mid-sentence spaces fire on press
-;; (no lag while typing). After a pause, hold Space still opens extend.
+;; Space timing: require-prior-idle so mid-sentence spaces fire on press.
 ;;
-;; Numbers: use the real number row for now (no home-row numpad to memorize).
-;; Number row while Space held → F1–F12 (intentional; hard to hit by accident).
+;; Kid lock uses switch on K / B — NOT defchordsv2. Chords buffer every
+;; participating key after idle. Here K and B type normally unless both
+;; shifts are already held as real inputs.
 
 (defcfg
   process-unmapped-keys yes
-  log-layer-changes no
+  ;; Temporary: log layer changes so kid lock ON/OFF is visible in kanata.out.log
+  log-layer-changes yes
   concurrent-tap-hold yes
-  chords-v2-min-idle 50
   macos-dev-names-include (
     "Apple Internal Keyboard / Trackpad"
   )
@@ -26,8 +27,6 @@
 (defvar
   tap-time 180
   hold-time 200
-  ;; Mid-stream Space taps immediately if any key was hit within this window.
-  ;; Same idea that fixed letter lag for HRM. Pause ~this long before hold-Space.
   prior-idle-spc 400
 )
 
@@ -40,12 +39,22 @@
   fn   lctl lalt lmet           spc           rmet ralt
 )
 
-;; Parent chords (before layers — work even in kid lock)
-;;   both-shifts + k → kid lock ON
-;;   both-shifts + b → kid lock OFF
-(defchordsv2
-  (lsft rsft k) (layer-switch kid)  350 all-released ()
-  (lsft rsft b) (layer-switch base) 350 all-released ()
+;; One-shot layer change + Mouse Keys toggle (Option ×5).
+;; release-key first so Option taps are not Shift+Option while both shifts
+;; are still held for the trigger.
+;; Requires: Accessibility → Pointer Control →
+;;   "Press the Option key five times to toggle Mouse Keys".
+(defvirtualkeys
+  vk-kid  (multi
+            (release-key lsft)
+            (release-key rsft)
+            (layer-switch kid)
+            (macro 120 lalt 70 lalt 70 lalt 70 lalt 70 lalt))
+  vk-base (multi
+            (release-key lsft)
+            (release-key rsft)
+            (layer-switch base)
+            (macro 120 lalt 70 lalt 70 lalt 70 lalt 70 lalt))
 )
 
 ;; ---------------------------------------------------------------------------
@@ -55,21 +64,17 @@
   _    brdn brup mctl lpad bldn blup prev pp   next mute vold volu
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
-  @cap _    _    _    _    _    _    _    _    _    _    _    _
-  _    _    _    _    _    _    _    _    _    _    _    _
+  @cap _    _    _    _    _    _    _    @kk  _    _    _    _
+  _    _    _    _    _    @kb  _    _    _    _    _    _
   @fnh _    _    _              @spc          _    _
 )
 
 ;; ---------------------------------------------------------------------------
-;; Extend (hold Space) — nav only, memorable
-;;
-;;   h j k l    →  ← ↓ ↑ →     (vim; only while Space held)
-;;   y u i o    →  home pgup pgdn end
-;;   number row →  F1–F12
-;;   media row  →  still media
-;;
-;; Modifiers stay real: Space+Shift/Option/Cmd + hjkl for select / word / line.
-;; No home-row number remap (use the physical number row when not holding Space).
+;; Extend (hold Space) — nav only
+;;   h j k l → ← ↓ ↑ →
+;;   y u i o → home pgup pgdn end
+;;   number row → F1–F12
+;;   Modifiers real for Shift/Option/Cmd + arrows
 ;; ---------------------------------------------------------------------------
 (deflayer extend
   _    brdn brup mctl lpad bldn blup prev pp   next mute vold volu
@@ -80,7 +85,7 @@
   @fnh lctl lalt lmet           _              rmet ralt
 )
 
-;; fn held — delete family:
+;; Hold fn — delete family
 ;;   fn+⌫       → forward delete
 ;;   fn+⌘/⌥+⌫   → delete word forward
 (deflayer fnkeys
@@ -93,28 +98,37 @@
 )
 
 ;; ---------------------------------------------------------------------------
-;; Kid lock — typing OK, modifiers dead
-;; Enter: Shift+Shift+K    Exit: Shift+Shift+B
-;; Full media row kept (volume + brightness + the rest).
+;; Kid lock — letters/numbers OK, modifiers dead, full media row OK
+;; Unlock still works: @kb sees real physical shifts via (input real …)
+;; even though layer maps lsft/rsft to XX.
 ;; ---------------------------------------------------------------------------
 (deflayer kid
   _    brdn brup mctl lpad bldn blup prev pp   next mute vold volu
   _    1    2    3    4    5    6    7    8    9    0    -    =    bspc
   tab  q    w    e    r    t    y    u    i    o    p    [    ]    \
-  XX   a    s    d    f    g    h    j    k    l    ;    '    ret
-  XX   z    x    c    v    b    n    m    ,    .    /    XX
+  XX   a    s    d    f    g    h    j    @kk  l    ;    '    ret
+  XX   z    x    c    v    @kb  n    m    ,    .    /    XX
   XX   XX   XX   XX              spc          XX   XX
 )
 
 (defalias
   cap (tap-hold-press $tap-time $hold-time esc lctl)
-  ;; prior-idle: while typing, Space taps immediately (no word-boundary lag).
-  ;; After ~prior-idle-spc ms quiet, hold Space still enters extend.
   spc (tap-hold $tap-time $hold-time spc (layer-while-held extend)
       (require-prior-idle $prior-idle-spc))
-  fnh (layer-while-held fnkeys)
+  ;; Tap: pass fn through. Hold: delete layer (the path that works).
+  fnh (tap-hold $tap-time $hold-time fn (layer-while-held fnkeys))
   fdel (switch
     ((or lmet rmet lalt ralt)) A-del break
     () del break
+  )
+  ;; Both shifts already held → kid on/off. Otherwise type k / b as normal.
+  ;; (input real …) = physical keys, so this works on the kid layer too.
+  kk (switch
+    ((and (input real lsft) (input real rsft))) (on-press tap-vkey vk-kid) break
+    () k break
+  )
+  kb (switch
+    ((and (input real lsft) (input real rsft))) (on-press tap-vkey vk-base) break
+    () b break
   )
 )
