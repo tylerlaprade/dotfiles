@@ -128,7 +128,6 @@
   "enabledPlugins": {
     "code-simplifier@claude-plugins-official": false,
     "coderabbit@claude-plugins-official": true,
-    "codex@openai-codex": false,
     "compound-engineering@compound-engineering-plugin": false,
     "context7@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": false,

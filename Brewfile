@@ -4,6 +4,7 @@ brew "bat"
 brew "bottom"
 brew "brush", args: ["HEAD"]
 brew "caddy"
+brew "cliproxyapi"
 brew "cosign"
 brew "difftastic"
 brew "direnv"
