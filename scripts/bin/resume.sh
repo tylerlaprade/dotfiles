@@ -2,8 +2,9 @@
 # Source from .zshrc / .bashrc:  source ~/Code/dotfiles/scripts/bin/resume.sh
 # macOS-only: uses BSD `date -j -f` and `caffeinate`.
 #
-# No prompt arg → resumes the selected/latest session with prompt "continue".
-# Prompt arg   → resumes the selected/latest session with that prompt.
+# No prompt arg → resumes this terminal tab's last session with prompt "continue".
+# Prompt arg   → resumes this terminal tab's last session with that prompt.
+# -s/--session → overrides tab-local selection with an explicit session.
 # -n/--new     → starts a fresh session instead of resuming.
 #
 # Tool and time/duration may be passed in either order.
@@ -31,14 +32,14 @@
 #   -h, --help                          show help
 #
 # Usage:
-#   resume claude                # resume last claude session at next 5h reset
+#   resume claude                # resume this tab's last claude session at next reset
 #   resume grok                  # if over credits, wait for period end; else now
-#   resume codex 7p              # resume last codex session at 7:00 PM
-#   resume grok 7p               # resume last grok session (cwd) at 7:00 PM
-#   resume 1220a claude          # resume last claude session at 12:20 AM
-#   resume codex 3000s           # resume last codex session in 3000 seconds
+#   resume codex 7p              # resume this tab's last codex session at 7:00 PM
+#   resume grok 7p               # resume this tab's last grok session at 7:00 PM
+#   resume 1220a claude          # resume this tab's last claude session at 12:20 AM
+#   resume codex 3000s           # resume this tab's last codex session in 3000 seconds
 #   resume codex -s 019... 7p    # resume a specific codex session at 7:00 PM
-#   resume 730p claude "do X"    # resume last claude session at 7:30 PM with prompt "do X"
+#   resume 730p claude "do X"    # resume this tab's claude session with prompt "do X"
 #   resume -n 730p claude "do X" # start new claude session at 7:30 PM with prompt "do X"
 
 resume() {
@@ -94,6 +95,11 @@ resume() {
   else
     _resume_help >&2
     return 1
+  fi
+
+  local selected_session="$session"
+  if (( ! new_session )) && [ -z "$selected_session" ]; then
+    selected_session=$(_resume_last_session "$tool" "$$") || return 1
   fi
 
   local delay
@@ -195,37 +201,16 @@ resume() {
       if (( new )); then
         cmd=(codex --dangerously-bypass-approvals-and-sandbox)
       else
-        local codex_session="$session"
-        if [ -z "$codex_session" ]; then
-          # `codex resume` takes [SESSION_ID] [PROMPT] positionals. With --last and a
-          # prompt, the prompt would land in the SESSION_ID slot. Extract the latest
-          # rollout's UUID and pass it explicitly so the prompt lands correctly.
-          local latest_rollout
-          latest_rollout=$(command ls ~/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | sort -r | head -1)
-          if [ -z "$latest_rollout" ]; then
-            echo "resume: no codex session rollouts in ~/.codex/sessions — cannot resume" >&2
-            return 1
-          fi
-          codex_session=$(basename "$latest_rollout" | sed -E 's/^rollout-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}-(.+)\.jsonl$/\1/')
-        fi
-        cmd=(codex resume --dangerously-bypass-approvals-and-sandbox "$codex_session")
+        cmd=(codex resume --dangerously-bypass-approvals-and-sandbox "$selected_session")
       fi ;;
     claude)
       cmd=(claude --dangerously-skip-permissions)
-      if [ -n "$session" ]; then
-        cmd+=(--resume "$session")
-      else
-        (( new )) || cmd+=(-c)
-      fi ;;
+      (( new )) || cmd+=(--resume "$selected_session") ;;
     grok)
       # Config may already set permission_mode=always-approve; pass it explicitly
       # so delayed launches stay yolo even if config differs on another machine.
       cmd=(grok --always-approve)
-      if [ -n "$session" ]; then
-        cmd+=(--resume "$session")
-      else
-        (( new )) || cmd+=(-c)
-      fi ;;
+      (( new )) || cmd+=(--resume "$selected_session") ;;
   esac
 
   local target_clock
@@ -233,7 +218,7 @@ resume() {
 
   local label="$action $tool"
   caffeinate -ims sh -c '
-    label=$1; clock=$2; delay=$3; shift 3
+    label=$1; clock=$2; delay=$3; shell_pid=$4; shift 4
     end=$(( $(date +%s) + delay ))
     (
       i=0
@@ -260,8 +245,9 @@ resume() {
     trap "kill $spin_pid 2>/dev/null" EXIT
     wait "$spin_pid" 2>/dev/null
     printf "\r\033[K\033]2;\007"
+    export SESSION_GUARD_SHELL_PID="$shell_pid"
     exec "$@"
-  ' _ "$label" "$target_clock" "$delay" "${cmd[@]}" "${prompt_args[@]}"
+  ' _ "$label" "$target_clock" "$delay" "$$" "${cmd[@]}" "${prompt_args[@]}"
 }
 
 _resume_help() {
@@ -271,9 +257,10 @@ Usage: resume <codex|claude|grok> [time|duration] [options] [prompt]
 Delay-launch a claude, codex, or grok session, keeping the machine awake.
 Tool, time/duration, and options may be passed in any order.
 
-No prompt arg resumes the selected/latest session with prompt "continue".
-Prompt arg resumes the selected/latest session with that prompt.
+No prompt arg resumes this terminal tab's last session with prompt "continue".
+Prompt arg resumes this terminal tab's last session with that prompt.
 Use -n/--new to start a fresh session instead of resuming.
+Use -s/--session to override tab-local selection.
 
 Time/duration:
   7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
@@ -296,6 +283,20 @@ Examples:
   resume 730p claude "do X"
   resume -n 730p claude "do X"
 EOF
+}
+
+_resume_last_session() {
+  local tool="$1" shell_pid="$2" session_id
+  if ! command -v session-guard >/dev/null 2>&1; then
+    echo "resume: session-guard is required for tab-local session selection" >&2
+    return 1
+  fi
+  session_id=$(session-guard last-session --tool "$tool" --shell-pid "$shell_pid" 2>/dev/null)
+  if [ -z "$session_id" ]; then
+    echo "resume: no $tool session recorded for this terminal tab; use --session ID to choose one" >&2
+    return 1
+  fi
+  printf '%s\n' "$session_id"
 }
 
 _resume_clock_delay() {

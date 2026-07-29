@@ -10,6 +10,9 @@ export HOME="$test_home"
 mkdir -p "$HOME/.codex/sessions/2026/05/30" "$HOME/.codex/sessions/2026/05/31"
 old_codex_session="11111111-1111-4111-8111-111111111111"
 latest_codex_session="22222222-2222-4222-8222-222222222222"
+tab_codex_session="33333333-3333-4333-8333-333333333333"
+tab_claude_session="44444444-4444-4444-8444-444444444444"
+tab_grok_session="55555555-5555-4555-8555-555555555555"
 : > "$HOME/.codex/sessions/2026/05/30/rollout-2026-05-30T10-00-00-$old_codex_session.jsonl"
 print -r -- '{"payload":{"rate_limits":{"secondary":{"used_percent":50,"resets_at":2000},"primary":{"resets_at":1500}}}}' \
   > "$HOME/.codex/sessions/2026/05/31/rollout-2026-05-31T10-00-00-$latest_codex_session.jsonl"
@@ -23,6 +26,7 @@ last_stdout=""
 last_stderr=""
 last_label=""
 last_delay=""
+last_shell_pid=""
 last_cmd=()
 
 date() {
@@ -36,7 +40,18 @@ date() {
 caffeinate() {
   last_label="$6"
   last_delay="$8"
-  last_cmd=("${@:9}")
+  last_shell_pid="$9"
+  last_cmd=("${@:10}")
+}
+
+session-guard() {
+  [[ "$1" == last-session && "$2" == --tool && "$4" == --shell-pid ]] || return 2
+  case "$3" in
+    codex) [[ -n "$tab_codex_session" ]] || return 1; print -r -- "$tab_codex_session" ;;
+    claude) [[ -n "$tab_claude_session" ]] || return 1; print -r -- "$tab_claude_session" ;;
+    grok) [[ -n "$tab_grok_session" ]] || return 1; print -r -- "$tab_grok_session" ;;
+    *) return 2 ;;
+  esac
 }
 
 run_resume() {
@@ -45,6 +60,7 @@ run_resume() {
   last_stderr=""
   last_label=""
   last_delay=""
+  last_shell_pid=""
   last_cmd=()
   : > "$stdout_file"
   : > "$stderr_file"
@@ -88,6 +104,10 @@ expect_delay() {
   [[ "$last_delay" == "$expected" ]] || fail "expected delay '$expected', got '$last_delay'"
 }
 
+expect_shell_pid() {
+  [[ "$last_shell_pid" == "$$" ]] || fail "expected shell pid $$, got '$last_shell_pid'"
+}
+
 expect_cmd() {
   local expected="$1"
   local actual
@@ -106,9 +126,10 @@ Usage: resume <codex|claude|grok> [time|duration] [options] [prompt]
 Delay-launch a claude, codex, or grok session, keeping the machine awake.
 Tool, time/duration, and options may be passed in any order.
 
-No prompt arg resumes the selected/latest session with prompt "continue".
-Prompt arg resumes the selected/latest session with that prompt.
+No prompt arg resumes this terminal tab's last session with prompt "continue".
+Prompt arg resumes this terminal tab's last session with that prompt.
 Use -n/--new to start a fresh session instead of resuming.
+Use -s/--session to override tab-local selection.
 
 Time/duration:
   7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
@@ -143,12 +164,13 @@ run_case() {
   fi
 }
 
-test_codex_latest_continue() {
+test_codex_tab_session_continue() {
   run_resume codex 0s
   expect_status 0
   expect_label "Resuming codex"
   expect_delay 0
-  expect_cmd $'codex\nresume\n--dangerously-bypass-approvals-and-sandbox\n22222222-2222-4222-8222-222222222222\ncontinue'
+  expect_shell_pid
+  expect_cmd $'codex\nresume\n--dangerously-bypass-approvals-and-sandbox\n33333333-3333-4333-8333-333333333333\ncontinue'
 }
 
 test_codex_latest_without_time_uses_rate_limit_reset() {
@@ -156,14 +178,14 @@ test_codex_latest_without_time_uses_rate_limit_reset() {
   expect_status 0
   expect_label "Resuming codex"
   expect_delay 500
-  expect_cmd $'codex\nresume\n--dangerously-bypass-approvals-and-sandbox\n22222222-2222-4222-8222-222222222222\ncontinue'
+  expect_cmd $'codex\nresume\n--dangerously-bypass-approvals-and-sandbox\n33333333-3333-4333-8333-333333333333\ncontinue'
 }
 
 test_codex_session_continue() {
-  run_resume codex -s 33333333-3333-4333-8333-333333333333 0s
+  run_resume codex -s 66666666-6666-4666-8666-666666666666 0s
   expect_status 0
   expect_label "Resuming codex"
-  expect_cmd $'codex\nresume\n--dangerously-bypass-approvals-and-sandbox\n33333333-3333-4333-8333-333333333333\ncontinue'
+  expect_cmd $'codex\nresume\n--dangerously-bypass-approvals-and-sandbox\n66666666-6666-4666-8666-666666666666\ncontinue'
 }
 
 test_codex_session_equals_form_with_prompt() {
@@ -173,11 +195,11 @@ test_codex_session_equals_form_with_prompt() {
   expect_cmd $'codex\nresume\n--dangerously-bypass-approvals-and-sandbox\nnamed-session\ncustom prompt'
 }
 
-test_codex_prompt_resumes_latest() {
+test_codex_prompt_resumes_tab_session() {
   run_resume codex 0s "custom prompt"
   expect_status 0
   expect_label "Resuming codex"
-  expect_cmd $'codex\nresume\n--dangerously-bypass-approvals-and-sandbox\n22222222-2222-4222-8222-222222222222\ncustom prompt'
+  expect_cmd $'codex\nresume\n--dangerously-bypass-approvals-and-sandbox\n33333333-3333-4333-8333-333333333333\ncustom prompt'
 }
 
 test_codex_new_with_prompt() {
@@ -198,14 +220,14 @@ test_claude_continue() {
   run_resume claude 0s
   expect_status 0
   expect_label "Resuming claude"
-  expect_cmd $'claude\n--dangerously-skip-permissions\n-c\ncontinue'
+  expect_cmd $'claude\n--dangerously-skip-permissions\n--resume\n44444444-4444-4444-8444-444444444444\ncontinue'
 }
 
 test_claude_prompt_resumes() {
   run_resume 0s claude "custom prompt"
   expect_status 0
   expect_label "Resuming claude"
-  expect_cmd $'claude\n--dangerously-skip-permissions\n-c\ncustom prompt'
+  expect_cmd $'claude\n--dangerously-skip-permissions\n--resume\n44444444-4444-4444-8444-444444444444\ncustom prompt'
 }
 
 test_claude_session_with_prompt() {
@@ -226,14 +248,14 @@ test_grok_continue() {
   run_resume grok 0s
   expect_status 0
   expect_label "Resuming grok"
-  expect_cmd $'grok\n--always-approve\n-c\ncontinue'
+  expect_cmd $'grok\n--always-approve\n--resume\n55555555-5555-4555-8555-555555555555\ncontinue'
 }
 
 test_grok_prompt_resumes() {
   run_resume 0s grok "custom prompt"
   expect_status 0
   expect_label "Resuming grok"
-  expect_cmd $'grok\n--always-approve\n-c\ncustom prompt'
+  expect_cmd $'grok\n--always-approve\n--resume\n55555555-5555-4555-8555-555555555555\ncustom prompt'
 }
 
 test_grok_session_with_prompt() {
@@ -271,7 +293,7 @@ test_grok_under_limit_starts_now() {
   expect_status 0
   expect_label "Resuming grok"
   expect_delay 0
-  expect_cmd $'grok\n--always-approve\n-c\ncontinue'
+  expect_cmd $'grok\n--always-approve\n--resume\n55555555-5555-4555-8555-555555555555\ncontinue'
 }
 
 test_grok_at_limit_waits_for_period_end() {
@@ -281,7 +303,7 @@ test_grok_at_limit_waits_for_period_end() {
   expect_status 0
   expect_label "Resuming grok"
   expect_delay 500
-  expect_cmd $'grok\n--always-approve\n-c\ncontinue'
+  expect_cmd $'grok\n--always-approve\n--resume\n55555555-5555-4555-8555-555555555555\ncontinue'
 }
 
 test_grok_at_limit_stale_period_errors() {
@@ -297,6 +319,16 @@ test_grok_missing_billing_log_errors() {
   run_resume grok
   expect_status 1
   expect_stderr "resume: no grok log at $HOME/.grok/logs/unified.jsonl — run grok at least once first"
+  expect_no_cmd
+}
+
+test_missing_tab_session_errors() {
+  local saved="$tab_codex_session"
+  tab_codex_session=""
+  run_resume codex 0s
+  tab_codex_session="$saved"
+  expect_status 1
+  expect_stderr "resume: no codex session recorded for this terminal tab; use --session ID to choose one"
   expect_no_cmd
 }
 
@@ -378,11 +410,11 @@ test_missing_tool_shows_help_on_stderr() {
   expect_no_cmd
 }
 
-run_case "codex latest session resumes with continue" test_codex_latest_continue
+run_case "codex resumes this tab's session with continue" test_codex_tab_session_continue
 run_case "codex no-time path uses latest rate-limit reset" test_codex_latest_without_time_uses_rate_limit_reset
 run_case "codex explicit session resumes with continue" test_codex_session_continue
 run_case "codex explicit session accepts prompt" test_codex_session_equals_form_with_prompt
-run_case "codex prompt resumes latest instead of starting new" test_codex_prompt_resumes_latest
+run_case "codex prompt resumes this tab's session" test_codex_prompt_resumes_tab_session
 run_case "codex --new starts fresh with prompt" test_codex_new_with_prompt
 run_case "codex --new starts fresh without prompt" test_codex_new_without_prompt
 run_case "claude default resumes with continue" test_claude_continue
@@ -398,6 +430,7 @@ run_case "grok under credit limit starts immediately" test_grok_under_limit_star
 run_case "grok at credit limit waits for period end" test_grok_at_limit_waits_for_period_end
 run_case "grok at credit limit with stale period errors" test_grok_at_limit_stale_period_errors
 run_case "grok missing billing log errors" test_grok_missing_billing_log_errors
+run_case "missing tab-local session fails closed" test_missing_tab_session_errors
 run_case "duration seconds are parsed" test_duration_seconds
 run_case "duration minutes are parsed" test_duration_minutes
 run_case "duration hours are parsed" test_duration_hours
