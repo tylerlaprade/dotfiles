@@ -2,10 +2,28 @@
 input=$(cat)
 cd "$(echo "$input" | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 
-# .used_percentage is clamped to 0-100 by CC, so it can't show overflow.
-# Compute % from raw tokens in .current_usage divided by a fixed 200k
-# (so 100% = 200k always, and 1M mode overflows past 100%).
-pct=$(echo "$input" | jq -r '.context_window | ((.current_usage // {}) as $u | (($u.input_tokens // 0) + ($u.cache_creation_input_tokens // 0) + ($u.cache_read_input_tokens // 0)) * 100 / 200000) | round')
+# Use the provider window and raw input count so a routing mismatch can exceed 100%.
+read -r used_tokens window_tokens < <(
+  echo "$input" | jq -r '[.context_window.total_input_tokens, .context_window.context_window_size] | @tsv'
+)
+pct=$(( (used_tokens * 100 + window_tokens / 2) / window_tokens ))
+
+format_tokens() {
+  local tokens=$1
+  if [ "$tokens" -ge 1000000 ]; then
+    local tenths=$(( (tokens + 50000) / 100000 ))
+    if [ $((tenths % 10)) -eq 0 ]; then
+      printf '%dm' $((tenths / 10))
+    else
+      printf '%d.%dm' $((tenths / 10)) $((tenths % 10))
+    fi
+  else
+    printf '%dk' $(( (tokens + 500) / 1000 ))
+  fi
+}
+
+used_display=$(format_tokens "$used_tokens")
+window_display=$(format_tokens "$window_tokens")
 
 RESET='\033[0m'
 WHITE='\033[97m'
@@ -130,29 +148,10 @@ format_time_color() {
   printf '%b\033[38;2;%d;%d;%dm%b%s\033[0m' "$bold" "$r" "$g" "$b" "$reverse" "$t_str"
 }
 
-# Smooth color gradient based on context degradation research:
-#   0-25%: flat green (minimal degradation)
-#  25-60%: green → yellow (gradual degradation)
-#  60-85%: yellow → red (significant quality loss)
-#    85%+: asymptotic intense red
-if [ "$pct" -le 25 ]; then
-  r=0 g=200 b=0
-elif [ "$pct" -le 60 ]; then
-  t=$(( (pct - 25) * 100 / 35 ))
-  r=$(( 255 * t / 100 ))
-  g=200
-  b=0
-elif [ "$pct" -le 85 ]; then
-  t=$(( (pct - 60) * 100 / 25 ))
-  r=255
-  g=$(( 200 - 200 * t / 100 ))
-  b=0
-else
-  t=$(( (pct - 85) * 100 / (pct - 85 + 30) ))
-  r=$(( 255 - (255 - 160) * t / 100 ))
-  g=0
-  b=0
-fi
+# Color tracks pressure against the model's actual context capacity.
+# 0-55% stays green, 55-75% blends to yellow, 75-95% blends to red,
+# and anything above 95% stays bright red.
+rate_usage_gradient "$pct"
 bar_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
 
 # Build 10-char progress bar with smooth transition square
@@ -173,7 +172,7 @@ if [ "$filled" -lt 10 ]; then
   empty=$((9 - filled))
   [ "$empty" -gt 0 ] && printf -v pad "%${empty}s" && bar="${bar}${pad// /░}"
 fi
-ctx_info="${bar}${bar_color} ${pct}%${RESET}"
+ctx_info="${bar}${bar_color} ${pct}% · ${used_display}/${window_display}${RESET}"
 
 # Rate limit info
 rate_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty | round')
