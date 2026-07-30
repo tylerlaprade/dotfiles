@@ -48,6 +48,15 @@
             "command": "screenbuddy agent busy --tool claude --pid \"$PPID\""
           }
         ]
+      },
+      {
+        "matcher": "AskUserQuestion|EnterPlanMode|ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-title hook"
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -56,6 +65,14 @@
           {
             "type": "command",
             "command": "screenbuddy agent busy --tool claude --pid \"$PPID\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-title hook"
           }
         ]
       }
@@ -76,6 +93,14 @@
             "command": "session-guard deregister"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-title hook"
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -85,6 +110,15 @@
           {
             "type": "command",
             "command": "[ \"$CLAUDE_CODE_ENTRYPOINT\" = cli ] || exit 0; tool_pid=\"$PPID\"; shell_pid=\"${SESSION_GUARD_SHELL_PID:-}\"; [ -n \"$shell_pid\" ] || shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else session-guard register --tool claude --pid \"$tool_pid\"; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-title hook"
           }
         ]
       }
@@ -105,6 +139,14 @@
             "command": "[ \"$CLAUDE_CODE_ENTRYPOINT\" = cli ] || exit 0; tool_pid=\"$PPID\"; shell_pid=\"${SESSION_GUARD_SHELL_PID:-}\"; [ -n \"$shell_pid\" ] || shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else session-guard register --tool claude --pid \"$tool_pid\"; fi"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-title hook"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -113,6 +155,46 @@
           {
             "type": "command",
             "command": "screenbuddy agent busy --tool claude --pid \"$PPID\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-title hook"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "AskUserQuestion|EnterPlanMode|ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-title hook"
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-title hook"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-title hook"
           }
         ]
       }
