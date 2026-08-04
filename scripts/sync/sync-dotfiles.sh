@@ -167,6 +167,11 @@ done
 # This script itself -> ~/.local/bin
 link "$DOTFILES/scripts/sync/sync-dotfiles.sh" "$HOME/.local/bin/sync-dotfiles"
 
+# Make the personal lint policy transparent to cargo, editors, hooks, and agents.
+# The wrapper resolves the real toolchain binary through rustup, so this link
+# replaces only rustup's cargo-clippy proxy, not Clippy itself.
+link "$DOTFILES/scripts/cargo-clippy.py" "$HOME/.cargo/bin/cargo-clippy"
+
 # VS Code — bidirectional sync with secrets splitting
 # The live settings file is NOT symlinked (secrets would leak to repo).
 # Instead, on each sync:
