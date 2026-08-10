@@ -15,6 +15,15 @@ export GPG_TTY=$(tty)
 alias dot='cd "$HOME/Code/dotfiles"'
 [[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
 
+# Completions: case-insensitive, list when ambiguous, Tab cycles (not arrow menu).
+# Source - https://superuser.com/a/1092328
+# Posted by mpy, modified by community. See post 'Timeline' for change history
+# Retrieved 2026-08-10, License - CC BY-SA 4.0
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+zstyle ':completion:*' menu yes
+zstyle ':completion:*' insert-unambiguous true
+bindkey '^[[Z' reverse-menu-complete # Shift-Tab
+
 # Mac sends Ctrl+U when Cmd+Backspace is pressed
 bindkey '^U' backward-kill-line
 

@@ -14,6 +14,13 @@ fi
 export EDITOR="hx"
 export GPG_TTY=$(tty)
 
+# Completions: case-insensitive, list when ambiguous, Tab cycles matches
+bind "set completion-ignore-case on"
+bind "set show-all-if-ambiguous on"
+bind "set menu-complete-display-prefix on"
+bind "TAB:menu-complete"
+bind '"\e[Z": menu-complete-backward' # Shift-Tab
+
 alias brew="wax"
 alias dot='cd "$HOME/Code/dotfiles"'
 
