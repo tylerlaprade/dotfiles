@@ -2,23 +2,41 @@
 ;;
 ;; KEEP
 ;;   Caps: tap Esc / hold Ctrl
-;;   F1–F12 → media
-;;   Hold fn → delete family (native fn is not reliable through VirtualHID)
+;;   F1–F12 → media; hold fn + F1–F12 → real F1–F12
+;;   Hold fn → F-keys + delete family (native fn is not reliable through VirtualHID)
 ;;   Tap fn  → send fn (input-source / Globe if macOS accepts it)
 ;;   Space hold → extend (nav: hjkl arrows + jump keys)
-;;   Kid lock: both shifts held, then K on / B off
+;;   Kid lock: both shifts held, then K toggles on/off
+;;
+;; Shift intensity ladder (left and right share one ladder; hold = normal Shift):
+;;   tap 1 → next key only is shifted          (one-shot Shift)
+;;   tap 2 → Caps Word until a word boundary   (kanata caps-word)
+;;   tap 3 → Caps Lock until Shift tapped again (OS Caps Lock)
+;;   Only Shift climbs or cancels. No Escape cancel.
+;;
+;; Idle timeout (letter + word share one value; lock has none):
+;;   Same walk-away reset for both armed intensities — one ladder, one timer.
+;;   Letter also ends on the next key; word also ends on a word-boundary key
+;;   (and refreshes the timer on each letter). Lock stays until Shift.
+;;   Only lock uses OS Caps Lock (menu-bar / keyboard indicator). Letter and
+;;   word are silent. Confused? Tap Shift until normal (at most 3 taps).
+;;
+;; State layers are thin: they only special-case Shift (and word-boundary
+;; exits on c-word). All real key bindings live on `base` once.
 ;;
 ;; Space timing: require-prior-idle so mid-sentence spaces fire on press.
 ;;
-;; Kid lock uses switch on K / B — NOT defchordsv2. Chords buffer every
-;; participating key after idle. Here K and B type normally unless both
+;; Kid lock uses switch on K — NOT defchordsv2. Chords buffer every
+;; participating key after idle. Here K types normally unless both
 ;; shifts are already held as real inputs.
 
 (defcfg
   process-unmapped-keys yes
-  ;; Temporary: log layer changes so kid lock ON/OFF is visible in kanata.out.log
+  ;; Temporary: log layer changes so kid lock / shift ladder is visible in kanata.out.log
   log-layer-changes yes
   concurrent-tap-hold yes
+  ;; Transparent keys on ladder layers fall through to `base`.
+  delegate-to-first-layer yes
   macos-dev-names-include (
     "Apple Internal Keyboard / Trackpad"
   )
@@ -28,6 +46,8 @@
   tap-time 180
   hold-time 200
   prior-idle-spc 400
+  ;; Shared idle reset for letter + word (Kanata max 65535). Lock: no idle timeout.
+  shift-arm-ms 3000
 )
 
 (defsrc
@@ -58,15 +78,90 @@
 )
 
 ;; ---------------------------------------------------------------------------
-;; Base
+;; Base — sole home for real key bindings
 ;; ---------------------------------------------------------------------------
 (deflayer base
   _    brdn brup mctl lpad bldn blup prev pp   next mute vold volu
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
   @cap _    _    _    _    _    _    _    @kk  _    _    _    _
-  _    _    _    _    _    @kb  _    _    _    _    _    _
+  @ls  _    _    _    _    _    _    _    _    _    _    @rs
   @fnh _    _    _              @spc          _    _
+)
+
+;; ---------------------------------------------------------------------------
+;; Letter intensity: one-shot Shift + this base layer as the state flag.
+;; Non-Shift keys return to base (and consume the one-shot). Shift escalates.
+;; ---------------------------------------------------------------------------
+(deflayermap (c-letter)
+  lsft @ls
+  rsft @rs
+  _ (multi (layer-switch base) _)
+)
+
+;; ---------------------------------------------------------------------------
+;; Word intensity: caps-word shifts; this layer is state + boundary exits.
+;; Non-terminals stay transparent → base (future base key edits apply here).
+;; ---------------------------------------------------------------------------
+(deflayermap (c-word)
+  lsft @ls
+  rsft @rs
+
+  ;; caps-word non-terminals: keep base bindings (transparent)
+  a _
+  b _
+  c _
+  d _
+  e _
+  f _
+  g _
+  h _
+  i _
+  j _
+  k _
+  l _
+  m _
+  n _
+  o _
+  p _
+  q _
+  r _
+  s _
+  t _
+  u _
+  v _
+  w _
+  x _
+  y _
+  z _
+  - _
+  0 _
+  1 _
+  2 _
+  3 _
+  4 _
+  5 _
+  6 _
+  7 _
+  8 _
+  9 _
+  bspc _
+  del  _
+  left _
+  rght _
+  up   _
+  down _
+
+  ;; Word boundary: leave word intensity, then run the base action.
+  _ (multi (layer-switch base) _)
+)
+
+;; ---------------------------------------------------------------------------
+;; Lock intensity: OS Caps Lock on. Shift tap clears.
+;; ---------------------------------------------------------------------------
+(deflayermap (c-lock)
+  lsft @ls
+  rsft @rs
 )
 
 ;; ---------------------------------------------------------------------------
@@ -81,15 +176,16 @@
   _    f1   f2   f3   f4   f5   f6   f7   f8   f9   f10  f11  f12  _
   _    _    _    _    _    _    home pgup pgdn end  _    _    _    _
   _    _    _    _    _    _    left down up   rght _    _    _
-  lsft _    _    _    _    _    _    _    _    _    _    rsft
+  @ls  _    _    _    _    _    _    _    _    _    _    @rs
   @fnh lctl lalt lmet           _              rmet ralt
 )
 
-;; Hold fn — delete family
+;; Hold fn — media duals + delete family
+;;   fn+F1–F12  → real F1–F12 (base alone is media)
 ;;   fn+⌫       → forward delete
 ;;   fn+⌘/⌥+⌫   → delete word forward
 (deflayer fnkeys
-  _    _    _    _    _    _    _    _    _    _    _    _    _
+  _    f1   f2   f3   f4   f5   f6   f7   f8   f9   f10  f11  f12
   _    _    _    _    _    _    _    _    _    _    _    _    _    @fdel
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _
@@ -99,15 +195,15 @@
 
 ;; ---------------------------------------------------------------------------
 ;; Kid lock — letters/numbers OK, modifiers dead, full media row OK
-;; Unlock still works: @kb sees real physical shifts via (input real …)
-;; even though layer maps lsft/rsft to XX.
+;; Unlock: same both-shifts+K toggle. @kk uses (input real …) so physical
+;; shifts still count even though this layer maps lsft/rsft to XX.
 ;; ---------------------------------------------------------------------------
 (deflayer kid
   _    brdn brup mctl lpad bldn blup prev pp   next mute vold volu
   _    1    2    3    4    5    6    7    8    9    0    -    =    bspc
   tab  q    w    e    r    t    y    u    i    o    p    [    ]    \
   XX   a    s    d    f    g    h    j    @kk  l    ;    '    ret
-  XX   z    x    c    v    @kb  n    m    ,    .    /    XX
+  XX   z    x    c    v    b    n    m    ,    .    /    XX
   XX   XX   XX   XX              spc          XX   XX
 )
 
@@ -115,20 +211,50 @@
   cap (tap-hold-press $tap-time $hold-time esc lctl)
   spc (tap-hold $tap-time $hold-time spc (layer-while-held extend)
       (require-prior-idle $prior-idle-spc))
-  ;; Tap: pass fn through. Hold: delete layer (the path that works).
+  ;; Tap: pass fn through. Hold: F-keys + delete (the path that works).
   fnh (tap-hold $tap-time $hold-time fn (layer-while-held fnkeys))
   fdel (switch
     ((or lmet rmet lalt ralt)) A-del break
     () del break
   )
-  ;; Both shifts already held → kid on/off. Otherwise type k / b as normal.
+
+  ;; Shared Shift ladder. Hold is still real Shift (kid lock, chords, selection).
+  ;; Alias order matters: helpers before @ls/@rs.
+  sft-letter (multi
+    (layer-switch c-letter)
+    (one-shot-press-pcancel $shift-arm-ms lsft)
+  )
+  sft-word (multi
+    (release-key lsft)
+    (layer-switch c-word)
+    (caps-word $shift-arm-ms)
+  )
+  sft-lock (multi
+    (release-key lsft)
+    ;; End caps-word if still active (toggle ends when on; avoid re-starting).
+    (caps-word-toggle $shift-arm-ms)
+    caps
+    (layer-switch c-lock)
+  )
+  sft-clear-lock (multi
+    caps
+    (layer-switch base)
+  )
+  sftt (switch
+    ((base-layer c-lock)) @sft-clear-lock break
+    ((base-layer c-word)) @sft-lock break
+    ((base-layer c-letter)) @sft-word break
+    () @sft-letter break
+  )
+  ls (tap-hold $tap-time $hold-time @sftt lsft)
+  rs (tap-hold $tap-time $hold-time @sftt rsft)
+
+  ;; Both shifts already held → toggle kid. Otherwise type k as normal.
   ;; (input real …) = physical keys, so this works on the kid layer too.
+  ;; Leaving kid always returns to base (clears any shift-ladder state).
   kk (switch
+    ((and (input real lsft) (input real rsft) (layer kid))) (on-press tap-vkey vk-base) break
     ((and (input real lsft) (input real rsft))) (on-press tap-vkey vk-kid) break
     () k break
-  )
-  kb (switch
-    ((and (input real lsft) (input real rsft))) (on-press tap-vkey vk-base) break
-    () b break
   )
 )

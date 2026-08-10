@@ -424,7 +424,7 @@ if applied_domains:
 # Apps that register their own login item (via SMAppService) — tracking them
 # here creates a parallel legacy SharedFileList entry that races the app's
 # own launcher.
-LOGIN_ITEMS_SKIP = {"Hyperkey"}
+LOGIN_ITEMS_SKIP = set()
 
 # One name/path per line: immune to ", " inside names or paths, and items with
 # no path (SMAppService registrations report AppleScript's `missing value`)

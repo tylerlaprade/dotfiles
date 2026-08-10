@@ -150,7 +150,7 @@ echo "  4. Grant Input Monitoring + Accessibility for /Users/\$USER/.local/bin/k
 echo "  5. Add custom /etc/hosts entries:"
 echo "     sudo sh -c 'echo \"127.0.0.1       local.paqarina.dev\" >> /etc/hosts'"
 echo "  6. Re-add login items if needed: Discord, Granola, Graphite, Google Calendar, Slack"
-echo "     (Do NOT re-enable Hyperkey or full Karabiner-Elements — Kanata owns Caps;"
+echo "     (Do NOT re-enable full Karabiner-Elements — Kanata owns Caps;"
 echo "      only Karabiner VirtualHID daemon is needed for Kanata on macOS)"
 echo "  7. Reinstall Google Calendar PWA in Brave (three dots > Install page as app):"
 echo "     https://calendar.google.com/calendar/r"
