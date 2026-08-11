@@ -8,23 +8,6 @@ read -r used_tokens window_tokens < <(
 )
 pct=$(( (used_tokens * 100 + window_tokens / 2) / window_tokens ))
 
-format_tokens() {
-  local tokens=$1
-  if [ "$tokens" -ge 1000000 ]; then
-    local tenths=$(( (tokens + 50000) / 100000 ))
-    if [ $((tenths % 10)) -eq 0 ]; then
-      printf '%dm' $((tenths / 10))
-    else
-      printf '%d.%dm' $((tenths / 10)) $((tenths % 10))
-    fi
-  else
-    printf '%dk' $(( (tokens + 500) / 1000 ))
-  fi
-}
-
-used_display=$(format_tokens "$used_tokens")
-window_display=$(format_tokens "$window_tokens")
-
 RESET='\033[0m'
 WHITE='\033[97m'
 DIM='\033[90m'
@@ -172,7 +155,7 @@ if [ "$filled" -lt 10 ]; then
   empty=$((9 - filled))
   [ "$empty" -gt 0 ] && printf -v pad "%${empty}s" && bar="${bar}${pad// /░}"
 fi
-ctx_info="${bar}${bar_color} ${pct}% · ${used_display}/${window_display}${RESET}"
+ctx_info="${bar}${bar_color} ${pct}%${RESET}"
 
 # Rate limit info
 rate_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty | round')
@@ -284,7 +267,11 @@ format_rate() {
     else
       remaining="${mins}m"
     fi
-    [ -n "$reset_str" ] && info="${info} (resets in ${time_color}${remaining}${RESET} at ${reset_str})"
+    # Reset-time proximity: blue just after reset → green → yellow → red as it nears.
+    # Uses the raw window share, not the work-trimmed one — proximity is literal.
+    tn_gradient $(( time_elapsed * 100 / window_secs )) 55 80 95 80 20
+    local reset_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
+    [ -n "$reset_str" ] && info="${info} (${time_color}${remaining}${RESET} → ${reset_color}${reset_str}${RESET})"
   fi
 
   echo "$info"
