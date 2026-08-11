@@ -93,9 +93,13 @@ done
 # TUI setting toggles don't create formatting-only diffs.
 "$DOTFILES/scripts/sync/format-claude-settings.py" "$DOTFILES/.claude/settings.json"
 
-# Codex global instructions use the same plain Markdown prefs as Claude.
+# Shared global agent prefs (all hosts). Claude-only extras live in .claude/CLAUDE.md.
+mkdir -p "$HOME/.agents"
+link "$DOTFILES/.agents/AGENTS.md" "$HOME/.agents/AGENTS.md"
+
+# Codex global instructions: shared prefs only (no Claude-only STE layer).
 mkdir -p "$HOME/.codex"
-link "$DOTFILES/.claude/CLAUDE.md" "$HOME/.codex/AGENTS.md"
+link "$DOTFILES/.agents/AGENTS.md" "$HOME/.codex/AGENTS.md"
 
 # Codex skills — symlink each from .codex/skills/ (skip .system, owned by Codex).
 mkdir -p "$HOME/.codex/skills"
@@ -104,9 +108,15 @@ for item in "$DOTFILES"/.codex/skills/*; do
   link "$item" "$HOME/.codex/skills/$(basename "$item")"
 done
 
-# Gemini CLI global context uses the same plain Markdown prefs as Claude.
+# Gemini CLI global context: shared prefs only.
 mkdir -p "$HOME/.gemini"
-link "$DOTFILES/.claude/CLAUDE.md" "$HOME/.gemini/GEMINI.md"
+link "$DOTFILES/.agents/AGENTS.md" "$HOME/.gemini/GEMINI.md"
+
+# Grok global rules: shared prefs only. Pair with [compat.claude] agents = false
+# in ~/.grok/config.toml so Grok does not also load Claude's STE layer from
+# ~/.claude/CLAUDE.md / project .claude/CLAUDE.md.
+mkdir -p "$HOME/.grok/rules"
+link "$DOTFILES/.agents/AGENTS.md" "$HOME/.grok/rules/agents.md"
 
 # Agent Skills (agentskills.io standard) — symlink each skill folder as a whole
 # so the dir stays a single link instead of a per-file mirror.
