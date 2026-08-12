@@ -25,6 +25,8 @@
 ;; exits on c-word). All real key bindings live on `base` once.
 ;;
 ;; Space timing: require-prior-idle so mid-sentence spaces fire on press.
+;; Tap is (macro spc), not a held spc: idle-triggered tap would otherwise
+;; stay down until release, and macOS key-repeat (~225ms) types a second space.
 ;;
 ;; Kid lock uses switch on K — NOT defchordsv2. Chords buffer every
 ;; participating key after idle. Here K types normally unless both
@@ -98,7 +100,7 @@
 (deflayermap (c-letter)
   lsft @ls
   rsft @rs
-  spc (multi (layer-switch base) spc)
+  spc (multi (layer-switch base) (macro spc))
   ret (multi (layer-switch base) ret)
   _ (multi (layer-switch base) _)
 )
@@ -157,7 +159,7 @@
   down _
 
   ;; Word boundary: leave word intensity, then emit a plain key (not @spc).
-  spc (multi (layer-switch base) spc)
+  spc (multi (layer-switch base) (macro spc))
   ret (multi (layer-switch base) ret)
   _ (multi (layer-switch base) _)
 )
@@ -215,7 +217,7 @@
 
 (defalias
   cap (tap-hold-press $tap-time $hold-time esc lctl)
-  spc (tap-hold $tap-time $hold-time spc (layer-while-held extend)
+  spc (tap-hold $tap-time $hold-time (macro spc) (layer-while-held extend)
       (require-prior-idle $prior-idle-spc))
   ;; Tap: pass fn through. Hold: F-keys + delete (the path that works).
   fnh (tap-hold $tap-time $hold-time fn (layer-while-held fnkeys))
