@@ -92,10 +92,14 @@
 ;; ---------------------------------------------------------------------------
 ;; Letter intensity: one-shot Shift + this base layer as the state flag.
 ;; Non-Shift keys return to base (and consume the one-shot). Shift escalates.
+;; Space/Enter use raw keys — base @spc is tap-hold and can double-emit when
+;; fired via (multi … _) on the way out of a ladder layer.
 ;; ---------------------------------------------------------------------------
 (deflayermap (c-letter)
   lsft @ls
   rsft @rs
+  spc (multi (layer-switch base) spc)
+  ret (multi (layer-switch base) ret)
   _ (multi (layer-switch base) _)
 )
 
@@ -152,7 +156,9 @@
   up   _
   down _
 
-  ;; Word boundary: leave word intensity, then run the base action.
+  ;; Word boundary: leave word intensity, then emit a plain key (not @spc).
+  spc (multi (layer-switch base) spc)
+  ret (multi (layer-switch base) ret)
   _ (multi (layer-switch base) _)
 )
 
