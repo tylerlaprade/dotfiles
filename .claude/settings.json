@@ -56,6 +56,15 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "Read|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/read-guard.sh"
+          }
+        ]
+      },
+      {
         "hooks": [
           {
             "type": "command",
