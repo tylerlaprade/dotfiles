@@ -12,7 +12,8 @@
 ;;   tap 1 → next key only is shifted          (one-shot Shift)
 ;;   tap 2 → Caps Word until a word boundary   (kanata caps-word)
 ;;   tap 3 → Caps Lock until Shift tapped again (OS Caps Lock)
-;;   Only Shift climbs or cancels. No Escape cancel.
+;;   Only a standalone Shift tap climbs or cancels. No Escape cancel.
+;;   Any other physical key already down → real Shift.
 ;;
 ;; Idle timeout (letter + word share one value; lock has none):
 ;;   Same walk-away reset for both armed intensities — one ladder, one timer.
@@ -50,6 +51,28 @@
   prior-idle-spc 400
   ;; Shared idle reset for letter + word (Kanata max 65535). Lock: no idle timeout.
   shift-arm-ms 3000
+  ;; Kanata has no "any other key is down" test — only named keys.
+  ;; This is defsrc minus both Shifts. Each Shift also checks the other Shift.
+  else-held (or
+    (input real esc) (input real f1)  (input real f2)  (input real f3)
+    (input real f4)  (input real f5)  (input real f6)  (input real f7)
+    (input real f8)  (input real f9)  (input real f10) (input real f11)
+    (input real f12) (input real grv) (input real 1)   (input real 2)
+    (input real 3)   (input real 4)   (input real 5)   (input real 6)
+    (input real 7)   (input real 8)   (input real 9)   (input real 0)
+    (input real -)   (input real =)   (input real bspc) (input real tab)
+    (input real q)   (input real w)   (input real e)   (input real r)
+    (input real t)   (input real y)   (input real u)   (input real i)
+    (input real o)   (input real p)   (input real [)   (input real ])
+    (input real \)   (input real caps) (input real a)  (input real s)
+    (input real d)   (input real f)   (input real g)   (input real h)
+    (input real j)   (input real k)   (input real l)   (input real ;)
+    (input real ')   (input real ret) (input real z)   (input real x)
+    (input real c)   (input real v)   (input real b)   (input real n)
+    (input real m)   (input real ,)   (input real .)   (input real /)
+    (input real fn)  (input real lctl) (input real lalt) (input real lmet)
+    (input real spc) (input real rmet) (input real ralt)
+  )
 )
 
 (defsrc
@@ -254,8 +277,16 @@
     ((base-layer c-letter)) @sft-word break
     () @sft-letter break
   )
-  ls (tap-hold $tap-time $hold-time @sftt lsft)
-  rs (tap-hold $tap-time $hold-time @sftt rsft)
+  ls (switch
+    ($else-held) lsft break
+    ((input real rsft)) lsft break
+    () (tap-hold $tap-time $hold-time @sftt lsft) break
+  )
+  rs (switch
+    ($else-held) rsft break
+    ((input real lsft)) rsft break
+    () (tap-hold $tap-time $hold-time @sftt rsft) break
+  )
 
   ;; Both shifts already held → toggle kid. Otherwise type k as normal.
   ;; (input real …) = physical keys, so this works on the kid layer too.
