@@ -46,8 +46,6 @@ zj() {
 
 # Claude
 claude() {
-  local CLAUDE_CODE_SUBAGENT_MODEL="${CLAUDE_CODE_SUBAGENT_MODEL:-opus}"
-  export CLAUDE_CODE_SUBAGENT_MODEL
   command claude --allow-dangerously-skip-permissions --settings '{"ultracode": true}' "$@"
 }
 
