@@ -28,6 +28,8 @@ last_label=""
 last_delay=""
 last_shell_pid=""
 last_cmd=()
+last_wake_end=""
+caffeinate_called=0
 
 date() {
   case "$1" in
@@ -38,10 +40,19 @@ date() {
 }
 
 caffeinate() {
-  last_label="$6"
-  last_delay="$8"
-  last_shell_pid="$9"
-  last_cmd=("${@:10}")
+  caffeinate_called=1
+}
+
+_resume_sleep_until() {
+  last_label="$1"
+  last_delay="$3"
+  last_shell_pid="$4"
+  last_cmd=("${@:6}")
+}
+
+_resume_schedule_wake() {
+  last_wake_end="$1"
+  print -r -- "01/01/70 00:00:00"
 }
 
 session-guard() {
@@ -62,6 +73,8 @@ run_resume() {
   last_delay=""
   last_shell_pid=""
   last_cmd=()
+  last_wake_end=""
+  caffeinate_called=0
   : > "$stdout_file"
   : > "$stderr_file"
   resume "$@" > "$stdout_file" 2> "$stderr_file"
@@ -123,27 +136,31 @@ expected_help() {
   cat <<'EOF'
 Usage: resume <codex|claude|grok> [time|duration] [options] [prompt]
 
-Delay-launch a claude, codex, or grok session, keeping the machine awake.
+Delay-launch a claude, codex, or grok session.
 Tool, time/duration, and options may be passed in any order.
 
 No prompt arg resumes this terminal tab's last session with prompt "continue".
 Prompt arg resumes this terminal tab's last session with that prompt.
 Use -n/--new to start a fresh session instead of resuming.
 Use -s/--session to override tab-local selection.
+Use -w/--wake to schedule a Mac wake at the target time (needs admin).
 
 Time/duration:
   7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
-  3000s, 45m, 2h                duration in seconds/minutes/hours
+  3000s, 45m, 2h, 3d            duration in seconds/minutes/hours/days
   omitted                       next rate-limit reset
 
 Options:
   -s, --session ID_OR_NAME       resume a specific claude/codex/grok session
   -n, --new                      start a new session
+  -w, --wake                     schedule a Mac wake at the target time
   -h, --help                     show this help
 
 Examples:
   resume claude
   resume grok
+  resume claude 3d
+  resume --wake claude 3d
   resume codex 7p
   resume grok 7p
   resume 1220a claude
@@ -171,6 +188,7 @@ test_codex_tab_session_continue() {
   expect_delay 0
   expect_shell_pid
   expect_cmd $'codex\nresume\n--dangerously-bypass-approvals-and-sandbox\n33333333-3333-4333-8333-333333333333\ncontinue'
+  [[ "$caffeinate_called" == 0 ]] || fail "caffeinate should not run"
 }
 
 test_codex_latest_without_time_uses_rate_limit_reset() {
@@ -242,6 +260,28 @@ test_claude_new_with_prompt() {
   expect_status 0
   expect_label "Starting new claude"
   expect_cmd $'claude\n--dangerously-skip-permissions\nnew prompt'
+}
+
+test_claude_fable_exhausted_waits_for_fable_reset() {
+  _resume_claude_usage() { print -r -- $'88\t1500\t2000\t100\t2500'; }
+  run_resume claude
+  expect_status 0
+  expect_label "Resuming claude"
+  expect_delay 1500
+}
+
+test_claude_fable_under_waits_for_5h() {
+  _resume_claude_usage() { print -r -- $'88\t1500\t2000\t50\t2500'; }
+  run_resume claude
+  expect_status 0
+  expect_delay 500
+}
+
+test_claude_seven_day_exhausted_waits_for_7d() {
+  _resume_claude_usage() { print -r -- $'100\t1500\t2000\t50\t1800'; }
+  run_resume claude
+  expect_status 0
+  expect_delay 1000
 }
 
 test_grok_continue() {
@@ -350,10 +390,31 @@ test_duration_hours() {
   expect_delay 7200
 }
 
+test_duration_days() {
+  run_resume codex 3d --session duration-session
+  expect_status 0
+  expect_delay 259200
+}
+
+test_wake_schedules_for_nonzero_delay() {
+  run_resume --wake codex 3000s --session duration-session
+  expect_status 0
+  expect_delay 3000
+  [[ "$last_wake_end" == 4000 ]] || fail "expected wake end 4000, got '$last_wake_end'"
+  [[ "$caffeinate_called" == 0 ]] || fail "caffeinate should not run"
+}
+
+test_wake_skipped_for_zero_delay() {
+  run_resume --wake codex 0s --session duration-session
+  expect_status 0
+  expect_delay 0
+  [[ -z "$last_wake_end" ]] || fail "expected no wake for delay 0, got '$last_wake_end'"
+}
+
 test_bare_number_rejected() {
   run_resume codex 3000
   expect_status 1
-  expect_stderr "resume: bare number '3000' is ambiguous — use 3000s, 45m, 2h, or a clock time like 7p"
+  expect_stderr "resume: bare number '3000' is ambiguous — use 3000s, 45m, 2h, 3d, or a clock time like 7p"
 }
 
 test_two_tools_rejected() {
@@ -434,6 +495,12 @@ run_case "missing tab-local session fails closed" test_missing_tab_session_error
 run_case "duration seconds are parsed" test_duration_seconds
 run_case "duration minutes are parsed" test_duration_minutes
 run_case "duration hours are parsed" test_duration_hours
+run_case "duration days are parsed" test_duration_days
+run_case "wake flag schedules for a nonzero delay" test_wake_schedules_for_nonzero_delay
+run_case "wake flag is skipped for delay 0" test_wake_skipped_for_zero_delay
+run_case "claude no-time waits on exhausted Fable cap" test_claude_fable_exhausted_waits_for_fable_reset
+run_case "claude no-time waits on 5h when Fable is under cap" test_claude_fable_under_waits_for_5h
+run_case "claude no-time waits on 7d when weekly all-models is exhausted" test_claude_seven_day_exhausted_waits_for_7d
 run_case "bare numeric time is rejected" test_bare_number_rejected
 run_case "two tools are rejected" test_two_tools_rejected
 run_case "two tools including grok are rejected" test_two_tools_with_grok_rejected

@@ -1,38 +1,44 @@
-# resume — delay-launch a claude, codex, or grok session, keeping the machine awake
+# resume — delay-launch a claude, codex, or grok session
 # Source from .zshrc / .bashrc:  source ~/Code/dotfiles/scripts/bin/resume.sh
-# macOS-only: uses BSD `date -j -f` and `caffeinate`.
+# macOS-only: uses BSD `date -j -f`. --wake uses `sudo pmset schedule wake`.
 #
 # No prompt arg → resumes this terminal tab's last session with prompt "continue".
 # Prompt arg   → resumes this terminal tab's last session with that prompt.
 # -s/--session → overrides tab-local selection with an explicit session.
 # -n/--new     → starts a fresh session instead of resuming.
+# -w/--wake    → schedule a one-shot power wake at the target time (needs admin).
 #
 # Tool and time/duration may be passed in either order.
 # Bare numbers are rejected as ambiguous — durations need a unit suffix.
 #
 # No time/duration → defaults to next rate-limit reset.
-#   claude: reads /tmp/claude-rate-limits.json (written by statusline.sh).
+#   claude: runs claude-usage.sh (claude.ai subscription login, not an API key).
+#           Waits on the Fable weekly cap if that is at 100%, else the all-models
+#           7d window if that is at 100%, else the next 5h reset.
 #   codex:  reads the latest token_count event from the most recent
 #           ~/.codex/sessions/*/*/*/rollout-*.jsonl.
 #   grok:   reads the latest "billing: fetched credits config" event from
 #           ~/.grok/logs/unified.jsonl (creditUsagePercent + billingPeriodEnd).
-# Claude/codex: if 7d limit is exceeded, waits for 7d reset; otherwise waits
-# for next 5h reset. Errors if no snapshot exists, or if 7d is not exceeded
-# and there is no active 5h window.
+# Codex: if 7d limit is exceeded, waits for 7d reset; otherwise waits for next
+# 5h reset. Errors if no snapshot exists, or if 7d is not exceeded and there
+# is no active 5h window.
 # Grok: weekly/monthly credit allotment (not a rolling 5h window). If usage
 # is at 100%, waits for period end; if under, starts immediately (delay 0).
 #
 # Time/duration formats:
 #   7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
-#   3000s, 45m, 2h                duration in seconds/minutes/hours
+#   3000s, 45m, 2h, 3d            duration in seconds/minutes/hours/days
 #
 # Options:
 #   -s, --session ID_OR_NAME            resume a specific claude/codex/grok session
 #   -n, --new                           start a new session
+#   -w, --wake                          schedule a Mac wake at the target time
 #   -h, --help                          show help
 #
 # Usage:
 #   resume claude                # resume this tab's last claude session at next reset
+#   resume claude 3d             # wait three days
+#   resume --wake claude 3d      # same, and schedule a Mac wake (needs admin)
 #   resume grok                  # if over credits, wait for period end; else now
 #   resume codex 7p              # resume this tab's last codex session at 7:00 PM
 #   resume grok 7p               # resume this tab's last grok session at 7:00 PM
@@ -45,6 +51,7 @@
 resume() {
   local session=""
   local new_session=0
+  local wake=0
   local -a args=()
   while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -57,6 +64,8 @@ resume() {
         [ -n "$session" ] || { echo "resume: --session requires a session id or name" >&2; return 1; } ;;
       -n|--new)
         new_session=1 ;;
+      -w|--wake)
+        wake=1 ;;
       -h|--help)
         _resume_help
         return 0 ;;
@@ -137,9 +146,8 @@ resume() {
       local seven_day resets_5h resets_7d
       case "$tool" in
         claude)
-          local rl_file="/tmp/claude-rate-limits.json"
-          [ -f "$rl_file" ] || { echo "resume: no rate-limit snapshot at $rl_file — statusline must run at least once first" >&2; return 1; }
-          IFS=$'\t' read -r seven_day resets_5h resets_7d < <(jq -r '[.seven_day // 0, .resets_5h // 0, .resets_7d // 0] | @tsv' "$rl_file") ;;
+          local fable=0 resets_fable=0
+          IFS=$'\t' read -r seven_day resets_5h resets_7d fable resets_fable < <(_resume_claude_usage) || return 1 ;;
         codex)
           local latest
           latest=$(command ls ~/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | sort -r | head -1)
@@ -147,9 +155,18 @@ resume() {
           IFS=$'\t' read -r seven_day resets_5h resets_7d <<<"$(jq -rc 'select(.payload.rate_limits != null) | .payload.rate_limits | [(.secondary.used_percent // 0 | floor), (.primary.resets_at // 0), (.secondary.resets_at // 0)] | @tsv' "$latest" 2>/dev/null | tail -1)"
           [ -n "$resets_5h" ] || { echo "resume: no rate_limits data in latest codex rollout — session too short" >&2; return 1; } ;;
       esac
+      local weekly_hit=0 target=0
+      if [ "$tool" = claude ] && [ "${fable:-0}" -ge 100 ]; then
+        [ "$resets_fable" -le "$now" ] && { echo "resume: over Fable limit (${fable}%) but resets_fable=$resets_fable is not in the future — snapshot stale" >&2; return 1; }
+        weekly_hit=1
+        target=$resets_fable
+      fi
       if [ "$seven_day" -ge 100 ]; then
         [ "$resets_7d" -le "$now" ] && { echo "resume: over 7d limit (${seven_day}%) but resets_7d=$resets_7d is not in the future — snapshot stale" >&2; return 1; }
-        local target=$resets_7d
+        weekly_hit=1
+        [ "$resets_7d" -gt "$target" ] && target=$resets_7d
+      fi
+      if (( weekly_hit )); then
         [ "$resets_5h" -gt "$target" ] && target=$resets_5h
         delay=$(( target - now ))
       elif [ "$resets_5h" -le "$now" ]; then
@@ -165,9 +182,9 @@ resume() {
     rest="${time_str#"$num"}"
     if [ -z "$num" ] || [ -z "$rest" ]; then
       if [[ $time_str =~ ^[0-9]+$ ]]; then
-        echo "resume: bare number '$time_str' is ambiguous — use 3000s, 45m, 2h, or a clock time like 7p" >&2
+        echo "resume: bare number '$time_str' is ambiguous — use 3000s, 45m, 2h, 3d, or a clock time like 7p" >&2
       else
-        echo "resume: unrecognized time/duration '$time_str' — use 3000s, 45m, 2h, or a clock time like 7p" >&2
+        echo "resume: unrecognized time/duration '$time_str' — use 3000s, 45m, 2h, 3d, or a clock time like 7p" >&2
       fi
       return 1
     fi
@@ -175,9 +192,10 @@ resume() {
       [sS])                 delay="$num" ;;
       [mM])                 delay=$(( num * 60 )) ;;
       [hH])                 delay=$(( num * 3600 )) ;;
+      [dD])                 delay=$(( num * 86400 )) ;;
       [aApP]|[aApP][mM])    delay=$(_resume_clock_delay "$num" "${rest:0:1}") || return 1 ;;
       *)
-        echo "resume: unrecognized time/duration '$time_str' — use 3000s, 45m, 2h, or a clock time like 7p" >&2
+        echo "resume: unrecognized time/duration '$time_str' — use 3000s, 45m, 2h, 3d, or a clock time like 7p" >&2
         return 1 ;;
     esac
   fi
@@ -217,9 +235,96 @@ resume() {
   target_clock=$(date -r $(($(date +%s) + delay)) '+%I:%M %p')
 
   local label="$action $tool"
-  caffeinate -ims sh -c '
-    label=$1; clock=$2; delay=$3; shell_pid=$4; shift 4
+  local wake_when=""
+  _resume_wake_stamp=""
+  if (( wake )) && [ "$delay" -gt 0 ]; then
+    _resume_schedule_wake $(( $(date +%s) + delay )) || true
+    wake_when=$_resume_wake_stamp
+  fi
+  _resume_sleep_until "$label" "$target_clock" "$delay" "$$" "$wake_when" "${cmd[@]}" "${prompt_args[@]}"
+}
+
+_resume_help() {
+  cat <<'EOF'
+Usage: resume <codex|claude|grok> [time|duration] [options] [prompt]
+
+Delay-launch a claude, codex, or grok session.
+Tool, time/duration, and options may be passed in any order.
+
+No prompt arg resumes this terminal tab's last session with prompt "continue".
+Prompt arg resumes this terminal tab's last session with that prompt.
+Use -n/--new to start a fresh session instead of resuming.
+Use -s/--session to override tab-local selection.
+Use -w/--wake to schedule a Mac wake at the target time (needs admin).
+
+Time/duration:
+  7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
+  3000s, 45m, 2h, 3d            duration in seconds/minutes/hours/days
+  omitted                       next rate-limit reset
+
+Options:
+  -s, --session ID_OR_NAME       resume a specific claude/codex/grok session
+  -n, --new                      start a new session
+  -w, --wake                     schedule a Mac wake at the target time
+  -h, --help                     show this help
+
+Examples:
+  resume claude
+  resume grok
+  resume claude 3d
+  resume --wake claude 3d
+  resume codex 7p
+  resume grok 7p
+  resume 1220a claude
+  resume codex 3000s
+  resume codex -s 019... 7p
+  resume 730p claude "do X"
+  resume -n 730p claude "do X"
+EOF
+}
+
+_resume_claude_usage() {
+  local helper
+  helper=$(command -v claude-usage.sh 2>/dev/null) || helper=$(command -v claude-usage 2>/dev/null) || true
+  if [ -z "$helper" ]; then
+    echo "resume: claude-usage.sh is not on PATH — install it or pass a time" >&2
+    return 1
+  fi
+  local json ok
+  json=$("$helper" --fresh) || true
+  ok=$(jq -r '.ok // empty' <<<"$json" 2>/dev/null)
+  if [ "$ok" != true ]; then
+    echo "resume: claude usage fetch failed — not waiting on stale limits" >&2
+    return 1
+  fi
+  jq -r '[.seven_day // 0, .resets_5h // 0, .resets_7d // 0, .fable // 0, .resets_fable // 0] | @tsv' <<<"$json"
+}
+
+_resume_schedule_wake() {
+  local end="$1" when
+  _resume_wake_stamp=""
+  when=$(date -r "$end" '+%m/%d/%y %H:%M:%S')
+  if sudo pmset schedule wake "$when"; then
+    echo "resume: scheduled wake at $when" >&2
+    _resume_wake_stamp=$when
+    return 0
+  fi
+  echo "resume: --wake could not schedule a power event (pmset needs admin). The waiter will still fire when the Mac is awake." >&2
+  return 1
+}
+
+# Overridden in tests. Waiter compares date +%s to an absolute end, so sleep
+# does not miss the target; the session starts on wake if the Mac slept past it.
+_resume_sleep_until() {
+  local label="$1" clock="$2" delay="$3" shell_pid="$4" wake_when="$5"
+  shift 5
+  sh -c '
+    label=$1; clock=$2; delay=$3; shell_pid=$4; wake_when=$5; shift 5
     end=$(( $(date +%s) + delay ))
+    cancel_wake() {
+      [ -n "$wake_when" ] || return 0
+      sudo -n pmset schedule cancel wake "$wake_when" 2>/dev/null || true
+    }
     (
       i=0
       while :; do
@@ -241,48 +346,13 @@ resume() {
       done
     ) &
     spin_pid=$!
-    trap "kill $spin_pid 2>/dev/null; printf \"\n\"; exit 130" INT TERM
+    trap "kill $spin_pid 2>/dev/null; cancel_wake; printf \"\n\"; exit 130" INT TERM
     trap "kill $spin_pid 2>/dev/null" EXIT
     wait "$spin_pid" 2>/dev/null
     printf "\r\033[K\033]2;\007"
     export SESSION_GUARD_SHELL_PID="$shell_pid"
     exec "$@"
-  ' _ "$label" "$target_clock" "$delay" "$$" "${cmd[@]}" "${prompt_args[@]}"
-}
-
-_resume_help() {
-  cat <<'EOF'
-Usage: resume <codex|claude|grok> [time|duration] [options] [prompt]
-
-Delay-launch a claude, codex, or grok session, keeping the machine awake.
-Tool, time/duration, and options may be passed in any order.
-
-No prompt arg resumes this terminal tab's last session with prompt "continue".
-Prompt arg resumes this terminal tab's last session with that prompt.
-Use -n/--new to start a fresh session instead of resuming.
-Use -s/--session to override tab-local selection.
-
-Time/duration:
-  7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
-  3000s, 45m, 2h                duration in seconds/minutes/hours
-  omitted                       next rate-limit reset
-
-Options:
-  -s, --session ID_OR_NAME       resume a specific claude/codex/grok session
-  -n, --new                      start a new session
-  -h, --help                     show this help
-
-Examples:
-  resume claude
-  resume grok
-  resume codex 7p
-  resume grok 7p
-  resume 1220a claude
-  resume codex 3000s
-  resume codex -s 019... 7p
-  resume 730p claude "do X"
-  resume -n 730p claude "do X"
-EOF
+  ' _ "$label" "$clock" "$delay" "$shell_pid" "$wake_when" "$@"
 }
 
 _resume_last_session() {

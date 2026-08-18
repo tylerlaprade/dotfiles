@@ -163,10 +163,11 @@ rate_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty
 resets_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
 resets_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
-# Persist rate-limit snapshot so tools like `resume` can read latest state.
+# Persist 5h/7d so the claude() overage gate can read latest state.
 # Per-session harness rate_limits is cached at last API response, so an idle
 # session's render carries stale numbers. Skip the write unless our resets_5h
 # is at least as new as the existing snapshot's — older reset = older data.
+# Fable is not in this stdin payload; claude-usage.sh fetches that separately.
 _snap_resets_5h=0
 [ -f /tmp/claude-rate-limits.json ] && \
   _snap_resets_5h=$(jq -r '.resets_5h // 0' /tmp/claude-rate-limits.json 2>/dev/null)
@@ -225,20 +226,35 @@ format_rate() {
     info="${display_color}${display_override}${RESET}"
   else
     # Absolute hard-limit usage: 0-55% green, 55-75% green→yellow,
-    # 75-95% yellow→bright red, 95%+ bright red.
+    # 75-95% yellow→bright red, 95%+ bright red. Print the number as
+    # reported — no "+" for "maybe over."
     rate_usage_gradient "$pct"
     local pct_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
-    local suffix="%"; [ "$pct" -ge 100 ] && suffix="%+"
+    local suffix="%"
+    # Stdin 5h/7d bars stop at 100, so "+" means "at or over." Fable from
+    # /usage is an exact percent and does not pass this flag.
+    [ -n "${6:-}" ] && [ "$pct" -ge 100 ] && suffix="%+"
     info="${pct_color}${pct}${suffix}${RESET}"
   fi
 
-  # Pace ratio for time remaining color (Ghostty Tomorrow Night palette)
-  # Sigmoid-like piecewise: steep transition around 0.8x, 1.0x is red
-  # green(181,189,104) → yellow(240,198,116) → red(204,102,102)
+  # Pace of what's left: remaining_time / remaining_budget.
+  # On schedule this is 1.0x, same as used/elapsed. Empty remaining budget
+  # is 1/0 (unbounded), so 0% left is much redder than 12% left. The old
+  # used/elapsed ratio at the same clock time was 1.20x vs 1.37x.
   local time_elapsed_pct=$(( time_elapsed * 100 / effective_window_secs ))
+  local left_pct=$(( 100 - pct ))
+  local left_time=$(( 100 - time_elapsed_pct ))
+  [ "$left_pct" -lt 0 ] && left_pct=0
+  [ "$left_time" -lt 0 ] && left_time=0
   local ratio
-  if [ "$time_elapsed_pct" -gt 0 ]; then
-    ratio=$(( pct * 100 / time_elapsed_pct ))
+  if [ "$left_pct" -eq 0 ]; then
+    if [ "$left_time" -eq 0 ]; then
+      ratio=100
+    else
+      ratio=$(( left_time * 100 ))
+    fi
+  elif [ "$time_elapsed_pct" -gt 0 ]; then
+    ratio=$(( left_time * 100 / left_pct ))
   else
     ratio=100
   fi
@@ -271,7 +287,7 @@ format_rate() {
     # Uses the raw window share, not the work-trimmed one — proximity is literal.
     tn_gradient $(( time_elapsed * 100 / window_secs )) 55 80 95 80 20
     local reset_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
-    [ -n "$reset_str" ] && info="${info} (${time_color}${remaining}${RESET} → ${reset_color}${reset_str}${RESET})"
+    [ -n "$reset_str" ] && info="${info} (resets in ${time_color}${remaining}${RESET} at ${reset_color}${reset_str}${RESET})"
   fi
 
   echo "$info"
@@ -286,7 +302,7 @@ current_time=$(TZ="America/New_York" date +"%-I:%M %p")
 model_name=$(echo "$input" | jq -r '.model.display_name // empty')
 effort_level=$(echo "$input" | jq -r '.effort.level // empty')
 
-# Line 1: model · context bar · rates · time
+# Line 1: model · context bar · time
 parts=()
 if [ -n "$model_name" ]; then
   model_part="${DIM}${model_name}"
@@ -294,6 +310,39 @@ if [ -n "$model_name" ]; then
   parts+=("${model_part}${RESET}")
 fi
 parts+=("$ctx_info")
+parts+=("$(format_time_color "$current_time")")
+echo -e "$(printf '%s' "${parts[0]}")$(printf ' · %s' "${parts[@]:1}")"
+
+# Line 2: Fable · 5h · 7d
+rate_parts=()
+_usage_cmd=$(command -v claude-usage 2>/dev/null || command -v claude-usage.sh 2>/dev/null || true)
+if [ -n "$_usage_cmd" ]; then
+  _usage=$("$_usage_cmd" 2>/dev/null) || true
+  if [ -n "$_usage" ]; then
+    _usage_ok=$(printf '%s' "$_usage" | jq -r '.ok // true')
+    rate_fable=$(printf '%s' "$_usage" | jq -r '.fable // empty')
+    resets_fable=$(printf '%s' "$_usage" | jq -r '.resets_fable // empty')
+    if [ "$_usage_ok" != true ]; then
+      if [ -n "$rate_fable" ]; then
+        rate_parts+=("${DIM}Fable ${rate_fable}% · fetch failed${RESET}")
+      else
+        rate_parts+=("${DIM}Fable unavailable${RESET}")
+      fi
+    elif [ -n "$rate_fable" ]; then
+      # Same weekly reset as 7d: omit the duplicate countdown.
+      if [ -n "$resets_fable" ] && [ -n "$resets_7d" ] && [ "$resets_fable" = "$resets_7d" ]; then
+        rate_usage_gradient "$rate_fable"
+        fable_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
+        rate_parts+=("Fable ${fable_color}${rate_fable}%${RESET}")
+      else
+        rate=$(format_rate "$rate_fable" "$resets_fable" 604800)
+        [ -n "$rate" ] && rate_parts+=("Fable $rate")
+      fi
+    fi
+  else
+    rate_parts+=("${DIM}Fable unavailable${RESET}")
+  fi
+fi
 cost_display="" cost_color=""
 if [ "${rate_5h:-0}" -ge 100 ]; then
   raw_cost=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
@@ -309,16 +358,15 @@ if [ "${rate_5h:-0}" -ge 100 ]; then
     cost_display="\$${session_cost}"
   fi
 fi
-rate=$(format_rate "$rate_5h" "$resets_5h" 18000 "$cost_display" "$cost_color")
-[ -n "$rate" ] && parts+=("5h $rate")
-rate=$(format_rate "$rate_7d" "$resets_7d" 604800)
-[ -n "$rate" ] && parts+=("7d $rate")
+rate=$(format_rate "$rate_5h" "$resets_5h" 18000 "$cost_display" "$cost_color" plus)
+[ -n "$rate" ] && rate_parts+=("5h $rate")
+rate=$(format_rate "$rate_7d" "$resets_7d" 604800 "" "" plus)
+[ -n "$rate" ] && rate_parts+=("7d $rate")
+if (( ${#rate_parts[@]} )); then
+  echo -e "${DIM}Usage${RESET} · $(printf '%s' "${rate_parts[0]}")$(printf ' · %s' "${rate_parts[@]:1}")"
+fi
 
-parts+=("$(format_time_color "$current_time")")
-
-echo -e "$(printf '%s' "${parts[0]}")$(printf ' · %s' "${parts[@]:1}")"
-
-# Line 2: git info
+# Git info
 [ -n "$git_status" ] && echo -e "$git_status"
 
 # Keep Ghostty tab title current (zsh hooks don't fire during TUI apps)

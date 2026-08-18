@@ -53,8 +53,8 @@ zj() {
 
 # Claude: allow bypass-permissions + overage gate (requires ~/.claude/overage-gate)
 claude() {
-  # Shared protocol with statusline.sh (producer) and resume.sh — all three
-  # hardcode /tmp. A wrapper-local fallback dir would silently desync them.
+  # Shared protocol with statusline.sh (producer). Both hardcode /tmp. A
+  # wrapper-local fallback dir would silently desync them.
   local _override=/tmp/claude-overage-override
   local _rf=/tmp/claude-rate-limits.json
   local _killed=/tmp/claude-overage-killed
