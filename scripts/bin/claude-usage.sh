@@ -32,7 +32,7 @@ _spawn_refresh() {
   # Close inherited fds first so a caller in $(...) does not wait on us.
   (
     exec >/dev/null 2>&1 </dev/null
-    "$0"
+    "$0" || true
     rmdir /tmp/claude-usage.fetch 2>/dev/null || true
   ) &
   disown 2>/dev/null || true
