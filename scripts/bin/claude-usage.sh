@@ -12,33 +12,64 @@
 # A failed fetch still prints the last cache, with ok=false, and exits 1 so
 # resume does not treat stale numbers as live. Statusline can show them dimmed.
 #
-# --fresh  ignore the 60s cache
+# --fresh  ignore the 60s cache (resume)
+# --async  print cache now; refresh in a detached process if stale (statusline)
 # Cached at /tmp/claude-usage.json so statusline and resume share one fetch.
 
 set -euo pipefail
 
 cache=/tmp/claude-usage.json
 fresh=0
-[ "${1:-}" = --fresh ] && fresh=1
+async=0
+case "${1:-}" in
+  --fresh) fresh=1 ;;
+  --async) async=1 ;;
+esac
 
 now=$(date +%s)
+
+_spawn_refresh() {
+  # Close inherited fds first so a caller in $(...) does not wait on us.
+  (
+    exec >/dev/null 2>&1 </dev/null
+    "$0"
+    rmdir /tmp/claude-usage.fetch 2>/dev/null || true
+  ) &
+  disown 2>/dev/null || true
+}
 
 emit_stale() {
   local err=$1
   if [ -f "$cache" ]; then
-    jq -c --arg err "$err" '. + {ok: false, error: $err}' "$cache"
+    jq -c --arg err "$err" --argjson now "$now" \
+      '. + {ok: false, error: $err, fetched_at: $now}' "$cache"
   else
-    printf '%s\n' "{\"ok\":false,\"error\":$(printf '%s' "$err" | jq -Rs .)}"
+    printf '%s\n' "{\"ok\":false,\"error\":$(printf '%s' "$err" | jq -Rs .),\"fetched_at\":${now}}"
   fi
   exit 1
 }
 
-if [ "$fresh" -eq 0 ] && [ -f "$cache" ]; then
-  cached_at=$(jq -r '.updated_at // 0' "$cache" 2>/dev/null || echo 0)
-  cached_ok=$(jq -r '.ok // true' "$cache" 2>/dev/null || echo true)
-  if [ "$cached_ok" = true ] && [ "$cached_at" -ge $(( now - 60 )) ]; then
+if [ "$async" -eq 1 ]; then
+  stale=1
+  if [ -f "$cache" ]; then
     cat "$cache"
-    exit 0
+    cached_at=$(jq -r '.fetched_at // .updated_at // 0' "$cache" 2>/dev/null || echo 0)
+    [ "$cached_at" -ge $(( now - 60 )) ] && stale=0
+  fi
+  if [ "$stale" -eq 1 ] && mkdir /tmp/claude-usage.fetch 2>/dev/null; then
+    _spawn_refresh
+  fi
+  exit 0
+fi
+
+if [ "$fresh" -eq 0 ] && [ -f "$cache" ]; then
+  # Honor both success and failure: a recent 429 must not refetch on
+  # every statusline paint.
+  cached_at=$(jq -r '.fetched_at // .updated_at // 0' "$cache" 2>/dev/null || echo 0)
+  if [ "$cached_at" -ge $(( now - 60 )) ]; then
+    cat "$cache"
+    [ "$(jq -r '.ok // true' "$cache" 2>/dev/null)" = true ]
+    exit $?
   fi
 fi
 
@@ -108,6 +139,7 @@ jq -c '
       resets_7d: ($r.seven_day.resets_at | ts),
       resets_fable: (($f.resets_at // $r.seven_day.resets_at) | ts),
       updated_at: now | floor,
+      fetched_at: now | floor,
       ok: true
     }
 ' "$tmp" | tee "$cache"
