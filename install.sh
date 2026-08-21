@@ -23,10 +23,11 @@ fi
 # 2. Rust toolchain
 if ! command -v rustup &>/dev/null; then
   echo "Installing Rust..."
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal
   source "$HOME/.cargo/env"
 fi
-rustup component add rust-analyzer 2>/dev/null || true
+rustup set profile minimal >/dev/null
+rustup component add rust-analyzer rustfmt clippy 2>/dev/null || true
 
 export PATH="$HOME/.local/bin:$PATH"
 

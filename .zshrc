@@ -199,14 +199,29 @@ if (( $+commands[cw] )); then
   eval "$(cw shell-init zsh)"
 fi
 
-# Rust tool aliases
+# Drop-in names. ls/cat flags mostly work; top is the TUI (btm, not `bottom`).
 alias ls="eza"
 alias cat="bat"
-alias find="fd"
-alias du="dust"
 alias lg="lazygit"
-alias top="bottom"
-alias ps="procs"
+alias top="btm"
+
+# Not drop-in: old name prints the new name and fails. `command du` etc. still
+# reach the system binary. GPG prewarm keeps `command ps` for that reason.
+du() {
+  print -u2 "Use dust, not du.  dust -d 1 <path>     dust --help"
+  return 2
+}
+find() {
+  print -u2 "Use fd, not find.  fd <pattern> [path]   fd --help"
+  return 2
+}
+ps() {
+  print -u2 "Use procs, not ps.  procs <keyword>   procs --json   procs --only Command <pid>"
+  return 2
+}
+
+# zsh's log builtin (watch/login records) is unused; `log` is /usr/bin/log.
+disable log
 
 # zoxide - smart cd
 eval "$(zoxide init zsh)"

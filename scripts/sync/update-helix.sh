@@ -21,4 +21,6 @@ fi
 echo "Updating $before -> $after"
 git merge --ff-only origin/master
 cargo install --path helix-term --locked --force
+# Grammar git checkouts are build inputs; Helix loads the .dylibs.
+rm -rf "$REPO/runtime/grammars/sources"
 echo "Rebuilt hx: $(hx --version)"

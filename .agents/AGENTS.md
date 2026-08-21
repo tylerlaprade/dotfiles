@@ -57,8 +57,16 @@
 - For my solo projects, make required local dev components part of the default
   path and fail clearly when they are missing. Do not hide them behind opt-in
   environment flags for hypothetical other developers.
-- My shell shadows `ps` and `log`; use `/bin/ps` and `/usr/bin/log` when
-  their system syntax is required.
+- File search, disk use, and processes are different programs, not flag
+  tweaks. Call them by these names:
+    fd <pattern> [path]     # regex default; -g glob; -e rs; -H hidden; -t f
+    dust [path]             # -d 1 depth; -n 20 lines; -D dirs; -z 100M
+    procs <keyword>         # --json; --only Command <pid>; -t tree
+  `ls`/`cat`/`cd` are close replacements; use them normally.
+  Do not run `top`/`btm`/`lg` (interactive). Use `procs` for a snapshot.
+  In this shell `du`/`find`/`ps` print the replacement and exit 2. Type
+  that replacement. Never recover by calling `/usr/bin/du`, `/usr/bin/find`,
+  or `/bin/ps`. Grok overrides `find` to POSIX find; still type `fd`.
 - Your success is measured by the quality of my final decision, not my satisfaction with your response. Verify claims — mine or yours — against actual sources before building on them, and flag what you can't verify as an unverified assumption instead of forcing a conclusion. If something is wrong, say so directly without softening it; if I push back, re-verify and update your position only where the evidence supports it.
 - "learnings" is not a word. Say "lessons" instead.
 - We use difft. For a raw unified diff, use `git diff --no-ext-diff`. Don't touch `diff.external`.

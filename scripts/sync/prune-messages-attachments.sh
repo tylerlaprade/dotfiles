@@ -8,13 +8,25 @@
 # Triggered weekly by ~/Library/LaunchAgents/com.tylerlaprade.prune-messages-attachments.plist.
 set -euo pipefail
 
-DIR="$HOME/Library/Messages/Attachments"
-
 echo "=== $(date) ==="
-[ -d "$DIR" ] || { echo "No attachments dir; nothing to do."; exit 0; }
 
-before=$(/usr/bin/du -sm "$DIR" | cut -f1)
-find "$DIR" -type f ! -name 'GroupPhotoImage' -mtime +30 -delete
-find "$DIR" -mindepth 1 -type d -empty -delete
-after=$(/usr/bin/du -sm "$DIR" | cut -f1)
-echo "Pruned $((before - after)) MB (now ${after} MB)."
+DIR="$HOME/Library/Messages/Attachments"
+if [ -d "$DIR" ]; then
+  before=$(/usr/bin/du -sm "$DIR" | cut -f1)
+  find "$DIR" -type f ! -name 'GroupPhotoImage' -mtime +30 -delete
+  find "$DIR" -mindepth 1 -type d -empty -delete
+  after=$(/usr/bin/du -sm "$DIR" | cut -f1)
+  echo "Attachments: pruned $((before - after)) MB (now ${after} MB)."
+else
+  echo "No attachments dir; skip."
+fi
+
+# Preview thumbnails regenerate from attachments.
+CACHE="$HOME/Library/Messages/Caches"
+if [ -d "$CACHE" ]; then
+  before=$(/usr/bin/du -sm "$CACHE" | cut -f1)
+  find "$CACHE" -type f -mtime +30 -delete
+  find "$CACHE" -mindepth 1 -type d -empty -delete
+  after=$(/usr/bin/du -sm "$CACHE" | cut -f1)
+  echo "Caches: pruned $((before - after)) MB (now ${after} MB)."
+fi
