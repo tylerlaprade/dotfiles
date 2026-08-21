@@ -28,12 +28,27 @@ esac
 
 now=$(date +%s)
 
+lock=/tmp/claude-usage.fetch
+
+_claim_fetch_lock() {
+  if mkdir "$lock" 2>/dev/null; then
+    return 0
+  fi
+  # A killed fetch leaves the dir behind. Curl's timeout is 8s; a lock
+  # older than a minute is leftover, not in-flight.
+  local stamp
+  stamp=$(stat -f %m "$lock" 2>/dev/null) || return 1
+  [ $(( now - stamp )) -gt 60 ] || return 1
+  rmdir "$lock" 2>/dev/null || true
+  mkdir "$lock" 2>/dev/null || return 1
+}
+
 _spawn_refresh() {
   # Close inherited fds first so a caller in $(...) does not wait on us.
   (
     exec >/dev/null 2>&1 </dev/null
     "$0" || true
-    rmdir /tmp/claude-usage.fetch 2>/dev/null || true
+    rmdir "$lock" 2>/dev/null || true
   ) &
   disown 2>/dev/null || true
 }
@@ -56,7 +71,7 @@ if [ "$async" -eq 1 ]; then
     cached_at=$(jq -r '.fetched_at // .updated_at // 0' "$cache" 2>/dev/null || echo 0)
     [ "$cached_at" -ge $(( now - 60 )) ] && stale=0
   fi
-  if [ "$stale" -eq 1 ] && mkdir /tmp/claude-usage.fetch 2>/dev/null; then
+  if [ "$stale" -eq 1 ] && _claim_fetch_lock; then
     _spawn_refresh
   fi
   exit 0

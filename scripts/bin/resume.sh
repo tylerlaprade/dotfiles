@@ -341,7 +341,9 @@ _resume_sleep_until() {
         esac
         printf "\033]2;%s %s in %s\007" "$f" "$label" "$t"
         printf "\r\033[K%s %s in %s (%s)" "$f" "$label" "$t" "$clock"
-        sleep 0.1
+        if [ "$rem" -gt 60 ]; then sleep 1
+        else sleep 0.1
+        fi
         i=$(( i + 1 ))
       done
     ) &

@@ -313,34 +313,52 @@ parts+=("$ctx_info")
 parts+=("$(format_time_color "$current_time")")
 echo -e "$(printf '%s' "${parts[0]}")$(printf ' · %s' "${parts[@]:1}")"
 
-# Line 2: Fable · 5h · 7d
+# Line 2: 5h · 7d · Fable
+# claude-usage --async matches gh-pr-lookup: print cache, detach refresh.
 rate_parts=()
 _usage_cmd=$(command -v claude-usage 2>/dev/null || command -v claude-usage.sh 2>/dev/null || true)
+_usage=""
+fable_part=""
 if [ -n "$_usage_cmd" ]; then
-  _usage=$("$_usage_cmd" 2>/dev/null) || true
-  if [ -n "$_usage" ]; then
-    _usage_ok=$(printf '%s' "$_usage" | jq -r '.ok // true')
-    rate_fable=$(printf '%s' "$_usage" | jq -r '.fable // empty')
-    resets_fable=$(printf '%s' "$_usage" | jq -r '.resets_fable // empty')
-    if [ "$_usage_ok" != true ]; then
-      if [ -n "$rate_fable" ]; then
-        rate_parts+=("${DIM}Fable ${rate_fable}% · fetch failed${RESET}")
-      else
-        rate_parts+=("${DIM}Fable unavailable${RESET}")
-      fi
-    elif [ -n "$rate_fable" ]; then
-      # Same weekly reset as 7d: omit the duplicate countdown.
-      if [ -n "$resets_fable" ] && [ -n "$resets_7d" ] && [ "$resets_fable" = "$resets_7d" ]; then
-        rate_usage_gradient "$rate_fable"
-        fable_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
-        rate_parts+=("Fable ${fable_color}${rate_fable}%${RESET}")
-      else
-        rate=$(format_rate "$rate_fable" "$resets_fable" 604800)
-        [ -n "$rate" ] && rate_parts+=("Fable $rate")
-      fi
+  _usage=$("$_usage_cmd" --async 2>/dev/null) || true
+fi
+if [ -n "$_usage" ]; then
+  _usage_ok=$(printf '%s' "$_usage" | jq -r '.ok // true')
+  rate_fable=$(printf '%s' "$_usage" | jq -r '.fable // empty')
+  resets_fable=$(printf '%s' "$_usage" | jq -r '.resets_fable // empty')
+  usage_resets_7d=$(printf '%s' "$_usage" | jq -r '.resets_7d // empty')
+  if [ "$_usage_ok" != true ]; then
+    if [ -n "$rate_fable" ]; then
+      fable_part="${DIM}Fable ${rate_fable}% · fetch failed${RESET}"
+    else
+      fable_part="${DIM}Fable unavailable${RESET}"
     fi
-  else
-    rate_parts+=("${DIM}Fable unavailable${RESET}")
+  elif [ -n "$rate_fable" ]; then
+    # Same weekly reset as 7d: omit the duplicate countdown. Compare
+    # within the usage payload — stdin 7d can be one second off.
+    if [ -n "$resets_fable" ] && [ -n "$usage_resets_7d" ] && [ "$resets_fable" = "$usage_resets_7d" ]; then
+      rate_usage_gradient "$rate_fable"
+      fable_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
+      fable_part="Fable ${fable_color}${rate_fable}%${RESET}"
+    else
+      rate=$(format_rate "$rate_fable" "$resets_fable" 604800)
+      [ -n "$rate" ] && fable_part="Fable $rate"
+    fi
+  fi
+elif [ -n "$_usage_cmd" ]; then
+  fable_part="${DIM}Fable unavailable${RESET}"
+fi
+# Stdin rate_limits is empty until the first API response. The usage
+# fetch already ran for Fable and includes 5h/7d; use those only while
+# stdin has nothing.
+if [ "${_usage_ok:-}" = true ]; then
+  if [ -z "$rate_5h" ]; then
+    rate_5h=$(printf '%s' "$_usage" | jq -r '.five_hour // empty')
+    resets_5h=$(printf '%s' "$_usage" | jq -r '.resets_5h // empty')
+  fi
+  if [ -z "$rate_7d" ]; then
+    rate_7d=$(printf '%s' "$_usage" | jq -r '.seven_day // empty')
+    resets_7d=$(printf '%s' "$_usage" | jq -r '.resets_7d // empty')
   fi
 fi
 cost_display="" cost_color=""
@@ -362,6 +380,7 @@ rate=$(format_rate "$rate_5h" "$resets_5h" 18000 "$cost_display" "$cost_color" p
 [ -n "$rate" ] && rate_parts+=("5h $rate")
 rate=$(format_rate "$rate_7d" "$resets_7d" 604800 "" "" plus)
 [ -n "$rate" ] && rate_parts+=("7d $rate")
+[ -n "$fable_part" ] && rate_parts+=("$fable_part")
 if (( ${#rate_parts[@]} )); then
   echo -e "${DIM}Usage${RESET} · $(printf '%s' "${rate_parts[0]}")$(printf ' · %s' "${rate_parts[@]:1}")"
 fi
