@@ -11,14 +11,14 @@ pct=$(( (used_tokens * 100 + window_tokens / 2) / window_tokens ))
 format_tokens() {
   local tokens=$1
   if [ "$tokens" -ge 1000000 ]; then
-    local tenths=$(( (tokens + 50000) / 100000 ))
+    local tenths=$(( tokens / 100000 ))
     if [ $((tenths % 10)) -eq 0 ]; then
       printf '%dm' $((tenths / 10))
     else
       printf '%d.%dm' $((tenths / 10)) $((tenths % 10))
     fi
   else
-    printf '%dk' $(( (tokens + 500) / 1000 ))
+    printf '%dk' $(( tokens / 1000 ))
   fi
 }
 
