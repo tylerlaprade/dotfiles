@@ -8,6 +8,23 @@ read -r used_tokens window_tokens < <(
 )
 pct=$(( (used_tokens * 100 + window_tokens / 2) / window_tokens ))
 
+format_tokens() {
+  local tokens=$1
+  if [ "$tokens" -ge 1000000 ]; then
+    local tenths=$(( (tokens + 50000) / 100000 ))
+    if [ $((tenths % 10)) -eq 0 ]; then
+      printf '%dm' $((tenths / 10))
+    else
+      printf '%d.%dm' $((tenths / 10)) $((tenths % 10))
+    fi
+  else
+    printf '%dk' $(( (tokens + 500) / 1000 ))
+  fi
+}
+
+used_display=$(format_tokens "$used_tokens")
+window_display=$(format_tokens "$window_tokens")
+
 RESET='\033[0m'
 WHITE='\033[97m'
 DIM='\033[90m'
@@ -155,7 +172,7 @@ if [ "$filled" -lt 10 ]; then
   empty=$((9 - filled))
   [ "$empty" -gt 0 ] && printf -v pad "%${empty}s" && bar="${bar}${pad// /░}"
 fi
-ctx_info="${bar}${bar_color} ${pct}%${RESET}"
+ctx_info="${bar}${bar_color} ${pct}% · ${used_display}/${window_display}${RESET}"
 
 # Rate limit info
 rate_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty | round')
