@@ -3,13 +3,6 @@ name: handoff
 description: End-of-day handoff. /handoff captures every in-flight item from this session into a file so the session can end safely; /handoff pickup restores one into a fresh session.
 argument-hint: [pickup] [slug]
 disable-model-invocation: true
-allowed-tools:
-  - Bash(git *)
-  - Bash(ls *)
-  - Bash(mv *)
-  - Bash(cp *)
-  - Read
-  - Write
 ---
 
 One job: after this session ends, no pending work is lost. A handoff is not
@@ -36,12 +29,12 @@ Harvest what is pending and what only this session knows:
 - If this session picked up a handoff, carry its still-open items forward.
   Note if the transcript was compacted.
 
-On a long or compacted session, also extract the user messages from this
-session's transcript on disk (newest `.jsonl` under
-`~/.claude/projects/<cwd-slug>/`) and check them against the harvest —
-early asks fall out of attention first.
+On a long or compacted session, also read back this session's own
+transcript from disk (the recall skill documents where each agent keeps
+them) and check its user messages against the harvest — early asks fall
+out of attention first.
 
-Write to `~/.claude/handoffs/<project>/<yyyy-mm-dd-HHMM>-<slug>.md`:
+Write to `~/.agents/handoffs/<project>/<yyyy-mm-dd-HHMM>-<slug>.md`:
 
 - `<project>`: basename of the directory containing `git rev-parse
   --git-common-dir` (worktree-safe); outside a repo, the cwd basename.
@@ -58,7 +51,7 @@ flight, say so and write nothing.
 
 # Pickup mode: `/handoff pickup [slug]`
 
-- List `~/.claude/handoffs/<project>/`. With several open handoffs, take the
+- List `~/.agents/handoffs/<project>/`. With several open handoffs, take the
   slug or ask; read all that overlap before acting.
 - Skip loudly any handoff whose recorded repo root does not match the current
   one.
