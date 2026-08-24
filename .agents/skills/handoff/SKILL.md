@@ -40,8 +40,10 @@ Write to `~/.agents/handoffs/<project>/<yyyy-mm-dd-HHMM>-<slug>.md`:
   --git-common-dir` (worktree-safe); outside a repo, the cwd basename.
 - Slug from the argument or the task: lowercase, hyphens, at most 40 chars.
   Never overwrite — suffix `-2`, `-3` if the path exists.
-- Header: date, cwd, repo root, origin URL, branch, HEAD. For each
-  uncommitted file, one line saying what the change is.
+- Header: date, cwd, repo root, origin URL, branch, HEAD, and the path to
+  this session's transcript — the handoff is a summary, and the transcript
+  is where a reader recovers anything it left out. For each uncommitted
+  file, one line saying what the change is.
 - Scratchpad copies go in a sibling directory named by the file's stem.
 - Name any other open handoffs for this project.
 - Repo state goes in as pointers only — never stage or commit anything.
