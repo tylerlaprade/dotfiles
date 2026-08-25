@@ -53,7 +53,7 @@
   expose hidden assumptions, and keep independent decisions separate.
 - Present the evidence and tradeoffs before asking me to choose. Do not put the
   analysis behind a dialog that may hide the text.
-- My surname is `Laprade`, with a lowercase `p`. Use GPL-3.0-only for my published projects unless a project says otherwise. Say "whitelist" and "blacklist," not "allowlist" or "blocklist."
+- My surname is `Laprade`, with a lowercase `p`. Use GPL-3.0-only for my published projects unless a project says otherwise. Say "whitelist" and "blacklist," not "allowlist" or "blocklist." Name git branches `master`, never `main`.
 - For my solo projects, make required local dev components part of the default
   path and fail clearly when they are missing. Do not hide them behind opt-in
   environment flags for hypothetical other developers.
