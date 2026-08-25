@@ -58,7 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-title hook"
+            "command": "/Users/tyler/.cargo/bin/claude-title hook"
           }
         ]
       }
@@ -85,7 +85,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-title hook"
+            "command": "/Users/tyler/.cargo/bin/claude-title hook"
           }
         ]
       }
@@ -111,7 +111,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-title hook"
+            "command": "/Users/tyler/.cargo/bin/claude-title hook"
           }
         ]
       }
@@ -131,7 +131,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-title hook"
+            "command": "/Users/tyler/.cargo/bin/claude-title hook"
           }
         ]
       }
@@ -157,7 +157,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-title hook"
+            "command": "/Users/tyler/.cargo/bin/claude-title hook"
           }
         ]
       }
@@ -175,7 +175,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-title hook"
+            "command": "/Users/tyler/.cargo/bin/claude-title hook"
           }
         ]
       }
@@ -186,7 +186,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-title hook"
+            "command": "/Users/tyler/.cargo/bin/claude-title hook"
           }
         ]
       }
@@ -196,7 +196,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-title hook"
+            "command": "/Users/tyler/.cargo/bin/claude-title hook"
           }
         ]
       }
@@ -207,7 +207,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-title hook"
+            "command": "/Users/tyler/.cargo/bin/claude-title hook"
           }
         ]
       }
