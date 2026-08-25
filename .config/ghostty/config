@@ -4,7 +4,7 @@ bell-features = system,border
 copy-on-select = clipboard
 cursor-color = cell-foreground
 cursor-text = cell-background
-font-size = 17
+font-size = 18
 font-codepoint-map = U+2665=Menlo
 fullscreen = true
 keybind = performable:cmd+c=copy_to_clipboard
