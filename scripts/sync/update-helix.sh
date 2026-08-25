@@ -9,6 +9,16 @@ REPO="$HOME/Code/helix"
 echo "=== $(date) ==="
 cd "$REPO"
 
+branch=$(git branch --show-current)
+if [[ "$branch" != "master" ]]; then
+  echo "Checked out $branch, not master; skip"
+  exit 0
+fi
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo "Working tree dirty; skip"
+  exit 0
+fi
+
 before=$(git rev-parse HEAD)
 git fetch --quiet origin master
 after=$(git rev-parse origin/master)
@@ -20,7 +30,8 @@ fi
 
 echo "Updating $before -> $after"
 git merge --ff-only origin/master
-cargo install --path helix-term --locked --force
+# 8 GB machine: unlimited rustc jobs with LTO will swap the box to death.
+CARGO_BUILD_JOBS=2 cargo install --path helix-term --locked --force
 # Grammar git checkouts are build inputs; Helix loads the .dylibs.
 rm -rf "$REPO/runtime/grammars/sources"
 echo "Rebuilt hx: $(hx --version)"
