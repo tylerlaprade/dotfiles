@@ -1,4 +1,8 @@
 {
+  "PVInspectorWindowOpenOnStart": {
+    "type": "bool",
+    "value": false
+  },
   "PVMarkupToolbarVisibleForImages": {
     "type": "bool",
     "value": true
