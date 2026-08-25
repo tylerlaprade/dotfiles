@@ -48,6 +48,130 @@
 #   resume 730p claude "do X"    # resume this tab's claude session with prompt "do X"
 #   resume -n 730p claude "do X" # start new claude session at 7:30 PM with prompt "do X"
 
+# --- Harness registry -------------------------------------------------------
+# Everything resume knows about one agent CLI lives in this block. To add a
+# harness: append its id to _RESUME_TOOLS, define `_resume_launch_<id>`, and
+# optionally define `_resume_wait_<id>`. Nothing below this block names a
+# specific tool.
+#
+#   _resume_launch_<id> "$session_id"   # "" for a new session
+#       Sets _resume_cmd to the argv that starts it.
+#   _resume_wait_<id>                   # optional
+#       Sets _resume_delay to the seconds to wait for the next rate-limit
+#       reset, or fails with a message. Without it, `resume <id>` needs an
+#       explicit time.
+_RESUME_TOOLS="claude codex grok opencode"
+
+_resume_launch_claude() {
+  _resume_cmd=(claude --dangerously-skip-permissions)
+  [ -n "$1" ] && _resume_cmd+=(--resume "$1")
+}
+
+_resume_launch_codex() {
+  if [ -n "$1" ]; then
+    _resume_cmd=(codex resume --dangerously-bypass-approvals-and-sandbox "$1")
+  else
+    _resume_cmd=(codex --dangerously-bypass-approvals-and-sandbox)
+  fi
+}
+
+_resume_launch_grok() {
+  # Config may already set permission_mode=always-approve; pass it explicitly
+  # so delayed launches stay yolo even if config differs on another machine.
+  _resume_cmd=(grok --always-approve)
+  [ -n "$1" ] && _resume_cmd+=(--resume "$1")
+}
+
+_resume_launch_opencode() {
+  _resume_cmd=(opencode)
+  [ -n "$1" ] && _resume_cmd+=(--session "$1")
+}
+
+# Claude publishes 5h, 7d, and Fable windows through claude-usage.
+_resume_wait_claude() {
+  local now seven_day resets_5h resets_7d fable resets_fable
+  now=$(date +%s)
+  IFS=$'\t' read -r seven_day resets_5h resets_7d fable resets_fable < <(_resume_claude_usage) || return 1
+
+  local weekly_hit=0 target=0
+  if [ "${fable:-0}" -ge 100 ]; then
+    [ "$resets_fable" -le "$now" ] && { echo "resume: over Fable limit (${fable}%) but resets_fable=$resets_fable is not in the future — snapshot stale" >&2; return 1; }
+    weekly_hit=1
+    target=$resets_fable
+  fi
+  _resume_weekly_delay "$now" "$seven_day" "$resets_7d" "$resets_5h" "$weekly_hit" "$target"
+}
+
+# Codex records rate limits in the newest session rollout.
+_resume_wait_codex() {
+  local now latest seven_day resets_5h resets_7d
+  now=$(date +%s)
+  latest=$(command ls ~/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | sort -r | head -1)
+  [ -n "$latest" ] || { echo "resume: no codex session rollouts in ~/.codex/sessions — run codex at least once first" >&2; return 1; }
+  IFS=$'\t' read -r seven_day resets_5h resets_7d <<<"$(jq -rc 'select(.payload.rate_limits != null) | .payload.rate_limits | [(.secondary.used_percent // 0 | floor), (.primary.resets_at // 0), (.secondary.resets_at // 0)] | @tsv' "$latest" 2>/dev/null | tail -1)"
+  [ -n "$resets_5h" ] || { echo "resume: no rate_limits data in latest codex rollout — session too short" >&2; return 1; }
+  _resume_weekly_delay "$now" "$seven_day" "$resets_7d" "$resets_5h" 0 0
+}
+
+# Grok logs billing snapshots (creditUsagePercent + period end) into its
+# unified log whenever a session fetches credits. No separate 5h window.
+_resume_wait_grok() {
+  local now log_file used_pct period_end
+  now=$(date +%s)
+  log_file="${HOME}/.grok/logs/unified.jsonl"
+  [ -f "$log_file" ] || { echo "resume: no grok log at $log_file — run grok at least once first" >&2; return 1; }
+  IFS=$'\t' read -r used_pct period_end < <(jq -rc '
+    select(.msg == "billing: fetched credits config")
+    | .ctx.config as $c
+    | [
+        ($c.creditUsagePercent // 0 | floor),
+        (
+          ($c.billingPeriodEnd // $c.currentPeriod.end // empty)
+          | sub("\\.[0-9]+"; "")
+          | sub("\\+00:00$"; "Z")
+          | fromdateiso8601
+        )
+      ]
+    | @tsv
+  ' "$log_file" 2>/dev/null | tail -1)
+  [ -n "$period_end" ] || { echo "resume: no billing credits data in $log_file — run grok at least once first" >&2; return 1; }
+  if [ "$used_pct" -ge 100 ]; then
+    [ "$period_end" -le "$now" ] && { echo "resume: over credit limit (${used_pct}%) but period_end=$period_end is not in the future — snapshot stale" >&2; return 1; }
+    _resume_delay=$(( period_end - now ))
+  else
+    _resume_delay=0
+  fi
+}
+
+# Shared by the harnesses that expose a weekly cap plus a rolling 5h window:
+# wait out the weekly reset when it is hit, else the 5h one.
+# Args: now seven_day resets_7d resets_5h weekly_hit target
+_resume_weekly_delay() {
+  local now="$1" seven_day="$2" resets_7d="$3" resets_5h="$4" weekly_hit="$5" target="$6"
+  if [ "$seven_day" -ge 100 ]; then
+    [ "$resets_7d" -le "$now" ] && { echo "resume: over 7d limit (${seven_day}%) but resets_7d=$resets_7d is not in the future — snapshot stale" >&2; return 1; }
+    weekly_hit=1
+    [ "$resets_7d" -gt "$target" ] && target=$resets_7d
+  fi
+  if [ "$weekly_hit" -eq 1 ]; then
+    [ "$resets_5h" -gt "$target" ] && target=$resets_5h
+    _resume_delay=$(( target - now ))
+  elif [ "$resets_5h" -le "$now" ]; then
+    echo "resume: no active 5h window (resets_5h=$resets_5h, now=$now)" >&2
+    return 1
+  else
+    _resume_delay=$(( resets_5h - now ))
+  fi
+}
+
+_resume_is_tool() {
+  case " $_RESUME_TOOLS " in *" $1 "*) return 0 ;; *) return 1 ;; esac
+}
+
+_resume_tool_choices() {
+  printf '%s' "$_RESUME_TOOLS" | tr ' ' '|'
+}
+
 resume() {
   local session=""
   local new_session=0
@@ -90,15 +214,15 @@ resume() {
   local a1="$1" a2="$2"
 
   local tool time_str
-  if [[ $a1 == codex || $a1 == claude || $a1 == grok ]]; then
+  if _resume_is_tool "$a1"; then
     tool="$a1"
-    if [[ $a2 == codex || $a2 == claude || $a2 == grok ]]; then
-      echo "resume: got two tool names; expected <codex|claude|grok> [time|duration] [--session ID] [--new] [prompt]" >&2
+    if _resume_is_tool "$a2"; then
+      echo "resume: got two tool names; expected <$(_resume_tool_choices)> [time|duration] [--session ID] [--new] [prompt]" >&2
       return 1
     fi
     time_str="$a2"
     if [ -n "$time_str" ]; then shift 2; else shift 1; fi
-  elif [[ $a2 == codex || $a2 == claude || $a2 == grok ]]; then
+  elif _resume_is_tool "$a2"; then
     tool="$a2"; time_str="$a1"
     shift 2
   else
@@ -113,69 +237,13 @@ resume() {
 
   local delay
   if [ -z "$time_str" ]; then
-    local now
-    now=$(date +%s)
-    if [[ $tool == grok ]]; then
-      # Grok logs billing snapshots (creditUsagePercent + period end) into its
-      # unified log whenever a session fetches credits. No separate 5h window.
-      local log_file="${HOME}/.grok/logs/unified.jsonl"
-      [ -f "$log_file" ] || { echo "resume: no grok log at $log_file — run grok at least once first" >&2; return 1; }
-      local used_pct period_end
-      IFS=$'\t' read -r used_pct period_end < <(jq -rc '
-        select(.msg == "billing: fetched credits config")
-        | .ctx.config as $c
-        | [
-            ($c.creditUsagePercent // 0 | floor),
-            (
-              ($c.billingPeriodEnd // $c.currentPeriod.end // empty)
-              | sub("\\.[0-9]+"; "")
-              | sub("\\+00:00$"; "Z")
-              | fromdateiso8601
-            )
-          ]
-        | @tsv
-      ' "$log_file" 2>/dev/null | tail -1)
-      [ -n "$period_end" ] || { echo "resume: no billing credits data in $log_file — run grok at least once first" >&2; return 1; }
-      if [ "$used_pct" -ge 100 ]; then
-        [ "$period_end" -le "$now" ] && { echo "resume: over credit limit (${used_pct}%) but period_end=$period_end is not in the future — snapshot stale" >&2; return 1; }
-        delay=$(( period_end - now ))
-      else
-        delay=0
-      fi
-    else
-      local seven_day resets_5h resets_7d
-      case "$tool" in
-        claude)
-          local fable=0 resets_fable=0
-          IFS=$'\t' read -r seven_day resets_5h resets_7d fable resets_fable < <(_resume_claude_usage) || return 1 ;;
-        codex)
-          local latest
-          latest=$(command ls ~/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | sort -r | head -1)
-          [ -n "$latest" ] || { echo "resume: no codex session rollouts in ~/.codex/sessions — run codex at least once first" >&2; return 1; }
-          IFS=$'\t' read -r seven_day resets_5h resets_7d <<<"$(jq -rc 'select(.payload.rate_limits != null) | .payload.rate_limits | [(.secondary.used_percent // 0 | floor), (.primary.resets_at // 0), (.secondary.resets_at // 0)] | @tsv' "$latest" 2>/dev/null | tail -1)"
-          [ -n "$resets_5h" ] || { echo "resume: no rate_limits data in latest codex rollout — session too short" >&2; return 1; } ;;
-      esac
-      local weekly_hit=0 target=0
-      if [ "$tool" = claude ] && [ "${fable:-0}" -ge 100 ]; then
-        [ "$resets_fable" -le "$now" ] && { echo "resume: over Fable limit (${fable}%) but resets_fable=$resets_fable is not in the future — snapshot stale" >&2; return 1; }
-        weekly_hit=1
-        target=$resets_fable
-      fi
-      if [ "$seven_day" -ge 100 ]; then
-        [ "$resets_7d" -le "$now" ] && { echo "resume: over 7d limit (${seven_day}%) but resets_7d=$resets_7d is not in the future — snapshot stale" >&2; return 1; }
-        weekly_hit=1
-        [ "$resets_7d" -gt "$target" ] && target=$resets_7d
-      fi
-      if (( weekly_hit )); then
-        [ "$resets_5h" -gt "$target" ] && target=$resets_5h
-        delay=$(( target - now ))
-      elif [ "$resets_5h" -le "$now" ]; then
-        echo "resume: no active 5h window (resets_5h=$resets_5h, now=$now)" >&2
-        return 1
-      else
-        delay=$(( resets_5h - now ))
-      fi
+    if ! command -v "_resume_wait_$tool" >/dev/null 2>&1; then
+      echo "resume: $tool exposes no rate-limit source — pass a time or duration" >&2
+      return 1
     fi
+    _resume_delay=""
+    "_resume_wait_$tool" || return 1
+    delay=$_resume_delay
   else
     local num rest
     num="${time_str%%[!0-9]*}"
@@ -214,22 +282,13 @@ resume() {
   fi
 
   local -a cmd
-  case "$tool" in
-    codex)
-      if (( new )); then
-        cmd=(codex --dangerously-bypass-approvals-and-sandbox)
-      else
-        cmd=(codex resume --dangerously-bypass-approvals-and-sandbox "$selected_session")
-      fi ;;
-    claude)
-      cmd=(claude --dangerously-skip-permissions)
-      (( new )) || cmd+=(--resume "$selected_session") ;;
-    grok)
-      # Config may already set permission_mode=always-approve; pass it explicitly
-      # so delayed launches stay yolo even if config differs on another machine.
-      cmd=(grok --always-approve)
-      (( new )) || cmd+=(--resume "$selected_session") ;;
-  esac
+  _resume_cmd=()
+  if (( new )); then
+    "_resume_launch_$tool" ""
+  else
+    "_resume_launch_$tool" "$selected_session"
+  fi
+  cmd=("${_resume_cmd[@]}")
 
   local target_clock
   target_clock=$(date -r $(($(date +%s) + delay)) '+%I:%M %p')
@@ -245,10 +304,10 @@ resume() {
 }
 
 _resume_help() {
-  cat <<'EOF'
-Usage: resume <codex|claude|grok> [time|duration] [options] [prompt]
+  cat <<EOF
+Usage: resume <tool> [time|duration] [options] [prompt]
 
-Delay-launch a claude, codex, or grok session.
+Delay-launch an agent session. Supported tools are listed below.
 Tool, time/duration, and options may be passed in any order.
 
 No prompt arg resumes this terminal tab's last session with prompt "continue".
@@ -260,13 +319,15 @@ Use -w/--wake to schedule a Mac wake at the target time (needs admin).
 Time/duration:
   7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
   3000s, 45m, 2h, 3d            duration in seconds/minutes/hours/days
-  omitted                       next rate-limit reset
+  omitted                       next rate-limit reset (tools that report one)
 
 Options:
-  -s, --session ID_OR_NAME       resume a specific claude/codex/grok session
+  -s, --session ID_OR_NAME       resume a specific session
   -n, --new                      start a new session
   -w, --wake                     schedule a Mac wake at the target time
   -h, --help                     show this help
+
+Tools: $(printf '%s' "$_RESUME_TOOLS" | sed 's/ /, /g')
 
 Examples:
   resume claude

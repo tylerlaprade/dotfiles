@@ -13,6 +13,7 @@ latest_codex_session="22222222-2222-4222-8222-222222222222"
 tab_codex_session="33333333-3333-4333-8333-333333333333"
 tab_claude_session="44444444-4444-4444-8444-444444444444"
 tab_grok_session="55555555-5555-4555-8555-555555555555"
+tab_opencode_session="ses_66666666666666666666666666"
 : > "$HOME/.codex/sessions/2026/05/30/rollout-2026-05-30T10-00-00-$old_codex_session.jsonl"
 print -r -- '{"payload":{"rate_limits":{"secondary":{"used_percent":50,"resets_at":2000},"primary":{"resets_at":1500}}}}' \
   > "$HOME/.codex/sessions/2026/05/31/rollout-2026-05-31T10-00-00-$latest_codex_session.jsonl"
@@ -61,6 +62,7 @@ session-guard() {
     codex) [[ -n "$tab_codex_session" ]] || return 1; print -r -- "$tab_codex_session" ;;
     claude) [[ -n "$tab_claude_session" ]] || return 1; print -r -- "$tab_claude_session" ;;
     grok) [[ -n "$tab_grok_session" ]] || return 1; print -r -- "$tab_grok_session" ;;
+    opencode) [[ -n "$tab_opencode_session" ]] || return 1; print -r -- "$tab_opencode_session" ;;
     *) return 2 ;;
   esac
 }
@@ -134,9 +136,9 @@ expect_no_cmd() {
 
 expected_help() {
   cat <<'EOF'
-Usage: resume <codex|claude|grok> [time|duration] [options] [prompt]
+Usage: resume <tool> [time|duration] [options] [prompt]
 
-Delay-launch a claude, codex, or grok session.
+Delay-launch an agent session. Supported tools are listed below.
 Tool, time/duration, and options may be passed in any order.
 
 No prompt arg resumes this terminal tab's last session with prompt "continue".
@@ -148,13 +150,15 @@ Use -w/--wake to schedule a Mac wake at the target time (needs admin).
 Time/duration:
   7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
   3000s, 45m, 2h, 3d            duration in seconds/minutes/hours/days
-  omitted                       next rate-limit reset
+  omitted                       next rate-limit reset (tools that report one)
 
 Options:
-  -s, --session ID_OR_NAME       resume a specific claude/codex/grok session
+  -s, --session ID_OR_NAME       resume a specific session
   -n, --new                      start a new session
   -w, --wake                     schedule a Mac wake at the target time
   -h, --help                     show this help
+
+Tools: claude, codex, grok, opencode
 
 Examples:
   resume claude
@@ -312,6 +316,28 @@ test_grok_new_with_prompt() {
   expect_cmd $'grok\n--always-approve\nnew prompt'
 }
 
+# OpenCode was added to the registry as data alone: no launch code outside its
+# one entry, and no rate-limit reader, so the no-time path must say so.
+test_opencode_continue() {
+  run_resume opencode 0s
+  expect_status 0
+  expect_label "Resuming opencode"
+  expect_cmd $'opencode\n--session\nses_66666666666666666666666666\ncontinue'
+}
+
+test_opencode_new() {
+  run_resume --new opencode 0s
+  expect_status 0
+  expect_label "Starting new opencode"
+  expect_cmd $'opencode'
+}
+
+test_opencode_no_rate_limit_source() {
+  run_resume opencode
+  expect_status 1
+  expect_stderr "resume: opencode exposes no rate-limit source — pass a time or duration"
+}
+
 test_grok_new_without_prompt() {
   run_resume --new grok 0s
   expect_status 0
@@ -420,13 +446,13 @@ test_bare_number_rejected() {
 test_two_tools_rejected() {
   run_resume codex claude
   expect_status 1
-  expect_stderr "resume: got two tool names; expected <codex|claude|grok> [time|duration] [--session ID] [--new] [prompt]"
+  expect_stderr "resume: got two tool names; expected <claude|codex|grok|opencode> [time|duration] [--session ID] [--new] [prompt]"
 }
 
 test_two_tools_with_grok_rejected() {
   run_resume grok codex
   expect_status 1
-  expect_stderr "resume: got two tool names; expected <codex|claude|grok> [time|duration] [--session ID] [--new] [prompt]"
+  expect_stderr "resume: got two tool names; expected <claude|codex|grok|opencode> [time|duration] [--session ID] [--new] [prompt]"
 }
 
 test_missing_session_value_rejected() {
@@ -487,6 +513,9 @@ run_case "grok prompt resumes instead of starting new" test_grok_prompt_resumes
 run_case "grok explicit session accepts prompt" test_grok_session_with_prompt
 run_case "grok --new starts fresh with prompt" test_grok_new_with_prompt
 run_case "grok --new starts fresh without prompt" test_grok_new_without_prompt
+run_case "opencode resumes this tab's session" test_opencode_continue
+run_case "opencode --new starts fresh" test_opencode_new
+run_case "opencode without a time reports no rate-limit source" test_opencode_no_rate_limit_source
 run_case "grok under credit limit starts immediately" test_grok_under_limit_starts_now
 run_case "grok at credit limit waits for period end" test_grok_at_limit_waits_for_period_end
 run_case "grok at credit limit with stale period errors" test_grok_at_limit_stale_period_errors
