@@ -6,11 +6,12 @@ disable-model-invocation: true
 ---
 
 One job: after this session ends, no pending work is lost. A handoff is not
-documentation; durable decisions belong in the repo, not here.
+documentation; durable decisions belong in the repo, not here. Open items
+are unfinished work, not dropped requests or those decisions.
 
 # Write mode: `/handoff [slug]`
 
-Harvest what is pending and what only this session knows:
+Harvest pending work into numbered open items:
 
 - User requests not yet delivered — including hedged ones and unanswered
   questions. Quote the user's words where nuance matters.
@@ -23,11 +24,13 @@ Harvest what is pending and what only this session knows:
   systems touched, env or config the next session must set up again.
 - Temporary edits that must come out before landing: skipped tests, debug
   logging, hardcoded values, disabled checks.
-- Findings produced here but recorded nowhere, and dead ends already tried.
 - Scratchpad files that still matter: copy them into the handoff's
   subdirectory (see below).
-- If this session picked up a handoff, carry its still-open items forward.
-  Note if the transcript was compacted.
+- If this session picked up a handoff, carry its still-open items forward
+  and move that handoff to `done/`. Note if the transcript was compacted.
+
+Also record, as context rather than items: findings produced here but
+recorded nowhere, and dead ends already tried.
 
 On a long or compacted session, also read back this session's own
 transcript from disk (the recall skill documents where each agent keeps
@@ -59,7 +62,14 @@ flight, say so and write nothing.
   one.
 - Verify live-state claims against the repo and flag drift. A file now clean
   may have been committed — check `git log` before assuming loss.
-- Reply with the open items you now own.
-- Move a handoff to `done/` only when its items are finished or carried into
-  a new handoff — never on reading. Never delete an un-picked-up handoff;
-  entries in `done/` older than 30 days may be deleted.
+- Reply with the unfinished work you now own, and the path you will move to
+  `done/` when that work is gone.
+
+# Close-out
+
+This skill is not a mode that stays loaded. After pickup, close-out is the
+duty named in that reply. When that unfinished work is gone, move the file
+to `done/` without being asked. Leave it open while work remains. A later
+`/handoff` also moves it if leftovers are carried into a new file. Never
+delete an un-picked-up handoff; entries in `done/` older than 30 days may
+be deleted.
