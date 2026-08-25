@@ -1,7 +1,7 @@
 ---
 name: handoff
 description: End-of-day handoff. /handoff captures every in-flight item from this session into a file so the session can end safely; /handoff pickup restores one into a fresh session.
-argument-hint: [pickup] [slug]
+argument-hint: "[pickup] [slug]"
 disable-model-invocation: true
 ---
 
