@@ -1,5 +1,5 @@
 adjust-cursor-thickness = 2
-auto-update-channel = stable
+auto-update-channel = tip
 bell-features = system,border
 copy-on-select = clipboard
 cursor-color = cell-foreground
