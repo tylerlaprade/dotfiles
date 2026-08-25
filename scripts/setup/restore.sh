@@ -152,5 +152,7 @@ echo "     sudo sh -c 'echo \"127.0.0.1       local.paqarina.dev\" >> /etc/hosts
 echo "  6. Re-add login items if needed: Discord, Granola, Graphite, Google Calendar, Slack"
 echo "     (Do NOT re-enable full Karabiner-Elements — Kanata owns Caps;"
 echo "      only Karabiner VirtualHID daemon is needed for Kanata on macOS)"
+echo "     (Do NOT add Monologue — it opens itself at login, so a login item"
+echo "      here makes it open twice)"
 echo "  7. Reinstall Google Calendar PWA in Brave (three dots > Install page as app):"
 echo "     https://calendar.google.com/calendar/r"

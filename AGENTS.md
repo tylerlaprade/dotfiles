@@ -5,9 +5,7 @@
 - The Mouse Keys Option-five-times toggle and built-in-trackpad behavior are
   deliberate because they let Tyler disable the trackpad for his daughter.
   Dock autohide stays on. `com.zeitalabs.jottleai` is Monologue and remains
-  excluded from synced defaults because it stores account data. Monologue
-  opens itself at login through its own setting, so it must stay out of the
-  macOS login items; adding it there opens the app twice.
+  excluded from synced defaults because it stores account data.
 - The `claude()` GPG prewarm already heals a stale keyboxd lock. Diagnose its
   current log and code before changing the wrapper; do not restart
   `gpg-agent` as a first response.
