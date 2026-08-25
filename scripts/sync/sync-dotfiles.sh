@@ -108,7 +108,8 @@ for item in "$DOTFILES"/.codex/skills/*; do
   link "$item" "$HOME/.codex/skills/$(basename "$item")"
 done
 
-# Gemini CLI global context: shared prefs only.
+# Antigravity CLI (agy) global context: shared prefs only. It took over the old
+# Gemini CLI home at ~/.gemini and still reads GEMINI.md there.
 mkdir -p "$HOME/.gemini"
 link "$DOTFILES/.agents/AGENTS.md" "$HOME/.gemini/GEMINI.md"
 
