@@ -34,6 +34,9 @@ eval "$(fnm env --use-on-cd --shell bash)"
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
+# opencode
+export PATH="$HOME/.opencode/bin:$PATH"
+
 # Zellij dev session
 zj() {
   local name="${1:-$(basename "$(git rev-parse --show-toplevel 2>/dev/null)")}"

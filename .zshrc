@@ -40,6 +40,8 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 export PATH="$HOME/.cargo/bin:$PATH"
 export HELIX_RUNTIME="$HOME/Code/helix/runtime"
 
+# opencode
+export PATH="$HOME/.opencode/bin:$PATH"
 
 # Zellij dev session - uses git repo name or optional argument
 zj() {
