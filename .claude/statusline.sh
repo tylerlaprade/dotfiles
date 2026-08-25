@@ -204,61 +204,20 @@ if [ -f ~/.claude/overage-gate ] && [ ! -f /tmp/claude-overage-override ]; then
   fi
 fi
 
-# For pace coloring, trim a natural window end back to the most recent weekday 5pm ET
-# if `end` falls in the following off-hours dead zone (Mon-Thu 5pm → next 9am, Fri 5pm → Mon 9am).
-# Else return `end` unchanged. Args: $1 = now (unix), $2 = end (unix).
-work_trimmed_end() {
-  local now=$1 end=$2 ymd cutoff dow fwd next_ymd next_work
-  ymd=$(TZ="America/New_York" date -r "$end" +%Y-%m-%d)
-  cutoff=$(TZ="America/New_York" date -j -f "%Y-%m-%d %H:%M:%S" "$ymd 17:00:00" +%s 2>/dev/null)
-  [ "$cutoff" -gt "$end" ] && cutoff=$(( cutoff - 86400 ))
-  dow=$(TZ="America/New_York" date -r "$cutoff" +%u)
-  case "$dow" in
-    6) cutoff=$(( cutoff - 86400 )); dow=5 ;;
-    7) cutoff=$(( cutoff - 2 * 86400 )); dow=5 ;;
-  esac
-  [ "$cutoff" -lt "$now" ] && { echo "$end"; return; }
-  [ "$dow" -eq 5 ] && fwd=3 || fwd=1
-  next_ymd=$(TZ="America/New_York" date -r "$(( cutoff + fwd * 86400 ))" +%Y-%m-%d)
-  next_work=$(TZ="America/New_York" date -j -f "%Y-%m-%d %H:%M:%S" "$next_ymd 09:00:00" +%s 2>/dev/null)
-  [ "$end" -lt "$next_work" ] && echo "$cutoff" || echo "$end"
-}
-
-format_rate() {
-  local pct=$1 resets=$2 window_secs=$3 display_override=$4 display_color=$5
-  [ -z "$pct" ] && return
-
+# Pace of what's left: remaining_time / remaining_budget, as a color in r/g/b.
+# On schedule this is 1.0x, same as used/elapsed. Empty remaining budget is
+# 1/0 (unbounded), so 0% left is much redder than 12% left. The old
+# used/elapsed ratio at the same clock time was 1.20x vs 1.37x.
+# Args: $1 = used percent, $2 = resets (unix), $3 = window seconds.
+pace_gradient() {
+  local pct=$1 resets=$2 window_secs=$3
   local now=$(date +%s)
   local time_remaining=$(( resets - now ))
   [ "$time_remaining" -lt 0 ] && time_remaining=0
   local time_elapsed=$(( window_secs - time_remaining ))
   [ "$time_elapsed" -lt 60 ] && time_elapsed=60
-  # Trim to last weekday 5pm ET for pace coloring only (display stays untouched)
-  local effective_end=$(work_trimmed_end "$now" "$resets")
-  local effective_window_secs=$(( window_secs - (resets - effective_end) ))
-  [ "$effective_window_secs" -lt 60 ] && effective_window_secs=60
 
-  local info
-  if [ -n "$display_override" ]; then
-    info="${display_color}${display_override}${RESET}"
-  else
-    # Absolute hard-limit usage: 0-55% green, 55-75% green→yellow,
-    # 75-95% yellow→bright red, 95%+ bright red. Print the number as
-    # reported — no "+" for "maybe over."
-    rate_usage_gradient "$pct"
-    local pct_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
-    local suffix="%"
-    # Stdin 5h/7d bars stop at 100, so "+" means "at or over." Fable from
-    # /usage is an exact percent and does not pass this flag.
-    [ -n "${6:-}" ] && [ "$pct" -ge 100 ] && suffix="%+"
-    info="${pct_color}${pct}${suffix}${RESET}"
-  fi
-
-  # Pace of what's left: remaining_time / remaining_budget.
-  # On schedule this is 1.0x, same as used/elapsed. Empty remaining budget
-  # is 1/0 (unbounded), so 0% left is much redder than 12% left. The old
-  # used/elapsed ratio at the same clock time was 1.20x vs 1.37x.
-  local time_elapsed_pct=$(( time_elapsed * 100 / effective_window_secs ))
+  local time_elapsed_pct=$(( time_elapsed * 100 / window_secs ))
   local left_pct=$(( 100 - pct ))
   local left_time=$(( 100 - time_elapsed_pct ))
   [ "$left_pct" -lt 0 ] && left_pct=0
@@ -276,13 +235,41 @@ format_rate() {
     ratio=100
   fi
 
-  # Pace gradient for time remaining
+  # Pace gradient:
   #   ≤0.50x: flat blue, 0.50-0.75x: blue→green, ≤0.75x: flat green,
   #   0.75-0.98x: green→yellow, 0.98-1.25x: yellow→red, >1.25x: asymptotic red
   tn_gradient "$ratio" 75 98 125 80 50
-  local time_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
+}
+
+format_rate() {
+  local pct=$1 resets=$2 window_secs=$3 display_override=$4 display_color=$5
+  [ -z "$pct" ] && return
+
+  local now=$(date +%s)
+  local time_remaining=$(( resets - now ))
+  [ "$time_remaining" -lt 0 ] && time_remaining=0
+  local time_elapsed=$(( window_secs - time_remaining ))
+  [ "$time_elapsed" -lt 60 ] && time_elapsed=60
+
+  local info
+  if [ -n "$display_override" ]; then
+    info="${display_color}${display_override}${RESET}"
+  else
+    # Absolute hard-limit usage: 0-55% green, 55-75% green→yellow,
+    # 75-95% yellow→bright red, 95%+ bright red. Print the number as
+    # reported — no "+" for "maybe over."
+    rate_usage_gradient "$pct"
+    local pct_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
+    local suffix="%"
+    # Stdin 5h/7d bars stop at 100, so "+" means "at or over." Fable from
+    # /usage is an exact percent and does not pass this flag.
+    [ -n "${6:-}" ] && [ "$pct" -ge 100 ] && suffix="%+"
+    info="${pct_color}${pct}${suffix}${RESET}"
+  fi
 
   if [ "$time_remaining" -gt 0 ]; then
+    pace_gradient "$pct" "$resets" "$window_secs"
+    local time_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
     local reset_str
     if [ "$time_remaining" -lt 86400 ]; then
       reset_str=$(TZ="America/New_York" date -r "$resets" +"%-I:%M %p" 2>/dev/null)
@@ -301,7 +288,6 @@ format_rate() {
       remaining="${mins}m"
     fi
     # Reset-time proximity: blue just after reset → green → yellow → red as it nears.
-    # Uses the raw window share, not the work-trimmed one — proximity is literal.
     tn_gradient $(( time_elapsed * 100 / window_secs )) 55 80 95 80 20
     local reset_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
     [ -n "$reset_str" ] && info="${info} (resets in ${time_color}${remaining}${RESET} at ${reset_color}${reset_str}${RESET})"
@@ -351,13 +337,16 @@ if [ -n "$_usage" ]; then
       fable_part="${DIM}Fable unavailable${RESET}"
     fi
   elif [ -n "$rate_fable" ]; then
-    # Same weekly reset as 7d: omit the duplicate countdown. Compare
-    # within the usage payload — stdin 7d can be one second off.
+    # Same weekly reset as 7d: omit the duplicate countdown, and pace-color the
+    # percent so the pace still shows somewhere. Compare within the usage
+    # payload — stdin 7d can be one second off.
     if [ -n "$resets_fable" ] && [ -n "$usage_resets_7d" ] && [ "$resets_fable" = "$usage_resets_7d" ]; then
-      rate_usage_gradient "$rate_fable"
+      pace_gradient "$rate_fable" "$resets_fable" 604800
       fable_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
       fable_part="Fable ${fable_color}${rate_fable}%${RESET}"
     else
+      # Resets diverged: the countdown carries the pace, so the percent goes
+      # back to the absolute gradient, same as 5h and 7d.
       rate=$(format_rate "$rate_fable" "$resets_fable" 604800)
       [ -n "$rate" ] && fable_part="Fable $rate"
     fi
