@@ -6,7 +6,7 @@ cd "$(echo "$input" | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 read -r used_tokens window_tokens < <(
   echo "$input" | jq -r '[.context_window.total_input_tokens, .context_window.context_window_size] | @tsv'
 )
-pct=$(( (used_tokens * 100 + window_tokens / 2) / window_tokens ))
+pct=$(( used_tokens * 100 / window_tokens ))
 
 format_tokens() {
   local tokens=$1
@@ -175,8 +175,8 @@ fi
 ctx_info="${bar}${bar_color} ${pct}% · ${used_display}/${window_display}${RESET}"
 
 # Rate limit info
-rate_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty | round')
-rate_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty | round')
+rate_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty | floor')
+rate_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty | floor')
 resets_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
 resets_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
