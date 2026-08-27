@@ -205,40 +205,27 @@ if [ -f ~/.claude/overage-gate ] && [ ! -f /tmp/claude-overage-override ]; then
 fi
 
 # Pace of what's left: remaining_time / remaining_budget, as a color in r/g/b.
-# On schedule this is 1.0x, same as used/elapsed. Empty remaining budget is
-# 1/0 (unbounded), so 0% left is much redder than 12% left. The old
-# used/elapsed ratio at the same clock time was 1.20x vs 1.37x.
+# On schedule this is 1.0x, same as used/elapsed. An empty budget is T/0, and
+# the red tail's limit at that unbounded ratio is (255,0,0).
 # Args: $1 = used percent, $2 = resets (unix), $3 = window seconds.
 pace_gradient() {
   local pct=$1 resets=$2 window_secs=$3
   local now=$(date +%s)
   local time_remaining=$(( resets - now ))
   [ "$time_remaining" -lt 0 ] && time_remaining=0
-  local time_elapsed=$(( window_secs - time_remaining ))
-  [ "$time_elapsed" -lt 60 ] && time_elapsed=60
+  [ "$time_remaining" -gt "$window_secs" ] && time_remaining=$window_secs
 
-  local time_elapsed_pct=$(( time_elapsed * 100 / window_secs ))
   local left_pct=$(( 100 - pct ))
-  local left_time=$(( 100 - time_elapsed_pct ))
   [ "$left_pct" -lt 0 ] && left_pct=0
-  [ "$left_time" -lt 0 ] && left_time=0
-  local ratio
   if [ "$left_pct" -eq 0 ]; then
-    if [ "$left_time" -eq 0 ]; then
-      ratio=100
-    else
-      ratio=$(( left_time * 100 ))
-    fi
-  elif [ "$time_elapsed_pct" -gt 0 ]; then
-    ratio=$(( left_time * 100 / left_pct ))
-  else
-    ratio=100
+    r=255 g=0 b=0
+    return
   fi
 
   # Pace gradient:
   #   ≤0.50x: flat blue, 0.50-0.75x: blue→green, ≤0.75x: flat green,
   #   0.75-0.98x: green→yellow, 0.98-1.25x: yellow→red, >1.25x: asymptotic red
-  tn_gradient "$ratio" 75 98 125 80 50
+  tn_gradient $(( time_remaining * 10000 / (window_secs * left_pct) )) 75 98 125 80 50
 }
 
 format_rate() {
