@@ -29,7 +29,12 @@
     ],
     "deny": [
       "Bash(npx skills:*)",
-      "Bash(skills:*)"
+      "Bash(skills:*)",
+      "Bash(git checkout:*)",
+      "Bash(git restore:*)",
+      "Bash(git reset:*)",
+      "Bash(git stash:*)",
+      "Bash(git clean:*)"
     ],
     "defaultMode": "bypassPermissions"
   },
@@ -259,12 +264,14 @@
     }
   },
   "alwaysThinkingEnabled": true,
-  "effortLevel": "xhigh",
   "modelSettings": {
     "claude-opus-5": {
-      "effortLevel": "high"
+      "effortLevel": "xhigh"
     },
     "claude-sonnet-5": {
+      "effortLevel": "high"
+    },
+    "claude-fable-5": {
       "effortLevel": "high"
     }
   },
