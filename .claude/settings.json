@@ -93,6 +93,15 @@
             "command": "/Users/tyler/.cargo/bin/claude-title hook"
           }
         ]
+      },
+      {
+        "matcher": "Agent|Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/subagent-model-guard.sh"
+          }
+        ]
       }
     ],
     "SessionEnd": [
