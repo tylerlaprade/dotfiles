@@ -1,6 +1,6 @@
 # recall
 
-Ever lost a conversation session with Claude Code, Codex, or Grok and wish you could resume it? This skill lets agents search across all your past conversations with full-text search. Builds a SQLite FTS5 index over `~/.claude/projects/`, `~/.codex/sessions/`, and `~/.grok/sessions/**/chat_history.jsonl` with BM25 ranking, Porter stemming, and incremental updates.
+Ever lost a conversation session with Claude Code, Codex, Grok, Antigravity, or OpenCode and wish you could resume it? This skill lets agents search across all your past conversations with full-text search. Builds a SQLite FTS5 index over every one of those tools' histories with BM25 ranking, Porter stemming, and incremental updates.
 
 This is a fork of [arjunkmrm/recall](https://github.com/arjunkmrm/recall), taken at
 0.2.2. It replaces upstream's `pi` support with Grok, indexes only what a session
@@ -16,15 +16,16 @@ install.
 Do not run `npx skills add arjunkmrm/recall`. It defaults to project scope,
 which deletes `.agents/skills/recall` and replaces it with upstream.
 
-Then use `/recall` in Claude Code, Codex, or Grok, or ask "find a past session where we talked about foo" (you might need to restart the agent).
+Then use `/recall` in any of those agents, or ask "find a past session where we talked about foo" (you might need to restart the agent).
 
 ## How it works
 
 ```
   ~/.claude/projects/**/*.jsonl ─────────────┐
-  ~/.codex/sessions/**/*.jsonl ──────────────┼─▶ Index ──▶ ~/.recall.db (SQLite FTS5, 0600)
-  ~/.grok/sessions/**/chat_history.jsonl ────┘      │
-                                                    │  reads only what was appended
+  ~/.codex/sessions/**/*.jsonl               │
+  ~/.grok/sessions/**/chat_history.jsonl ────┼─▶ Index ──▶ ~/.recall.db (SQLite FTS5, 0600)
+  ~/.gemini/antigravity-cli/brain/**         │      │
+  ~/.local/share/opencode/opencode.db ───────┘      │  reads only what was appended
                                                     │
   Query ──▶ FTS5 Match ──▶ BM25 rank ──▶ Recency boost ──▶ Results
                 │                    [half-life: 30 days]
@@ -38,7 +39,7 @@ Then use `/recall` in Claude Code, Codex, or Grok, or ask "find a past session w
 - Indexes user/assistant messages into a SQLite FTS5 database at `~/.recall.db`, created readable only by you
 - Skips tool_use, tool_result, thinking, synthetic harness context, and image blocks
 - Results ranked by BM25 with a slight recency bias (recent sessions get up to a 20% boost, decaying with a 30-day half-life)
-- Results tagged `[claude]`, `[codex]`, or `[grok]` with highlighted excerpts
+- Results tagged `[claude]`, `[codex]`, `[grok]`, `[antigravity]`, or `[opencode]` with highlighted excerpts
 - Hyphenated search terms are split into quoted words, because FTS5 reads a bare `-` as NOT
 - Run it with no query at all to list recent sessions by date instead of searching
 - No dependencies — Python 3.9+ stdlib only. POSIX only, since it uses `fcntl` for locking
@@ -53,7 +54,10 @@ a message removed from the middle, and it is read again from the start.
 
 Grok is always read in full: it rewrites the whole of `chat_history.jsonl`
 through a temp file every time it saves, so a byte offset into one means
-nothing.
+nothing. OpenCode has no file per session at all — every session is rows in
+one SQLite database, addressed as `<opencode.db>#<session id>` and read again
+whenever that session's own `time_updated` moves. Antigravity appends like
+Claude and Codex and resumes the same way.
 
 Change what a parser keeps or drops and the already-indexed part of every
 session would keep its old parsing. Bump `PARSER_VERSION` in

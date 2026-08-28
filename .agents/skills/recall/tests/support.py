@@ -1,8 +1,10 @@
 """Shared fixtures for the recall test suite.
 
 Every test builds its own session files in a temporary directory. Nothing here
-reads ~/.claude, ~/.codex, ~/.grok, or ~/.recall.db — the suite must be safe to
-run on a machine with real sessions on it.
+reads ~/.claude, ~/.codex, ~/.grok, ~/.gemini, ~/.local/share/opencode, or
+~/.recall.db — the suite must be safe to run on a machine with real sessions
+on it. A source added to the indexer must be added to `pointed_at` too, or the
+suite silently starts indexing the real one.
 
 Session files are written through Corpus, which bumps each file's mtime by a
 fixed step on every write. The indexer decides what to look at by mtime, and
@@ -54,6 +56,37 @@ def grok_entry(text, role="user"):
     return {"type": role, "content": text}
 
 
+def antigravity_entry(text, role="user", ts="2026-01-01T00:00:00Z"):
+    """One step of an Antigravity transcript.
+
+    A user step arrives wrapped in <USER_REQUEST> with harness blocks after
+    it; the parser keeps only the request.
+    """
+    if role == "user":
+        return {"source": "USER_EXPLICIT", "type": "USER_INPUT", "created_at": ts,
+                "content": f"<USER_REQUEST>\n{text}\n</USER_REQUEST>\n"
+                           "<ADDITIONAL_METADATA>\nThe current local time is: "
+                           "2026-01-01T00:00:00-05:00.\n</ADDITIONAL_METADATA>"}
+    return {"source": "MODEL", "type": "PLANNER_RESPONSE", "created_at": ts,
+            "content": text}
+
+
+# Steps Antigravity writes that are not turns: system bookkeeping and the tool
+# calls that make up most of a trajectory.
+ANTIGRAVITY_NON_MESSAGE_STEPS = (
+    ("SYSTEM", "CONVERSATION_HISTORY"), ("SYSTEM", "CHECKPOINT"),
+    ("MODEL", "VIEW_FILE"), ("MODEL", "LIST_DIRECTORY"),
+    ("MODEL", "GENERIC"), ("MODEL", "INVOKE_SUBAGENT"),
+)
+
+
+def antigravity_noise(ts="2026-01-01T00:00:00Z"):
+    """Real text in steps that are dropped for their source and type alone."""
+    return [{"source": source, "type": kind, "created_at": ts,
+             "content": f"{kind} payload text"}
+            for source, kind in ANTIGRAVITY_NON_MESSAGE_STEPS]
+
+
 # Entry types Claude Code writes alongside the conversation. Real transcripts
 # are largely made of these, and none of them is a message.
 CLAUDE_NON_MESSAGE_TYPES = (
@@ -83,15 +116,18 @@ def grok_noise():
 
 
 class Corpus:
-    """A synthetic ~/.claude, ~/.codex and ~/.grok laid out under one root."""
+    """A synthetic home for every source, laid out under one root."""
 
     def __init__(self, root):
         self.root = Path(root)
         self.claude = self.root / "claude" / "projects"
         self.codex = self.root / "codex" / "sessions"
         self.grok = self.root / "grok" / "sessions"
-        for directory in (self.claude, self.codex, self.grok):
+        self.antigravity = self.root / "antigravity" / "brain"
+        self.opencode_db = self.root / "opencode" / "opencode.db"
+        for directory in (self.claude, self.codex, self.grok, self.antigravity):
             directory.mkdir(parents=True, exist_ok=True)
+        self.opencode_db.parent.mkdir(parents=True, exist_ok=True)
         self._tick = 0
 
     # — writing —————————————————————————————————————————————————————————————
@@ -140,6 +176,60 @@ class Corpus:
             (directory / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
         return self.write(directory / "chat_history.jsonl", entries)
 
+    def antigravity_session(self, session_uuid, entries):
+        directory = self.antigravity / session_uuid / ".system_generated" / "logs"
+        return self.write(directory / "transcript.jsonl", entries)
+
+    def opencode_session(self, session_id, messages, cwd="/work/project",
+                         title="a session", created=1_800_000_000_000):
+        """Write one OpenCode session, its messages, and their text parts.
+
+        `messages` is a list of (role, [text, ...]) — a message's text arrives
+        as several parts, and reasoning parts sit beside them.
+        """
+        conn = sqlite3.connect(str(self.opencode_db))
+        try:
+            conn.executescript("""
+                CREATE TABLE IF NOT EXISTS session (
+                    id TEXT PRIMARY KEY, directory TEXT, title TEXT,
+                    time_created INTEGER, time_updated INTEGER);
+                CREATE TABLE IF NOT EXISTS message (
+                    id TEXT PRIMARY KEY, session_id TEXT, time_created INTEGER,
+                    data TEXT);
+                CREATE TABLE IF NOT EXISTS part (
+                    id TEXT PRIMARY KEY, message_id TEXT, session_id TEXT,
+                    time_created INTEGER, data TEXT);
+            """)
+            self._tick += 1
+            conn.execute(
+                "INSERT OR REPLACE INTO session VALUES (?, ?, ?, ?, ?)",
+                (session_id, cwd, title, created,
+                 created + self._tick * 1000),
+            )
+            for m, (role, texts) in enumerate(messages):
+                message_id = f"{session_id}-msg{m}"
+                conn.execute(
+                    "INSERT OR REPLACE INTO message VALUES (?, ?, ?, ?)",
+                    (message_id, session_id, created + m,
+                     json.dumps({"role": role})),
+                )
+                for p, text in enumerate(texts):
+                    conn.execute(
+                        "INSERT OR REPLACE INTO part VALUES (?, ?, ?, ?, ?)",
+                        (f"{message_id}-part{p}", message_id, session_id,
+                         created + p, json.dumps({"type": "text", "text": text})),
+                    )
+                conn.execute(
+                    "INSERT OR REPLACE INTO part VALUES (?, ?, ?, ?, ?)",
+                    (f"{message_id}-reasoning", message_id, session_id,
+                     created + 900,
+                     json.dumps({"type": "reasoning", "text": "thinking out loud"})),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+        return f"{self.opencode_db}{recall.OPENCODE_PATH_SEP}{session_id}"
+
 
 _pointed_at_something = False
 
@@ -162,7 +252,8 @@ def pointed_at(corpus, db_path):
         )
 
     names = ("DB_PATH", "DB_LOCK_PATH", "CLAUDE_DIR",
-             "CLAUDE_PROJECTS_DIR", "CODEX_SESSIONS_DIR", "GROK_SESSIONS_DIR")
+             "CLAUDE_PROJECTS_DIR", "CODEX_SESSIONS_DIR", "GROK_SESSIONS_DIR",
+             "ANTIGRAVITY_BRAIN_DIR", "OPENCODE_DB")
     saved = {name: getattr(recall, name) for name in names}
     _pointed_at_something = True
     recall.DB_PATH = Path(db_path)
@@ -171,6 +262,8 @@ def pointed_at(corpus, db_path):
     recall.CLAUDE_PROJECTS_DIR = corpus.claude
     recall.CODEX_SESSIONS_DIR = corpus.codex
     recall.GROK_SESSIONS_DIR = corpus.grok
+    recall.ANTIGRAVITY_BRAIN_DIR = corpus.antigravity
+    recall.OPENCODE_DB = corpus.opencode_db
     try:
         yield
     finally:

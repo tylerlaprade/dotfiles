@@ -5,6 +5,26 @@ Forked from [arjunkmrm/recall](https://github.com/arjunkmrm/recall) at 0.2.2 on
 third source is `pi` where ours is Grok, so the two cannot simply be merged.
 Versions below 0.2.3 are upstream's; from 0.2.3 on they are local.
 
+## 0.5.0 — 2026-08-28
+
+- Index Antigravity (`agy`) and OpenCode sessions, so a ruling or decision made
+  in either is searchable beside the Claude, Codex, and Grok ones.
+- Antigravity keeps an append-only transcript per trajectory, a subagent's
+  sitting beside its parent's, and resumes from a byte offset like Claude and
+  Codex. Only the typed request and the planner's reply are kept; the tool
+  steps that make up most of a trajectory are dropped, as they are everywhere
+  else. It records no working directory, so those sessions carry no project.
+- OpenCode keeps every session as rows in one SQLite database, so a session is
+  addressed as `<opencode.db>#<session id>` and re-read whenever its own
+  `time_updated` moves — one changed session does not cost a re-read of the
+  rest. A message's text is joined from its `part` rows; reasoning parts are
+  dropped.
+- `scan_session_files` now yields a third value, the stored time for a source
+  whose sessions are rows rather than files. Real files still get stat'd.
+- `pointed_at` swaps the two new locations as well. Without that the suite
+  would have indexed the real `~/.gemini` and `~/.local/share/opencode` — it
+  did, until the fixtures caught it.
+
 ## 0.4.0 — 2026-07-27
 
 - Take list mode from upstream 0.4.1. Run `/recall` with no query and it lists

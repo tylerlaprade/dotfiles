@@ -1,25 +1,26 @@
 ---
 name: recall
 description: >
-  Search past Claude Code, Codex, and Grok sessions. Triggers: /recall, "search old conversations",
+  Search past Claude Code, Codex, Grok, Antigravity, and OpenCode sessions. Triggers: /recall, "search old conversations",
   "find a past session", "recall a previous conversation", "search session history",
   "what did we discuss", "remember when we"
 metadata:
   author: tylerlaprade
   upstream: arjunkmrm/recall
   fork: diverged from upstream 0.2.2
-  version: "0.4.0"
+  version: "0.5.0"
   license: MIT
 ---
 
-# /recall — Search Past Claude, Codex & Grok Sessions
+# /recall — Search Past Agent Sessions
 
-Search all past Claude Code, Codex, and Grok sessions using full-text search with BM25 ranking.
+Search all past Claude Code, Codex, Grok, Antigravity, and OpenCode sessions
+using full-text search with BM25 ranking.
 
 ## Usage
 
 ```bash
-python3 ~/.claude/skills/recall/scripts/recall.py [QUERY] [--project PATH] [--days N] [--source claude|codex|grok] [--limit N] [--reindex]
+python3 ~/.claude/skills/recall/scripts/recall.py [QUERY] [--project PATH] [--days N] [--source claude|codex|grok|antigravity|opencode] [--limit N] [--reindex]
 ```
 
 ## Examples
@@ -48,6 +49,10 @@ python3 ~/.claude/skills/recall/scripts/recall.py "buffer" --source codex
 
 # Search only Grok sessions
 python3 ~/.claude/skills/recall/scripts/recall.py "buffer" --source grok
+
+# Search only Antigravity (agy) or OpenCode sessions
+python3 ~/.claude/skills/recall/scripts/recall.py "buffer" --source antigravity
+python3 ~/.claude/skills/recall/scripts/recall.py "buffer" --source opencode
 
 # Force reindex
 python3 ~/.claude/skills/recall/scripts/recall.py --reindex "test"
@@ -78,6 +83,14 @@ codex resume SESSION_ID
 # Grok sessions [grok]
 cd /path/to/project
 grok --resume SESSION_ID
+
+# Antigravity sessions [antigravity]
+cd /path/to/project
+agy --conversation SESSION_ID
+
+# OpenCode sessions [opencode] — the id after the "#" in the File: line
+cd /path/to/project
+opencode --session SESSION_ID
 ```
 
 Each result includes a `File:` path. Use it to read the raw transcript (auto-detects format):
@@ -91,9 +104,14 @@ If results are missing `File:` paths, run `--reindex` to backfill.
 ## Notes
 
 - Index is stored at `~/.recall.db` (SQLite FTS5, auto-migrated from `~/.claude/recall.db`), created readable only by you, with `~/.recall.db.lock` serializing index updates across concurrent sessions
-- Indexes `~/.claude/projects/` (Claude Code), `~/.codex/sessions/` (Codex), and `~/.grok/sessions/**/chat_history.jsonl` (Grok)
-- First run indexes all sessions; after that only the bytes a session has added are read, except for Grok, which rewrites its whole history file on every save
+- Indexes `~/.claude/projects/` (Claude Code), `~/.codex/sessions/` (Codex),
+  `~/.grok/sessions/**/chat_history.jsonl` (Grok),
+  `~/.gemini/antigravity-cli/brain/*/.system_generated/logs/transcript.jsonl`
+  (Antigravity), and `~/.local/share/opencode/opencode.db` (OpenCode)
+- First run indexes all sessions; after that only the bytes a session has added are read, except for Grok, which rewrites its whole history file on every save, and OpenCode, whose sessions are database rows re-read whenever one changes
 - Omit the query to list recent sessions instead of searching
 - Run tests with `python3 -m unittest discover tests -v` from the skill root
 - Only user and assistant messages are indexed (tool calls, thinking blocks, state snapshots, synthetic harness context skipped)
-- Results show `[claude]`, `[codex]`, or `[grok]` tags to indicate the source
+- Results show a `[claude]`, `[codex]`, `[grok]`, `[antigravity]`, or `[opencode]` tag to indicate the source
+- An OpenCode session's `File:` is `<opencode.db>#<session id>`; pass it to `read_session.py` as-is
+- Antigravity records no working directory, so its sessions show no project and `--project` cannot narrow to them

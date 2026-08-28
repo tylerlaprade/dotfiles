@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Search past Claude Code, Codex, and Grok sessions using FTS5 full-text search."""
+"""Search past Claude Code, Codex, Grok, Antigravity, and OpenCode sessions using FTS5 full-text search."""
 
 import argparse
 import fcntl
@@ -26,6 +26,15 @@ DB_LOCK_PATH = Path.home() / ".recall.db.lock"
 CLAUDE_PROJECTS_DIR = CLAUDE_DIR / "projects"
 CODEX_SESSIONS_DIR = CODEX_DIR / "sessions"
 GROK_SESSIONS_DIR = GROK_DIR / "sessions"
+# Antigravity keeps one append-only transcript per trajectory, a subagent's
+# getting a directory of its own beside its parent's.
+ANTIGRAVITY_BRAIN_DIR = Path.home() / ".gemini" / "antigravity-cli" / "brain"
+# Spelled out rather than globbed with **, which skips a dot directory.
+ANTIGRAVITY_TRANSCRIPT = Path("*") / ".system_generated" / "logs" / "transcript.jsonl"
+# OpenCode keeps every session in one SQLite database rather than a file each.
+OPENCODE_DB = Path.home() / ".local" / "share" / "opencode" / "opencode.db"
+# Separates that database from the session inside it, in the path column.
+OPENCODE_PATH_SEP = "#"
 
 
 # Stop waiting for the indexer after this long and search the index as it stands.
@@ -168,10 +177,11 @@ def migrate_db_location():
                 old_extra.rename(Path(str(DB_PATH) + suffix))
 
 
-# Claude and Codex only ever append to a transcript. Grok rewrites the whole of
-# chat_history.jsonl through a temp file on every save, so a byte offset into it
-# means nothing and those files are always read in full.
-APPEND_ONLY_SOURCES = {"claude", "codex"}
+# Claude, Codex, and Antigravity only ever append to a transcript. Grok
+# rewrites the whole of chat_history.jsonl through a temp file on every save,
+# so a byte offset into it means nothing and those files are always read in
+# full; an OpenCode session is rows in a database, with no offset at all.
+APPEND_ONLY_SOURCES = {"claude", "codex", "antigravity"}
 
 # Bytes before the resume point that must still match for a tail read to be safe.
 # Claude can drop a message mid-file, which shifts every later byte and lands
@@ -568,10 +578,179 @@ def parse_grok_session(path, start=0):
     return metadata, messages, end_offset
 
 
+# — Antigravity session parser —————————————————————————————————————————————
+
+ANTIGRAVITY_USER_STEP = ("USER_EXPLICIT", "USER_INPUT")
+ANTIGRAVITY_ASSISTANT_STEP = ("MODEL", "PLANNER_RESPONSE")
+# Antigravity wraps the typed message in <USER_REQUEST> and appends blocks the
+# harness wrote — the clock, a settings change. Only the request is the user.
+ANTIGRAVITY_REQUEST_RE = re.compile(
+    r"<USER_REQUEST>\s*(.*?)\s*</USER_REQUEST>", re.DOTALL
+)
+
+
+def antigravity_message(entry):
+    """Return (role, text) for a transcript step, or None to skip it.
+
+    Every other step is a tool call, a system checkpoint, or truncated
+    conversation history, which the other parsers drop too.
+    """
+    step = (entry.get("source", ""), entry.get("type", ""))
+    content = entry.get("content")
+    if not isinstance(content, str) or not content.strip():
+        return None
+    if step == ANTIGRAVITY_USER_STEP:
+        match = ANTIGRAVITY_REQUEST_RE.search(content)
+        text = match.group(1) if match else content.strip()
+        return ("user", text) if text else None
+    if step == ANTIGRAVITY_ASSISTANT_STEP:
+        return "assistant", content.strip()
+    return None
+
+
+def parse_antigravity_session(path, start=0):
+    """Parse an Antigravity CLI transcript.
+
+    Returns (metadata, messages, end_offset). Transcripts live in
+    ~/.gemini/antigravity-cli/brain/<id>/.system_generated/logs/transcript.jsonl
+    and are only appended to, so a tail read resumes from `start`.
+
+    Antigravity records no working directory anywhere in the trajectory, so
+    these sessions carry no project and `--project` cannot narrow to them.
+    """
+    path = Path(path)
+    # .../brain/<session id>/.system_generated/logs/transcript.jsonl
+    session_id = path.parents[2].name
+    earliest_ts = None
+    messages = []
+
+    end_offset = start
+
+    try:
+        for entry, end_offset in iter_entries(path, start):
+            ts_ms = parse_iso_timestamp(entry.get("created_at"))
+            if ts_ms and (earliest_ts is None or ts_ms < earliest_ts):
+                earliest_ts = ts_ms
+
+            message = antigravity_message(entry)
+            if message:
+                messages.append(message)
+
+    except (OSError, PermissionError) as e:
+        print(f"Warning: skipping {path}: {e}", file=sys.stderr)
+        return None
+
+    metadata = {
+        "session_id": session_id,
+        "source": "antigravity",
+        "file_path": str(path),
+        "project": "",
+        "slug": "",
+        "timestamp": earliest_ts or 0,
+    }
+    return metadata, messages, end_offset
+
+
+# — OpenCode session parser ————————————————————————————————————————————————
+
+def split_opencode_path(path):
+    """Split "<database>#<session id>" into its two halves."""
+    db_path, _, session_id = str(path).rpartition(OPENCODE_PATH_SEP)
+    return db_path, session_id
+
+
+def opencode_messages(db_path, session_id):
+    """Every user and assistant message of one OpenCode session, in order.
+
+    Text lives in `part` rows, one message having many; the reasoning and
+    tool-call parts beside them are dropped the way every parser here drops
+    thinking and tool use.
+    """
+    conn = sqlite3.connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT m.id, m.data, p.data FROM message m "
+            "LEFT JOIN part p ON p.message_id = m.id "
+            "WHERE m.session_id = ? "
+            "ORDER BY m.time_created, m.id, p.time_created, p.id",
+            (session_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+
+    messages = []
+    current_id = None
+    role = ""
+    parts = []
+    for message_id, message_data, part_data in rows:
+        if message_id != current_id:
+            if parts:
+                messages.append((role, "\n".join(parts)))
+            current_id = message_id
+            parts = []
+            try:
+                role = (json.loads(message_data) or {}).get("role", "")
+            except (json.JSONDecodeError, TypeError):
+                role = ""
+        if role not in ("user", "assistant") or not part_data:
+            continue
+        try:
+            part = json.loads(part_data)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if isinstance(part, dict) and part.get("type") == "text":
+            text = part.get("text", "")
+            if text:
+                parts.append(text)
+    if parts:
+        messages.append((role, "\n".join(parts)))
+    return messages
+
+
+def parse_opencode_session(path, start=0):
+    """Parse one session out of the OpenCode database.
+
+    Returns (metadata, messages, end_offset). `path` is the database and the
+    session id joined by OPENCODE_PATH_SEP, because the index is keyed by path
+    and OpenCode keeps every session in the one file. `start` is ignored: there
+    is no byte offset to resume from, so a session is re-read whenever its own
+    time_updated moves.
+    """
+    db_path, session_id = split_opencode_path(path)
+
+    try:
+        conn = sqlite3.connect(db_path)
+        try:
+            row = conn.execute(
+                "SELECT directory, title, time_created FROM session WHERE id = ?",
+                (session_id,),
+            ).fetchone()
+        finally:
+            conn.close()
+        messages = opencode_messages(db_path, session_id)
+    except sqlite3.Error as e:
+        print(f"Warning: skipping {path}: {e}", file=sys.stderr)
+        return None
+
+    directory, title, time_created = row if row else ("", "", 0)
+
+    metadata = {
+        "session_id": session_id,
+        "source": "opencode",
+        "file_path": str(path),
+        "project": directory or "",
+        "slug": title or "",
+        "timestamp": time_created or 0,
+    }
+    return metadata, messages, 0
+
+
 PARSERS = {
     "claude": parse_claude_session,
     "codex": parse_codex_session,
     "grok": parse_grok_session,
+    "antigravity": parse_antigravity_session,
+    "opencode": parse_opencode_session,
 }
 
 
@@ -597,18 +776,56 @@ def load_indexed_state(conn):
     }
 
 
+def scan_opencode_sessions():
+    """Every session inside the OpenCode database, as (path, source, mtime).
+
+    OpenCode stores sessions in one SQLite file, so each gets a path of its
+    own — database and session id — and carries its own last-changed time in
+    place of the file's, letting one changed session be re-read without
+    touching the rest.
+    """
+    if not OPENCODE_DB.exists():
+        return []
+    try:
+        conn = sqlite3.connect(str(OPENCODE_DB))
+        try:
+            rows = conn.execute(
+                "SELECT id, time_updated, time_created FROM session"
+            ).fetchall()
+        finally:
+            conn.close()
+    except sqlite3.Error as e:
+        print(f"Warning: skipping {OPENCODE_DB}: {e}", file=sys.stderr)
+        return []
+    return [
+        (
+            f"{OPENCODE_DB}{OPENCODE_PATH_SEP}{session_id}",
+            "opencode",
+            (time_updated or time_created or 0) / 1000,
+        )
+        for session_id, time_updated, time_created in rows
+    ]
+
+
 def scan_session_files():
-    """Every session file on disk, paired with the tool that wrote it."""
+    """Every session on disk, paired with the tool that wrote it.
+
+    Yields (path, source, mtime), where mtime is None for a real file — the
+    indexer stats those itself — and a stored timestamp for a source whose
+    sessions are rows rather than files.
+    """
     patterns = (
         (CLAUDE_PROJECTS_DIR / "**" / "*.jsonl", "claude"),
         (CODEX_SESSIONS_DIR / "**" / "*.jsonl", "codex"),
         (GROK_SESSIONS_DIR / "**" / "chat_history.jsonl", "grok"),
+        (ANTIGRAVITY_BRAIN_DIR / ANTIGRAVITY_TRANSCRIPT, "antigravity"),
     )
-    return [
-        (fpath, source)
+    found = [
+        (fpath, source, None)
         for pattern, source in patterns
         for fpath in glob(str(pattern), recursive=True)
     ]
+    return found + scan_opencode_sessions()
 
 
 def claim_session_id(conn, session_id, fpath, has_own_row, claimed_by):
@@ -654,11 +871,14 @@ def index_sessions(conn, force=False):
     # Disable FTS5 automerge during bulk insert to avoid repeated segment merges
     conn.execute("INSERT INTO messages(messages, rank) VALUES('automerge', 0)")
 
-    for fpath, source in scan_session_files():
-        try:
-            mtime = os.path.getmtime(fpath)
-        except OSError:
-            continue
+    for fpath, source, stored_mtime in scan_session_files():
+        if stored_mtime is None:
+            try:
+                mtime = os.path.getmtime(fpath)
+            except OSError:
+                continue
+        else:
+            mtime = stored_mtime
 
         prior = existing.get(fpath)
         if prior and prior.mtime == mtime and prior.parser_version == PARSER_VERSION:
@@ -929,7 +1149,7 @@ def main():
     parser.add_argument("query", nargs="?", help="Search query (FTS5 syntax: quotes for phrases, AND/OR/NOT). Omit to list recent sessions instead of searching.")
     parser.add_argument("--project", help="Filter to sessions from a specific project path (prefix match)")
     parser.add_argument("--days", type=int, help="Only sessions from last N days")
-    parser.add_argument("--source", choices=["claude", "codex", "grok"], help="Filter by source (claude, codex, or grok)")
+    parser.add_argument("--source", choices=sorted(PARSERS), help="Filter by source (%s)" % ", ".join(sorted(PARSERS)))
     parser.add_argument("--limit", type=positive_int, default=10, help="Max results (default: 10)")
     parser.add_argument("--reindex", action="store_true", help="Force full rebuild of the index")
 
