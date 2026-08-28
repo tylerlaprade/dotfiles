@@ -4,6 +4,10 @@
     "path": "/Applications/Brave Browser.app"
   },
   {
+    "name": "GeminiAppLauncher",
+    "path": "/Applications/Gemini.app/Contents/Helpers/GeminiAppLauncher.app"
+  },
+  {
     "name": "Ghostty",
     "path": "/Applications/Ghostty.app"
   },
@@ -18,5 +22,9 @@
   {
     "name": "Google Chrome",
     "path": "/Applications/Google Chrome.app"
+  },
+  {
+    "name": "Monologue",
+    "path": "/Applications/Monologue.app"
   }
 ]

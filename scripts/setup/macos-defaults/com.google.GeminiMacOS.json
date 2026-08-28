@@ -1,0 +1,55 @@
+{
+  "WindowBoundsTracker.fullViewFrame": {
+    "type": "plist",
+    "value": [
+      207.0,
+      0.0,
+      1028.0,
+      900.0
+    ]
+  },
+  "areaScreenshotPromotionImpressionCount": {
+    "type": "int",
+    "value": 1
+  },
+  "com.google.GeminiMacOS.firstExecution.systemSettingsClose": {
+    "type": "string",
+    "value": "1.96.4.775-PROD"
+  },
+  "connectedFolderBannerImpressionCount": {
+    "type": "int",
+    "value": 1
+  },
+  "hasCompletedSTCDiscoveryFlow": {
+    "type": "bool",
+    "value": true
+  },
+  "preventSleepDuringTasks": {
+    "type": "bool",
+    "value": true
+  },
+  "screenSharing.pendingPermissionsDialog": {
+    "type": "bool",
+    "value": false
+  },
+  "shortcutPromotionImpressionCount": {
+    "type": "int",
+    "value": 1
+  },
+  "shortcutsEverCustomized": {
+    "type": "bool",
+    "value": true
+  },
+  "user1_isSidebarVisible": {
+    "type": "bool",
+    "value": true
+  },
+  "user1_shouldSendCrashesAndUsageData": {
+    "type": "bool",
+    "value": true
+  },
+  "user1_stcUseReasoning": {
+    "type": "bool",
+    "value": true
+  }
+}
