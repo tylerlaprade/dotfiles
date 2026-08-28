@@ -59,7 +59,6 @@
         ]
       },
       {
-        "matcher": "AskUserQuestion|EnterPlanMode|ExitPlanMode",
         "hooks": [
           {
             "type": "command",
@@ -87,19 +86,19 @@
         ]
       },
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/Users/tyler/.cargo/bin/claude-title hook"
-          }
-        ]
-      },
-      {
         "matcher": "Agent|Workflow",
         "hooks": [
           {
             "type": "command",
             "command": "~/.claude/hooks/subagent-model-guard.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/tyler/.cargo/bin/claude-title hook"
           }
         ]
       }
@@ -196,7 +195,6 @@
     ],
     "PostToolUseFailure": [
       {
-        "matcher": "AskUserQuestion|EnterPlanMode|ExitPlanMode",
         "hooks": [
           {
             "type": "command",
