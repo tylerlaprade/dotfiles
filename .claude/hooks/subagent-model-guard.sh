@@ -1,8 +1,8 @@
 #!/bin/bash
 # PreToolUse guard for Agent|Workflow. Agent must name a model; Workflow must
-# name a non-Fable model on every agent(...) call, and is denied when its
-# script cannot be located. See the commit message for the reasoning and for
-# what the textual scan can and cannot see.
+# name a model on every agent(...) call and must not reach Fable by any route,
+# including a constant, and is denied when its script cannot be located. See
+# the commit message for the reasoning and the scan's limits.
 
 input=$(cat) || exit 0
 
@@ -60,7 +60,7 @@ if [ -z "$body" ]; then
   deny "This Workflow carries no readable script, so its agent(...) models cannot be checked."
 fi
 
-IFS=$'\t' read -r total missing fable labels fablelabels < <(printf '%s' "$body" | awk '
+IFS=$'\t' read -r total missing fable labels fablelabels fable_literals < <(printf '%s' "$body" | awk '
   { doc = doc $0 "\n" }
   END {
     rest = doc; off = 0; cnt = 0
@@ -95,9 +95,17 @@ IFS=$'\t' read -r total missing fable labels fablelabels < <(printf '%s' "$body"
         labels = (labels == "" ? lab : labels ", " lab)
       }
     }
+    lit = ""; tmp = doc; low = tolower(doc)
+    while (match(low, /[\047\042][^\047\042]*[\047\042]/)) {
+      piece = substr(low, RSTART + 1, RLENGTH - 2)
+      if (length(piece) <= 40 && piece ~ /fable/)
+        lit = (lit == "" ? piece : (index(lit, piece) ? lit : lit ", " piece))
+      low = substr(low, RSTART + RLENGTH)
+    }
     if (labels == "") labels = "-"
     if (fablelabels == "") fablelabels = "-"
-    printf "%d\t%d\t%d\t%s\t%s\n", cnt, missing, fable, labels, fablelabels
+    if (lit == "") lit = "-"
+    printf "%d\t%d\t%d\t%s\t%s\t%s\n", cnt, missing, fable, labels, fablelabels, lit
   }')
 
 [ -n "$total" ] || exit 0
@@ -105,6 +113,10 @@ IFS=$'\t' read -r total missing fable labels fablelabels < <(printf '%s' "$body"
 
 if [ "${fable:-0}" -gt 0 ]; then
   deny "Workflow fan-out cannot run on Fable, and these agent(...) calls name it: ${fablelabels}. Give each one a different model. ($origin)"
+fi
+
+if [ "${fable_literals:--}" != "-" ]; then
+  deny "Workflow fan-out cannot run on Fable. This script names it: ${fable_literals}. A constant or lookup that resolves to Fable is still Fable — remove it from the script entirely. ($origin)"
 fi
 
 if [ "${missing:-0}" -gt 0 ]; then
