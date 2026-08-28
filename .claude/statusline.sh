@@ -326,8 +326,11 @@ if [ -n "$_usage" ]; then
   elif [ -n "$rate_fable" ]; then
     # Same weekly reset as 7d: omit the duplicate countdown, and pace-color the
     # percent so the pace still shows somewhere. Compare within the usage
-    # payload — stdin 7d can be one second off.
-    if [ -n "$resets_fable" ] && [ -n "$usage_resets_7d" ] && [ "$resets_fable" = "$usage_resets_7d" ]; then
+    # payload, and allow a minute of slack: the API rounds the two windows
+    # independently, so the same reset arrives as 14:59:59 and 15:00:00. A real
+    # divergence would be hours, never seconds.
+    if [ -n "$resets_fable" ] && [ -n "$usage_resets_7d" ] \
+       && [ "$(( resets_fable > usage_resets_7d ? resets_fable - usage_resets_7d : usage_resets_7d - resets_fable ))" -le 60 ]; then
       pace_gradient "$rate_fable" "$resets_fable" 604800
       fable_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
       fable_part="Fable ${fable_color}${rate_fable}%${RESET}"
