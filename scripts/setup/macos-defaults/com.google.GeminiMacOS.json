@@ -14,11 +14,15 @@
   },
   "com.google.GeminiMacOS.firstExecution.systemSettingsClose": {
     "type": "string",
-    "value": "1.96.4.775-PROD"
+    "value": "1.99.2.791-PROD"
   },
   "connectedFolderBannerImpressionCount": {
     "type": "int",
     "value": 1
+  },
+  "gemini_use_macos_system_voice": {
+    "type": "bool",
+    "value": false
   },
   "hasCompletedSTCDiscoveryFlow": {
     "type": "bool",
