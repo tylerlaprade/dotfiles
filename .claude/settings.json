@@ -2,7 +2,9 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "CLAUDE_CODE_DISABLE_TERMINAL_TITLE": "1",
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-6",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-6"
   },
   "includeGitInstructions": false,
   "permissions": {
@@ -38,7 +40,7 @@
     ],
     "defaultMode": "bypassPermissions"
   },
-  "model": "claude-fable-5[1m]",
+  "model": "fable",
   "hooks": {
     "PostToolUse": [
       {
@@ -225,7 +227,6 @@
       }
     ]
   },
-  "enableWorkflows": true,
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh",
@@ -279,7 +280,7 @@
       "effortLevel": "high"
     },
     "claude-fable-5": {
-      "effortLevel": "high"
+      "effortLevel": "xhigh"
     }
   },
   "promptSuggestionEnabled": false,
