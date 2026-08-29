@@ -49,7 +49,7 @@ zj() {
 
 # Claude
 claude() {
-  command claude --allow-dangerously-skip-permissions --settings '{"ultracode": true}' "$@"
+  command claude --allow-dangerously-skip-permissions "$@"
 }
 
 # cwc — change workspace (condor)
