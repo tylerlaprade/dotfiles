@@ -290,6 +290,7 @@ else
 fi
 current_time=$(TZ="America/New_York" date +"%-I:%M %p")
 model_name=$(echo "$input" | jq -r '.model.display_name // empty')
+model_name="${model_name% (1M context)}"
 effort_level=$(echo "$input" | jq -r '.effort.level // empty')
 
 # Line 1: model · context bar · time
