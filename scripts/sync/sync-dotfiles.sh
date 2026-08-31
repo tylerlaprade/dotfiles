@@ -7,7 +7,7 @@ while [[ -L "$_source" ]]; do
   _source="$(readlink "$_source")"
 done
 DOTFILES="$(cd "$(dirname "$_source")/../.." && pwd)"
-export PATH="$HOME/.local/bin:$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 # Paths handled by dedicated sync scripts below. link_tree skips these so
 # it doesn't symlink-then-clobber (which accumulated `.pre-dotfiles-*`
@@ -220,19 +220,20 @@ elif [[ -f "$gt_prefs" && ! -f "$gt_config" ]]; then
   cp "$gt_prefs" "$gt_config"
   echo "ℹ️  Copied Graphite preferences. Run 'gt auth' to add your auth token."
 fi
-# Tool upgrades are slow (cargo recompiles from source) — at most once a day,
-# even when login-triggered runs stack up.
+# Tool upgrades — at most once a week, even when login-triggered runs stack up.
 upgrade_stamp="$HOME/.cache/sync-dotfiles-upgrade-stamp"
-if [[ -z "$(find "$upgrade_stamp" -mtime -1 2>/dev/null)" ]]; then
+if [[ -z "$(find "$upgrade_stamp" -mtime -7 2>/dev/null)" ]]; then
   mkdir -p "$HOME/.cache" && touch "$upgrade_stamp"
 
-  # Upgrade global uv tools (sourcery, etc.)
   uv tool upgrade --all >/dev/null 2>&1 || true
 
-  # Upgrade global Cargo tools.
   if command -v cargo >/dev/null 2>&1; then
     cargo install cargo-update >/dev/null 2>&1 || true
     cargo install-update -a >/dev/null 2>&1 || true
+  fi
+
+  if command -v bun >/dev/null 2>&1; then
+    bun upgrade >/dev/null 2>&1 || true
   fi
 fi
 

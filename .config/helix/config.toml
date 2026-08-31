@@ -25,6 +25,21 @@ select = "underline"
 focus-lost = true
 after-delay.enable = true
 
+[editor.notifications]
+style = "statusline"
+
+[editor.cmdline]
+style = "popup"
+use-full-height = true
+
+[editor.gradient-borders]
+enable = true
+
+[editor.statusline]
+left = ["mode", "spinner", "file-name", "read-only-indicator", "file-modification-indicator"]
+center = ["function-name"]
+right = ["diagnostics", "selections", "register", "position", "file-encoding"]
+
 [editor.lsp]
 display-inlay-hints = true
 auto-signature-help = false
