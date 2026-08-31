@@ -3,7 +3,7 @@
   "env": {
     "CLAUDE_CODE_DISABLE_TERMINAL_TITLE": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-6",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-7",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-6"
   },
   "includeGitInstructions": false,
@@ -281,6 +281,9 @@
     },
     "claude-fable-5": {
       "effortLevel": "xhigh"
+    },
+    "claude-opus-4-6": {
+      "effortLevel": "high"
     }
   },
   "promptSuggestionEnabled": false,
