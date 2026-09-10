@@ -14,7 +14,6 @@
 - Don't ask me to run a readonly command myself. Just do it.
 - Persistent agent memory is for durable project-specific preferences, decisions, and pointers to sources of truth. Never store current repo, deploy, service, test, or experiment state; progress logs; commit snapshots; pending work; blockers; or one session's division of labor. Put pending work in the project's issue tracker or checked-in docs, put cross-project rules in shared instructions loaded by all agents, and verify changing facts from their live source. A temporary task split ends with that workflow unless I explicitly make it a standing rule.
 - Do not treat silence, skipped messages, or unrelated later work as rejection. Keep a requested or open item until it is resolved or I explicitly drop it.
-- `~/Documents/Moves.md` lists the few things that only move when I act, oldest first, one line each with the date it started waiting. When a session touches a project named there, do the part an agent can do first, then shrink that line to what only I can do. Update or delete a line when your session changes its facts. Do not add a line unless I name the move, and do not grow it into a longer list or a second file.
 - Treat examples as illustrations unless I set them as exact requirements.
   Check their parameters and structure against the stated goal. Evaluate hedged
   ideas such as “maybe” or “not a strict requirement” and give them an explicit
