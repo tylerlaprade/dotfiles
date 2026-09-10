@@ -184,6 +184,19 @@ claude() {
 }
 
 # fableplan — Fable 5 plans, Opus 5 executes (wraps claude() above)
+# Once a day, show the oldest line of ~/Documents/Moves.md and its age.
+_moves_nudge() {
+  local file=~/Documents/Moves.md stamp=/tmp/moves-nudge-$(date +%F) line
+  [[ -r $file && ! -e $stamp ]] || return 0
+  line=$(grep -m1 '^- [0-9]' "$file") || return 0
+  local since=${line[3,12]} rest=${${line[16,-1]}%% \(*}
+  local age=$(( ($(date +%s) - $(date -j -f %Y-%m-%d "$since" +%s)) / 86400 ))
+  local total=$(grep -c '^- [0-9]' "$file")
+  print -P "%F{yellow}${age}d%f ${rest} · $((total - 1)) more in ~/Documents/Moves.md"
+  : >| "$stamp"
+}
+[[ -o interactive ]] && _moves_nudge
+
 [[ -f ~/Code/fableplan/fableplan.sh ]] && source ~/Code/fableplan/fableplan.sh
 
 # cwc — change workspace (condor): create workspace + start Claude
