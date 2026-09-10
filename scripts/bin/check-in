@@ -1,0 +1,3 @@
+#!/bin/zsh
+# Start the daily Queenspawn check-in in this tab.
+exec /Users/tyler/Code/QueenspawnGames/studio-pulse/check-in.sh
