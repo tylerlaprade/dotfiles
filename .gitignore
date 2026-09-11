@@ -1,2 +1,3 @@
 scripts/setup/macos-defaults/.sync-markers/
+scripts/setup/browser-local-state/.sync-markers/
 __pycache__/

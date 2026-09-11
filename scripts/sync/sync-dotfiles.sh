@@ -240,4 +240,7 @@ fi
 # macOS defaults — read current values and update snapshot
 if [[ -z "${SKIP_DEFAULTS_SYNC:-}" ]]; then
   "$DOTFILES/scripts/sync/sync-macos-defaults.py"
+  # Browser-wide Chromium settings (Memory Saver etc.) live in Local State,
+  # which neither Brave Sync nor the defaults snapshot covers.
+  "$DOTFILES/scripts/sync/sync-browser-local-state.py"
 fi
