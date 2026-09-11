@@ -53,6 +53,12 @@ completion = true
 command = "stylelint-lsp"
 args = ["--stdio"]
 
+[language-server.rumdl.config]
+enableLinkCompletions = false
+enableLinkNavigation = false
+enableSymbols = false
+settings = { MD013 = { reflow = true } }
+
 [language-server.vscode-html-language-server.config]
 provideFormatter = true
 css = { validate = true, lint = { validProperties = [] } }
@@ -162,7 +168,6 @@ auto-format = true
 [[language]]
 name = "markdown"
 auto-format = true
-formatter = { command = "markdownlint-cli2", args = ["--fix"] }
 language-servers = ["marksman", "rumdl"]
 
 [[language]]
