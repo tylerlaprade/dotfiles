@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -eu
+
+codex_root="${CODEX_HOME:-${HOME}/.codex}"
+messages_client="${codex_root}/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient"
+
+if [ ! -x "${messages_client}" ]; then
+  printf 'Codex Messages client was not found at %s.\n' "${messages_client}" >&2
+  exit 1
+fi
+
+/opt/homebrew/bin/jq --compact-output --unbuffered \
+  'if .method == "initialize" then del(.params.capabilities.experimental."codex/auth-change") else . end' \
+  | "${messages_client}" "$@"
