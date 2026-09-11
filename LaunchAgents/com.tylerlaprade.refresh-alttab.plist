@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Daily AltTab restart. AltTab pins window-preview surfaces inside WindowServer
+  and never releases them, so WindowServer grows by about 1 GB per long-running
+  AltTab session. The script explains the measurement and the upstream issues.
+
+  StartCalendarInterval, not StartInterval: a fixed 04:30 keeps the restart out
+  of working hours, and launchd runs a missed calendar job at the next wake.
+  No RunAtLoad: AltTab has just started at login, so a restart there is wasted.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.tylerlaprade.refresh-alttab</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/bash</string>
+		<string>-lc</string>
+		<string>exec "${DOTFILES_DIR:-$HOME/Code/dotfiles}/scripts/sync/refresh-alttab.sh"</string>
+	</array>
+	<key>StartCalendarInterval</key>
+	<dict>
+		<key>Hour</key>
+		<integer>4</integer>
+		<key>Minute</key>
+		<integer>30</integer>
+	</dict>
+	<key>StandardOutPath</key>
+	<string>/tmp/refresh-alttab.log</string>
+	<key>StandardErrorPath</key>
+	<string>/tmp/refresh-alttab.log</string>
+</dict>
+</plist>
