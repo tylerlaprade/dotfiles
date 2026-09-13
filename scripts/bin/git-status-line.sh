@@ -18,6 +18,11 @@ dirty=$(git diff --quiet && git diff --cached --quiet || echo "*")
 pr_lookup=$(gh-pr-lookup "$repo_name" "$full_branch" --async)
 pr_num=$(echo "$pr_lookup" | cut -f1)
 pr_title=$(echo "$pr_lookup" | cut -f2-)
+pr_notice=""
+if [[ "$pr_num" == "!" ]]; then
+  pr_notice="$pr_title"
+  pr_num=""
+fi
 
 # Ahead/behind upstream
 read ahead behind < <(git rev-list --left-right --count @{u}...HEAD 2>/dev/null || echo "0 0")
@@ -35,7 +40,9 @@ pr_ci=""
 pr_merge=""
 if [[ -n "$pr_num" && -n "$repo_full" ]]; then
   pr_status=$(gh-pr-status "$repo_full" "$pr_num")
-  if [[ -n "$pr_status" ]]; then
+  if [[ "$pr_status" == "!"* ]]; then
+    pr_notice="${pr_status#*$'\t'}"
+  elif [[ -n "$pr_status" ]]; then
     pr_state="${pr_status%%:*}"
     rest="${pr_status#*:}"
     pr_ci="${rest%%:*}"
@@ -92,3 +99,5 @@ else
 fi
 printf "\e[36m %s%s\e[0m%s" "$arrows" "$stash" "$indicators"
 [[ -n "$gt_display" ]] && printf " \e[90m%s\e[0m" "$gt_display"
+
+[[ -n "$pr_notice" ]] && printf " \e[33m[PR: %s]\e[0m" "$pr_notice"

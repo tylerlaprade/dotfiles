@@ -1,11 +1,4 @@
 #!/bin/bash
-# Look up PR number + title for a branch, using persistent cache with TTL.
-# Usage: gh-pr-lookup <repo> <branch> [--async]
-# Outputs: number\ttitle  (or nothing if no PR / cache miss in --async mode)
-# Cache format: <key>\t<result-or-__NONE__>\t<unix-ts>
-# TTL: real PRs 300s; "no PR" sentinel 30s, so a freshly-pushed PR appears
-# in the tab title within ~30s. Stale entries served immediately while a bg
-# refresh runs.
 
 repo="$1"
 branch="$2"
@@ -13,59 +6,86 @@ async=0
 [[ "${3:-}" == "--async" ]] && async=1
 [[ -z "$repo" || -z "$branch" ]] && exit 0
 
+background_auth="$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../lib/background_auth.py"
 pr_map="$HOME/.cache/gh-pr-map"
 mkdir -p "$(dirname "$pr_map")"
 key="$repo:$branch"
 now=$(date +%s)
+cache_key=$(printf '%s' "$key" | shasum -a 256)
+fetch_lock="${pr_map}.fetch.${cache_key%% *}"
 
-# Spawn a detached refresh. CRITICAL: redirect fds before the fork so the
-# caller's $(...) command-substitution doesn't block waiting on the inherited
-# stdout/stderr of the bg subshell.
-_spawn_refresh() {
-  (
-    exec >/dev/null 2>&1 </dev/null
-    # `gh pr list` distinguishes "no PR" (exit 0, []) from errors (exit !=0),
-    # unlike `gh pr view` which exits 1 in both cases.
-    result=$(gh pr list --head "$branch" --limit 1 --json number,title \
-              --jq '.[]? | "\(.number)\t\(.title)"' 2>/dev/null)
-    rc=$?
-    [[ $rc -ne 0 ]] && exit 0   # transient error → leave cache untouched
-    new_line="$key	${result:-__NONE__}	$now"
-    lock="$pr_map.lock"
-    # mkdir is atomic; use as a lockdir to serialize cache rewrites.
-    if mkdir "$lock" 2>/dev/null; then
-      tmp="$pr_map.tmp.$$"
-      grep -v "^$key	" "$pr_map" 2>/dev/null >"$tmp"
-      echo "$new_line" >>"$tmp"
-      mv "$tmp" "$pr_map"
-      rmdir "$lock"
-    fi
-  ) &
-  disown 2>/dev/null
+emit_entry() {
+  case "$1" in
+    __NONE__) ;;
+    __KEYCHAIN__) printf '!\tkeychain unavailable\n' ;;
+    __LOGIN__) printf '!\tlogin required\n' ;;
+    __ERROR__) printf '!\tfetch failed\n' ;;
+    *) printf '%s\n' "$1" ;;
+  esac
 }
 
-entry=$(grep -m1 "^$key	" "$pr_map" 2>/dev/null)
+refresh() {
+  result=$(python3 "$background_auth" github pr list --head "$branch" --limit 1 \
+    --json number,title --jq '.[]? | "\(.number)\t\(.title)"' 2>/dev/null)
+  case $? in
+    0) result="${result:-__NONE__}" ;;
+    10) result=__KEYCHAIN__ ;;
+    11) result=__LOGIN__ ;;
+    *) result=__ERROR__ ;;
+  esac
+  lock="$pr_map.lock"
+  if mkdir "$lock" 2>/dev/null; then
+    tmp=$(mktemp "${pr_map}.XXXXXX")
+    awk -F '\t' -v key="$key" '$1 != key' "$pr_map" 2>/dev/null > "$tmp"
+    printf '%s\t%s\t%s\n' "$key" "$result" "$(date +%s)" >> "$tmp"
+    mv "$tmp" "$pr_map"
+    rmdir "$lock"
+  fi
+  rmdir "$fetch_lock"
+}
 
+entry=$(awk -F '\t' -v key="$key" '$1 == key { print; exit }' "$pr_map" 2>/dev/null)
+cached=""
+age=300
 if [[ -n "$entry" ]]; then
-  cached=$(printf '%s' "$entry" | cut -f2)
-  ts=$(printf '%s' "$entry" | cut -f3)
-  ttl=300
-  [[ "$cached" == "__NONE__" ]] && ttl=30
-  age=$(( now - ${ts:-0} ))
+  cached="${entry#*$'\t'}"
+  ts="${cached##*$'\t'}"
+  cached="${cached%$'\t'*}"
+  age=$(( now - ts ))
+fi
 
-  [[ "$cached" != "__NONE__" ]] && echo "$cached"
-  (( age > ttl )) && _spawn_refresh
+ttl=300
+case "$cached" in
+  __NONE__) ttl=30 ;;
+  __KEYCHAIN__|__LOGIN__|__ERROR__) ttl=60 ;;
+esac
+
+if [[ -n "$cached" && $age -lt $ttl ]]; then
+  emit_entry "$cached"
   exit 0
 fi
 
-# Cache miss
-if (( async )); then
-  _spawn_refresh
-else
-  result=$(gh pr list --head "$branch" --limit 1 --json number,title \
-            --jq '.[]? | "\(.number)\t\(.title)"' 2>/dev/null)
-  if [[ $? -eq 0 ]]; then
-    echo "$key	${result:-__NONE__}	$now" >>"$pr_map"
-    [[ -n "$result" ]] && echo "$result"
+if [[ -d "$fetch_lock" ]]; then
+  stamp=$(stat -f %m "$fetch_lock" 2>/dev/null || echo "$now")
+  (( now - stamp > 30 )) && rmdir "$fetch_lock" 2>/dev/null
+fi
+
+if mkdir "$fetch_lock" 2>/dev/null; then
+  if (( async )); then
+    (
+      exec >/dev/null 2>&1 </dev/null
+      refresh
+    ) &
+    disown 2>/dev/null
+  else
+    refresh
+    emit_entry "$result"
+    exit 0
   fi
+fi
+
+if [[ -n "$cached" ]]; then
+  emit_entry "$cached"
+else
+  printf '!\tchecking\n'
 fi

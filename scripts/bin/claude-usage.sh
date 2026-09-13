@@ -18,6 +18,7 @@
 
 set -euo pipefail
 
+background_auth="$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../lib/background_auth.py"
 cache=/tmp/claude-usage.json
 fresh=0
 async=0
@@ -55,12 +56,16 @@ _spawn_refresh() {
 
 emit_stale() {
   local err=$1
+  local failed_cache
+  failed_cache=$(mktemp "${cache}.XXXXXX")
   if [ -f "$cache" ]; then
     jq -c --arg err "$err" --argjson now "$now" \
-      '. + {ok: false, error: $err, fetched_at: $now}' "$cache"
+      '. + {ok: false, error: $err, fetched_at: $now}' "$cache" > "$failed_cache"
   else
-    printf '%s\n' "{\"ok\":false,\"error\":$(printf '%s' "$err" | jq -Rs .),\"fetched_at\":${now}}"
+    printf '%s\n' "{\"ok\":false,\"error\":$(printf '%s' "$err" | jq -Rs .),\"fetched_at\":${now}}" > "$failed_cache"
   fi
+  mv "$failed_cache" "$cache"
+  cat "$cache"
   exit 1
 }
 
@@ -83,16 +88,22 @@ if [ "$fresh" -eq 0 ] && [ -f "$cache" ]; then
   cached_at=$(jq -r '.fetched_at // .updated_at // 0' "$cache" 2>/dev/null || echo 0)
   if [ "$cached_at" -ge $(( now - 60 )) ]; then
     cat "$cache"
-    [ "$(jq -r '.ok // true' "$cache" 2>/dev/null)" = true ]
+    [ "$(jq -r '.ok != false' "$cache" 2>/dev/null)" = true ]
     exit $?
   fi
 fi
 
-blob=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null || true)
+credential_status=0
+blob=$(python3 "$background_auth" keychain "Claude Code-credentials" 2>/dev/null) || credential_status=$?
 if [ -z "$blob" ] && [ -f "${HOME}/.claude/.credentials.json" ]; then
   blob=$(cat "${HOME}/.claude/.credentials.json")
 fi
 if [ -z "$blob" ]; then
+  if [ "$credential_status" -eq 10 ]; then
+    emit_stale "keychain unavailable"
+  elif [ "$credential_status" -ne 11 ] && [ "$credential_status" -ne 0 ]; then
+    emit_stale "credential helper failed"
+  fi
   echo "claude-usage: no Claude Code login (Keychain item Claude Code-credentials)" >&2
   emit_stale "no login"
 fi
@@ -105,12 +116,14 @@ eval "$(printf '%s' "$blob" | jq -r '
     "exp_ms=\(.expiresAt // 0)"
 ')"
 if [ -z "${token:-}" ] || [ "$token" = "null" ]; then
+  [ "$credential_status" -eq 10 ] && emit_stale "keychain unavailable"
   echo "claude-usage: Claude Code login has no access token" >&2
   emit_stale "no token"
 fi
 if [ "${exp_ms:-0}" -gt 1000000000000 ]; then
   exp_s=$(( exp_ms / 1000 ))
   if [ "$exp_s" -le "$now" ]; then
+    [ "$credential_status" -eq 10 ] && emit_stale "keychain unavailable"
     echo "claude-usage: Claude Code access token is expired — open claude once to refresh" >&2
     emit_stale "token expired"
   fi

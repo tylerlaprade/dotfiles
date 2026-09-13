@@ -28,6 +28,7 @@ window_display=$(format_tokens "$window_tokens")
 RESET='\033[0m'
 WHITE='\033[97m'
 DIM='\033[90m'
+YELLOW='\033[33m'
 
 # Tomorrow Night gradient: (blue →) green → yellow → red with asymptotic red tail
 # Sets global r, g, b. Args: value green_end yellow_point red_point [asymptotic_k] [blue_floor]
@@ -314,12 +315,17 @@ if [ -n "$_usage_cmd" ]; then
   _usage=$("$_usage_cmd" --async 2>/dev/null) || true
 fi
 if [ -n "$_usage" ]; then
-  _usage_ok=$(printf '%s' "$_usage" | jq -r '.ok // true')
+  _usage_ok=$(printf '%s' "$_usage" | jq -r '.ok != false')
   rate_fable=$(printf '%s' "$_usage" | jq -r '.fable // empty')
   resets_fable=$(printf '%s' "$_usage" | jq -r '.resets_fable // empty')
   usage_resets_7d=$(printf '%s' "$_usage" | jq -r '.resets_7d // empty')
   if [ "$_usage_ok" != true ]; then
-    if [ -n "$rate_fable" ]; then
+    _usage_error=$(printf '%s' "$_usage" | jq -r '.error // "fetch failed"')
+    if [ "$_usage_error" = "keychain unavailable" ]; then
+      fable_part="${YELLOW}Fable: keychain unavailable${RESET}"
+    elif [ "$_usage_error" = "token expired" ] || [ "$_usage_error" = "no login" ] || [ "$_usage_error" = "no token" ] || [ "$_usage_error" = "HTTP 401" ]; then
+      fable_part="${YELLOW}Fable: login required${RESET}"
+    elif [ -n "$rate_fable" ]; then
       fable_part="${DIM}Fable ${rate_fable}% · fetch failed${RESET}"
     else
       fable_part="${DIM}Fable unavailable${RESET}"

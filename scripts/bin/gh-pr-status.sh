@@ -3,6 +3,8 @@
 # Usage: gh-pr-status <repo> <pr_number>
 # Outputs: state:ci:mergeable (e.g., "approved:pass:ok", "pending:fail:conflict")
 
+background_auth="$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../lib/background_auth.py"
+
 repo="$1"
 pr_num="$2"
 [[ -z "$repo" || -z "$pr_num" ]] && exit 0
@@ -23,7 +25,13 @@ fetch_with_etag() {
   [[ -f "$etag_file" ]] && etag_header=(-H "If-None-Match: $(cat "$etag_file")")
 
   local response
-  response=$(gh api -i "$endpoint" "${etag_header[@]}" 2>/dev/null)
+  response=$(python3 "$background_auth" github api -i "$endpoint" "${etag_header[@]}" 2>/dev/null)
+  case $? in
+    0) ;;
+    10) printf '!\tkeychain unavailable\n'; return 1 ;;
+    11) printf '!\tlogin required\n'; return 1 ;;
+    *) printf '!\tfetch failed\n'; return 1 ;;
+  esac
 
   if echo "$response" | head -1 | grep -q "304"; then
     cat "$cache_file" 2>/dev/null
@@ -42,13 +50,13 @@ fetch_with_etag() {
 }
 
 # Fetch PR data
-pr_json=$(fetch_with_etag "repos/$repo/pulls/$pr_num" "pr")
+pr_json=$(fetch_with_etag "repos/$repo/pulls/$pr_num" "pr") || { printf '%s\n' "$pr_json"; exit 0; }
 [[ -z "$pr_json" ]] && exit 0
 
 # Get review status
 get_review_state() {
   local reviews_json
-  reviews_json=$(fetch_with_etag "repos/$repo/pulls/$pr_num/reviews" "reviews")
+  reviews_json=$(fetch_with_etag "repos/$repo/pulls/$pr_num/reviews" "reviews") || { printf '%s\n' "$reviews_json"; return 1; }
 
   # Get latest review per user, check for approvals/changes requested
   local dominated_reviews
@@ -70,7 +78,7 @@ get_ci_state() {
   [[ -z "$head_sha" || "$head_sha" == "null" ]] && echo "pass" && return
 
   local checks_json
-  checks_json=$(fetch_with_etag "repos/$repo/commits/$head_sha/check-runs" "checks_$head_sha")
+  checks_json=$(fetch_with_etag "repos/$repo/commits/$head_sha/check-runs" "checks_$head_sha") || { printf '%s\n' "$checks_json"; return 1; }
 
   if echo "$checks_json" | jq -e '.check_runs[] | select(.conclusion == "failure")' &>/dev/null; then
     echo "fail"
@@ -102,7 +110,10 @@ if [[ "$state" == "closed" ]]; then
     echo "closed:pass:ok"
   fi
 elif [[ "$is_draft" == "true" ]]; then
-  echo "draft:$(get_ci_state):$(get_mergeable_state)"
+  ci=$(get_ci_state) || { printf '%s\n' "$ci"; exit 0; }
+  echo "draft:$ci:$(get_mergeable_state)"
 else
-  echo "$(get_review_state):$(get_ci_state):$(get_mergeable_state)"
+  review=$(get_review_state) || { printf '%s\n' "$review"; exit 0; }
+  ci=$(get_ci_state) || { printf '%s\n' "$ci"; exit 0; }
+  echo "$review:$ci:$(get_mergeable_state)"
 fi
