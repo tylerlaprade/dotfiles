@@ -140,7 +140,7 @@
       "176": {
         "enabled": false,
         "value": {
-          "type": "SAE1.0"
+          "type": "standard"
         }
       },
       "179": {
