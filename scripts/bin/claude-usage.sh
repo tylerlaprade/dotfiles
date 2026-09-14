@@ -68,12 +68,21 @@ emit_stale() {
   exit 1
 }
 
+# A 429 with retry-after: 0 is still enforced for minutes on this endpoint,
+# so back off longer than the default TTL when the cached error is a 429.
+cache_ttl() {
+  local err
+  err=$(jq -r '.error // ""' "$cache" 2>/dev/null || echo "")
+  [ "$err" = "HTTP 429" ] && echo 300 || echo 60
+}
+
 if [ "$async" -eq 1 ]; then
   stale=1
   if [ -f "$cache" ]; then
     cat "$cache"
     cached_at=$(jq -r '.fetched_at // .updated_at // 0' "$cache" 2>/dev/null || echo 0)
-    [ "$cached_at" -ge $(( now - 60 )) ] && stale=0
+    ttl=$(cache_ttl)
+    [ "$cached_at" -ge $(( now - ttl )) ] && stale=0
   fi
   if [ "$stale" -eq 1 ] && _claim_fetch_lock; then
     _spawn_refresh
@@ -85,7 +94,8 @@ if [ "$fresh" -eq 0 ] && [ -f "$cache" ]; then
   # Honor both success and failure: a recent 429 must not refetch on
   # every statusline paint.
   cached_at=$(jq -r '.fetched_at // .updated_at // 0' "$cache" 2>/dev/null || echo 0)
-  if [ "$cached_at" -ge $(( now - 60 )) ]; then
+  ttl=$(cache_ttl)
+  if [ "$cached_at" -ge $(( now - ttl )) ]; then
     cat "$cache"
     [ "$(jq -r '.ok != false' "$cache" 2>/dev/null)" = true ]
     exit $?

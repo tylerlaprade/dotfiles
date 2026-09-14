@@ -334,6 +334,12 @@ if [ -n "$_usage" ]; then
       fable_part="${YELLOW}Fable: keychain unavailable${RESET}"
     elif [ "$_usage_error" = "token expired" ] || [ "$_usage_error" = "no login" ] || [ "$_usage_error" = "no token" ] || [ "$_usage_error" = "HTTP 401" ]; then
       fable_part="${YELLOW}Fable: login required${RESET}"
+    elif [ "$_usage_error" = "HTTP 429" ]; then
+      if [ -n "$rate_fable" ]; then
+        fable_part="${DIM}Fable ${rate_fable}% · rate limited${RESET}"
+      else
+        fable_part="${DIM}Fable: rate limited${RESET}"
+      fi
     elif [ -n "$rate_fable" ]; then
       fable_part="${DIM}Fable ${rate_fable}% · fetch failed${RESET}"
     else

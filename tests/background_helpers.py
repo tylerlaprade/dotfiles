@@ -191,5 +191,26 @@ class BackgroundHelpersTest(unittest.TestCase):
         self.assertTrue(usage_line.endswith('Fable: login required\x1b[0m'), usage_line)
 
 
+    def test_rate_limited_cache_backs_off_five_minutes(self):
+        payload = {'ok': False, 'error': 'HTTP 429', 'fetched_at': int(time.time()) - 90}
+        self.cache.write_text(json.dumps(payload))
+        result = self.run_helper('claude-usage')
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(json.loads(result.stdout)['error'], 'HTTP 429')
+        self.assertFalse(self.calls.exists())
+
+    def test_non_rate_limit_error_refetches_after_sixty_seconds(self):
+        payload = {'ok': False, 'error': 'no login', 'fetched_at': int(time.time()) - 90}
+        self.cache.write_text(json.dumps(payload))
+        self.run_helper('claude-usage')
+        self.assertIn('security find-generic-password', self.calls.read_text())
+
+    def test_statusline_labels_rate_limit_distinctly(self):
+        payload = {'workspace': {'current_dir': str(self.root)}, 'context_window': {'total_input_tokens': 1000, 'context_window_size': 200000},
+                   'rate_limits': {'five_hour': {'used_percentage': 20}, 'seven_day': {'used_percentage': 30}}}
+        output = self.run_statusline('{"ok":false,"error":"HTTP 429","fable":73}', payload)
+        self.assertIn('Fable 73% · rate limited', output)
+
+
 if __name__ == '__main__':
     unittest.main()
