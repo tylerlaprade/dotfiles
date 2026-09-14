@@ -294,6 +294,15 @@ model_name=$(echo "$input" | jq -r '.model.display_name // empty')
 model_name="${model_name% (1M context)}"
 effort_level=$(echo "$input" | jq -r '.effort.level // empty')
 
+join_parts() {
+  local joined=$1 part
+  shift
+  for part in "$@"; do
+    joined+=" · $part"
+  done
+  printf '%s' "$joined"
+}
+
 # Line 1: model · context bar · time
 parts=()
 if [ -n "$model_name" ]; then
@@ -303,7 +312,7 @@ if [ -n "$model_name" ]; then
 fi
 parts+=("$ctx_info")
 parts+=("$(format_time_color "$current_time")")
-echo -e "$(printf '%s' "${parts[0]}")$(printf ' · %s' "${parts[@]:1}")"
+echo -e "$(join_parts "${parts[@]}")"
 
 # Line 2: 5h · 7d · Fable
 # claude-usage --async matches gh-pr-lookup: print cache, detach refresh.
@@ -385,7 +394,7 @@ rate=$(format_rate "$rate_7d" "$resets_7d" 604800 "" "" plus)
 [ -n "$rate" ] && rate_parts+=("7d $rate")
 [ -n "$fable_part" ] && rate_parts+=("$fable_part")
 if (( ${#rate_parts[@]} )); then
-  echo -e "${DIM}Usage${RESET} · $(printf '%s' "${rate_parts[0]}")$(printf ' · %s' "${rate_parts[@]:1}")"
+  echo -e "${DIM}Usage${RESET} · $(join_parts "${rate_parts[@]}")"
 fi
 
 # Git info

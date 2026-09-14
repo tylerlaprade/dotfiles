@@ -3,8 +3,6 @@
 # Usage: gh-pr-status <repo> <pr_number>
 # Outputs: state:ci:mergeable (e.g., "approved:pass:ok", "pending:fail:conflict")
 
-background_auth="$(dirname "$(realpath "${BASH_SOURCE[0]}")")/../lib/background_auth.py"
-
 repo="$1"
 pr_num="$2"
 [[ -z "$repo" || -z "$pr_num" ]] && exit 0
@@ -24,19 +22,20 @@ fetch_with_etag() {
   local etag_header=()
   [[ -f "$etag_file" ]] && etag_header=(-H "If-None-Match: $(cat "$etag_file")")
 
-  local response
-  response=$(python3 "$background_auth" github api -i "$endpoint" "${etag_header[@]}" 2>/dev/null)
-  case $? in
-    0) ;;
-    10) printf '!\tkeychain unavailable\n'; return 1 ;;
-    11) printf '!\tlogin required\n'; return 1 ;;
-    *) printf '!\tfetch failed\n'; return 1 ;;
-  esac
+  local response status
+  response=$(gh-background api -i "$endpoint" "${etag_header[@]}")
+  status=$?
 
+  # gh exits 1 on 304 Not Modified, so check the status line before the exit code.
   if echo "$response" | head -1 | grep -q "304"; then
     cat "$cache_file" 2>/dev/null
     return
   fi
+  case $status in
+    0) ;;
+    11) printf '!\tlogin required\n'; return 1 ;;
+    *) printf '!\tfetch failed\n'; return 1 ;;
+  esac
 
   if echo "$response" | head -1 | grep -q "200"; then
     # Save ETag
