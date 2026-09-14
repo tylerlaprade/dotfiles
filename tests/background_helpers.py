@@ -199,11 +199,40 @@ class BackgroundHelpersTest(unittest.TestCase):
         self.assertEqual(json.loads(result.stdout)['error'], 'HTTP 429')
         self.assertFalse(self.calls.exists())
 
-    def test_cache_older_than_five_minutes_refetches(self):
-        payload = {'ok': True, 'fable': 42, 'fetched_at': int(time.time()) - 400}
+    def test_stale_success_without_activity_serves_cache(self):
+        payload = {'ok': True, 'fable': 42, 'five_hour': 20, 'seven_day': 30,
+                   'fetched_at': int(time.time()) - 400}
         self.cache.write_text(json.dumps(payload))
-        self.run_helper('claude-usage')
+        environment = dict(self.environment, STATUSLINE_5H='20', STATUSLINE_7D='30')
+        result = subprocess.run([str(self.bin / 'claude-usage')], env=environment,
+                                text=True, capture_output=True, timeout=5)
+        self.assertEqual(result.returncode, 0)
+        self.assertFalse(self.calls.exists())
+
+    def test_stale_success_with_activity_refetches(self):
+        payload = {'ok': True, 'fable': 42, 'five_hour': 20, 'seven_day': 30,
+                   'fetched_at': int(time.time()) - 400}
+        self.cache.write_text(json.dumps(payload))
+        environment = dict(self.environment, STATUSLINE_5H='23', STATUSLINE_7D='30')
+        subprocess.run([str(self.bin / 'claude-usage')], env=environment,
+                       text=True, capture_output=True, timeout=5)
         self.assertIn('security find-generic-password', self.calls.read_text())
+
+    def test_heartbeat_refetches_after_thirty_minutes_of_idle(self):
+        payload = {'ok': True, 'fable': 42, 'five_hour': 20, 'seven_day': 30,
+                   'fetched_at': int(time.time()) - 2000}
+        self.cache.write_text(json.dumps(payload))
+        environment = dict(self.environment, STATUSLINE_5H='20', STATUSLINE_7D='30')
+        subprocess.run([str(self.bin / 'claude-usage')], env=environment,
+                       text=True, capture_output=True, timeout=5)
+        self.assertIn('security find-generic-password', self.calls.read_text())
+
+    def test_acl_failure_writes_event_log(self):
+        self.environment['FAKE_SECURITY_STATUS'] = '36'
+        self.run_helper('claude-usage')
+        log = Path('/tmp/claude-usage.acl-events.log')
+        self.assertTrue(log.exists())
+        self.assertIn('security exit=36', log.read_text().splitlines()[-1])
 
     def test_statusline_labels_rate_limit_distinctly(self):
         payload = {'workspace': {'current_dir': str(self.root)}, 'context_window': {'total_input_tokens': 1000, 'context_window_size': 200000},

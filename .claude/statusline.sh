@@ -216,17 +216,21 @@ pace_gradient() {
   [ "$time_remaining" -lt 0 ] && time_remaining=0
   [ "$time_remaining" -gt "$window_secs" ] && time_remaining=$window_secs
 
-  local left_pct=$(( 100 - pct ))
-  [ "$left_pct" -lt 0 ] && left_pct=0
-  if [ "$left_pct" -eq 0 ]; then
+  if [ "$pct" -ge 100 ]; then
     r=255 g=0 b=0
     return
   fi
 
-  # Pace gradient:
-  #   ≤0.50x: flat blue, 0.50-0.75x: blue→green, ≤0.75x: flat green,
-  #   0.75-0.98x: green→yellow, 0.98-1.25x: yellow→red, >1.25x: asymptotic red
-  tn_gradient $(( time_remaining * 10000 / (window_secs * left_pct) )) 75 98 125 80 50
+  # Project current burn rate to reset: how much will be used at reset if we
+  # keep the current rate? 0% used → projected 0 (chill blue); 100% projected
+  # → yellow (on pace); >125% → red (over pace). Clamp elapsed to 60s so a
+  # fresh window with any usage projects large instead of undefined.
+  local time_elapsed=$(( window_secs - time_remaining ))
+  [ "$time_elapsed" -lt 60 ] && time_elapsed=60
+  local projected=$(( pct * window_secs / time_elapsed ))
+  [ "$projected" -gt 300 ] && projected=300
+
+  tn_gradient "$projected" 75 100 125 80 50
 }
 
 format_rate() {
@@ -321,7 +325,10 @@ _usage_cmd=$(command -v claude-usage 2>/dev/null || command -v claude-usage.sh 2
 _usage=""
 fable_part=""
 if [ -n "$_usage_cmd" ]; then
-  _usage=$("$_usage_cmd" --async 2>/dev/null) || true
+  # Pass stdin's 5h/7d percentages so claude-usage can skip refresh when
+  # nothing has burned on this account since the last successful fetch.
+  _usage=$(STATUSLINE_5H="${rate_5h:-0}" STATUSLINE_7D="${rate_7d:-0}" \
+    "$_usage_cmd" --async 2>/dev/null) || true
 fi
 if [ -n "$_usage" ]; then
   _usage_ok=$(printf '%s' "$_usage" | jq -r '.ok != false')

@@ -68,38 +68,53 @@ emit_stale() {
   exit 1
 }
 
-# Fable, 5h, and 7d percentages do not change fast enough to warrant a fetch
-# every minute. Keeping the cache alive for 5 minutes matches the 429 backoff
-# and stays under the endpoint's observed throttle of about one hit per five
-# minutes. Resume passes --fresh when it needs the current numbers.
-cache_ttl() {
-  echo 300
+# Cache windows. Fable moves only when a /v1/messages call touches this
+# account, so we can gate refreshes on statusline-observed 5h/7d activity
+# instead of polling on a fixed clock. The floor keeps recent cache warm; the
+# heartbeat catches usage from other machines that this session never sees.
+CACHE_FLOOR=300
+CACHE_HEARTBEAT=1800
+
+# Activity: stdin 5h or 7d passed by the statusline exceeds what the cache
+# last recorded, so the account has burned budget since the last successful
+# fetch and Fable may have moved.
+detect_activity() {
+  [ ! -f "$cache" ] && return 0
+  local cache_5h cache_7d
+  cache_5h=$(jq -r '.five_hour // -1' "$cache" 2>/dev/null || echo -1)
+  cache_7d=$(jq -r '.seven_day // -1' "$cache" 2>/dev/null || echo -1)
+  [ -n "${STATUSLINE_5H:-}" ] && [ "$STATUSLINE_5H" -gt "$cache_5h" ] && return 0
+  [ -n "${STATUSLINE_7D:-}" ] && [ "$STATUSLINE_7D" -gt "$cache_7d" ] && return 0
+  return 1
+}
+
+# Serve cache when it is younger than the floor, or when it is younger than
+# the heartbeat AND nothing has happened since it was written. A cached 429
+# stays until the floor expires so we do not hammer during a throttle.
+should_serve_cache() {
+  [ ! -f "$cache" ] && return 1
+  local age err
+  age=$(( now - $(jq -r '.fetched_at // .updated_at // 0' "$cache" 2>/dev/null || echo 0) ))
+  [ "$age" -lt "$CACHE_FLOOR" ] && return 0
+  err=$(jq -r '.error // ""' "$cache" 2>/dev/null || echo "")
+  [ -n "$err" ] && return 1
+  [ "$age" -ge "$CACHE_HEARTBEAT" ] && return 1
+  detect_activity && return 1
+  return 0
 }
 
 if [ "$async" -eq 1 ]; then
-  stale=1
-  if [ -f "$cache" ]; then
-    cat "$cache"
-    cached_at=$(jq -r '.fetched_at // .updated_at // 0' "$cache" 2>/dev/null || echo 0)
-    ttl=$(cache_ttl)
-    [ "$cached_at" -ge $(( now - ttl )) ] && stale=0
-  fi
-  if [ "$stale" -eq 1 ] && _claim_fetch_lock; then
+  [ -f "$cache" ] && cat "$cache"
+  if ! should_serve_cache && _claim_fetch_lock; then
     _spawn_refresh
   fi
   exit 0
 fi
 
-if [ "$fresh" -eq 0 ] && [ -f "$cache" ]; then
-  # Honor both success and failure: a recent 429 must not refetch on
-  # every statusline paint.
-  cached_at=$(jq -r '.fetched_at // .updated_at // 0' "$cache" 2>/dev/null || echo 0)
-  ttl=$(cache_ttl)
-  if [ "$cached_at" -ge $(( now - ttl )) ]; then
-    cat "$cache"
-    [ "$(jq -r '.ok != false' "$cache" 2>/dev/null)" = true ]
-    exit $?
-  fi
+if [ "$fresh" -eq 0 ] && should_serve_cache; then
+  cat "$cache"
+  [ "$(jq -r '.ok != false' "$cache" 2>/dev/null)" = true ]
+  exit $?
 fi
 
 # Claude Code stores the login through /usr/bin/security, so reading it with
@@ -108,6 +123,17 @@ credential_status=0
 blob=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null) || credential_status=$?
 if [ -z "$blob" ]; then
   if [ "$credential_status" -ne 44 ] && [ "$credential_status" -ne 0 ]; then
+    # Log every ACL failure with its exit code so a future storm has a paper
+    # trail, and post one Notification Center banner per hour so it does not
+    # go unnoticed. Exit 44 is item-not-found and is not a permission issue.
+    log=/tmp/claude-usage.acl-events.log
+    printf '%s security exit=%d\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$credential_status" >> "$log"
+    notify_at=/tmp/claude-usage.acl-notify-at
+    last=$(cat "$notify_at" 2>/dev/null || echo 0)
+    if [ $(( now - last )) -gt 3600 ]; then
+      echo "$now" > "$notify_at"
+      osascript -e "display notification \"security exit=$credential_status — see $log\" with title \"Fable usage: keychain unavailable\"" >/dev/null 2>&1 &
+    fi
     emit_stale "keychain unavailable"
   fi
   echo "claude-usage: no Claude Code login (Keychain item Claude Code-credentials)" >&2
