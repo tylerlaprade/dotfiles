@@ -3,4 +3,5 @@ typeset -U path PATH
 . "$HOME/.cargo/env"
 [[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
 [[ -d "$HOME/Code/dotfiles/scripts/bin" ]] && export PATH="$HOME/Code/dotfiles/scripts/bin:$PATH"
+export VITEST_MAX_WORKERS=$(( $(sysctl -n hw.ncpu) / 2 ))
 [[ -f "$HOME/.zshenv.local" ]] && source "$HOME/.zshenv.local"
