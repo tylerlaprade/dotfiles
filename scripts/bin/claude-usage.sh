@@ -124,15 +124,27 @@ blob=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/nul
 if [ -z "$blob" ]; then
   if [ "$credential_status" -ne 44 ] && [ "$credential_status" -ne 0 ]; then
     # Log every ACL failure with its exit code so a future storm has a paper
-    # trail, and post one Notification Center banner per hour so it does not
-    # go unnoticed. Exit 44 is item-not-found and is not a permission issue.
+    # trail. Exit 44 is item-not-found and is not a permission issue.
     mkdir -p "${HOME}/.claude" 2>/dev/null
     log="${HOME}/.claude/acl-events.log"
     printf '%s security exit=%d\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$credential_status" >> "$log"
-    notify_at=/tmp/claude-usage.acl-notify-at
-    last=$(cat "$notify_at" 2>/dev/null || echo 0)
-    if [ $(( now - last )) -gt 3600 ]; then
-      echo "$now" > "$notify_at"
+
+    # Post one Notification Center banner per hour across every session on
+    # this machine. Atomic via mkdir: concurrent paints all try to claim the
+    # same lock directory, only one succeeds. A stale lock older than an hour
+    # is cleared so the next real failure can post.
+    notify_lock=/tmp/claude-usage.acl-notify.lock
+    _fire_notify=0
+    if mkdir "$notify_lock" 2>/dev/null; then
+      _fire_notify=1
+    else
+      stamp=$(stat -f %m "$notify_lock" 2>/dev/null || echo 0)
+      if [ $(( now - stamp )) -gt 3600 ]; then
+        rmdir "$notify_lock" 2>/dev/null || true
+        mkdir "$notify_lock" 2>/dev/null && _fire_notify=1
+      fi
+    fi
+    if [ "$_fire_notify" -eq 1 ]; then
       osascript >/dev/null 2>&1 <<APPLESCRIPT &
 display notification "Restart Claude Code to restore. Log: ~/.claude/acl-events.log" with title "Fable usage: Keychain access denied" subtitle "security exit=$credential_status" sound name "Basso"
 APPLESCRIPT
