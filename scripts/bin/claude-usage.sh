@@ -126,13 +126,16 @@ if [ -z "$blob" ]; then
     # Log every ACL failure with its exit code so a future storm has a paper
     # trail, and post one Notification Center banner per hour so it does not
     # go unnoticed. Exit 44 is item-not-found and is not a permission issue.
-    log=/tmp/claude-usage.acl-events.log
+    mkdir -p "${HOME}/.claude" 2>/dev/null
+    log="${HOME}/.claude/acl-events.log"
     printf '%s security exit=%d\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$credential_status" >> "$log"
     notify_at=/tmp/claude-usage.acl-notify-at
     last=$(cat "$notify_at" 2>/dev/null || echo 0)
     if [ $(( now - last )) -gt 3600 ]; then
       echo "$now" > "$notify_at"
-      osascript -e "display notification \"security exit=$credential_status — see $log\" with title \"Fable usage: keychain unavailable\"" >/dev/null 2>&1 &
+      osascript >/dev/null 2>&1 <<APPLESCRIPT &
+display notification "Restart Claude Code to restore. Log: ~/.claude/acl-events.log" with title "Fable usage: Keychain access denied" subtitle "security exit=$credential_status" sound name "Basso"
+APPLESCRIPT
     fi
     emit_stale "keychain unavailable"
   fi

@@ -230,7 +230,7 @@ class BackgroundHelpersTest(unittest.TestCase):
     def test_acl_failure_writes_event_log(self):
         self.environment['FAKE_SECURITY_STATUS'] = '36'
         self.run_helper('claude-usage')
-        log = Path('/tmp/claude-usage.acl-events.log')
+        log = self.home / '.claude/acl-events.log'
         self.assertTrue(log.exists())
         self.assertIn('security exit=36', log.read_text().splitlines()[-1])
 
