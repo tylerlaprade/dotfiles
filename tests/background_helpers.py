@@ -191,16 +191,16 @@ class BackgroundHelpersTest(unittest.TestCase):
         self.assertTrue(usage_line.endswith('Fable: login required\x1b[0m'), usage_line)
 
 
-    def test_rate_limited_cache_backs_off_five_minutes(self):
-        payload = {'ok': False, 'error': 'HTTP 429', 'fetched_at': int(time.time()) - 90}
+    def test_cached_result_is_served_for_five_minutes(self):
+        payload = {'ok': False, 'error': 'HTTP 429', 'fetched_at': int(time.time()) - 200}
         self.cache.write_text(json.dumps(payload))
         result = self.run_helper('claude-usage')
         self.assertEqual(result.returncode, 1)
         self.assertEqual(json.loads(result.stdout)['error'], 'HTTP 429')
         self.assertFalse(self.calls.exists())
 
-    def test_non_rate_limit_error_refetches_after_sixty_seconds(self):
-        payload = {'ok': False, 'error': 'no login', 'fetched_at': int(time.time()) - 90}
+    def test_cache_older_than_five_minutes_refetches(self):
+        payload = {'ok': True, 'fable': 42, 'fetched_at': int(time.time()) - 400}
         self.cache.write_text(json.dumps(payload))
         self.run_helper('claude-usage')
         self.assertIn('security find-generic-password', self.calls.read_text())

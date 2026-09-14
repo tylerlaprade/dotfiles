@@ -12,7 +12,7 @@
 # A failed fetch still prints the last cache, with ok=false, and exits 1 so
 # resume does not treat stale numbers as live. Statusline can show them dimmed.
 #
-# --fresh  ignore the 60s cache (resume)
+# --fresh  ignore the cache (resume)
 # --async  print cache now; refresh in a detached process if stale (statusline)
 # Cached at /tmp/claude-usage.json so statusline and resume share one fetch.
 
@@ -68,12 +68,12 @@ emit_stale() {
   exit 1
 }
 
-# A 429 with retry-after: 0 is still enforced for minutes on this endpoint,
-# so back off longer than the default TTL when the cached error is a 429.
+# Fable, 5h, and 7d percentages do not change fast enough to warrant a fetch
+# every minute. Keeping the cache alive for 5 minutes matches the 429 backoff
+# and stays under the endpoint's observed throttle of about one hit per five
+# minutes. Resume passes --fresh when it needs the current numbers.
 cache_ttl() {
-  local err
-  err=$(jq -r '.error // ""' "$cache" 2>/dev/null || echo "")
-  [ "$err" = "HTTP 429" ] && echo 300 || echo 60
+  echo 300
 }
 
 if [ "$async" -eq 1 ]; then
