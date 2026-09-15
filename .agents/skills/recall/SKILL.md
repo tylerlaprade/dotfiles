@@ -8,7 +8,7 @@ metadata:
   author: tylerlaprade
   upstream: arjunkmrm/recall
   fork: diverged from upstream 0.2.2
-  version: "0.5.0"
+  version: "0.6.0"
   license: MIT
 ---
 
@@ -66,6 +66,17 @@ python3 ~/.claude/skills/recall/scripts/recall.py --reindex "test"
 - **Prefix**: `buffer*` — matches bufferStore, bufferMap, etc.
 - **Combined**: `"state machine" AND test`
 - **Hyphens**: `claude-code` is split into `"claude" "code"`, since FTS5 reads a bare `-` as NOT. Quote the phrase to search it exactly.
+
+## Exit Codes
+
+The callers are agents, not people, so the process says why there is nothing
+to show:
+
+- `0` — results found.
+- `1` — no results: the query matched nothing, or the index is empty.
+- `3` — the index could not be opened or migrated. This is not the same as
+  empty. A caller that cannot read the index must report "unknown", never
+  "nothing exists".
 
 ## After Finding a Match
 

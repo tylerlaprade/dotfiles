@@ -60,7 +60,12 @@ class LockBehaviour(unittest.TestCase):
             # the suite needs to show.
             with pointed_at(self.corpus, self.db), redirect_stdout(buffer), \
                     redirect_stderr(io.StringIO()):
-                recall.main()
+                try:
+                    recall.main()
+                except SystemExit:
+                    # The exit codes are the contract; these tests read stdout
+                    # and the database, not the code.
+                    pass
         finally:
             sys.argv = saved
         return buffer.getvalue()

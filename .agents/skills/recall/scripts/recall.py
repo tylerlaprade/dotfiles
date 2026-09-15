@@ -41,6 +41,13 @@ OPENCODE_PATH_SEP = "#"
 # Without a cap, one stalled holder hangs every other session with no output.
 LOCK_WAIT_SECONDS = 20
 
+# Exit codes, so the caller can tell "nothing matched" from "the index could
+# not be read". An agent reading a broken index as an empty one concludes
+# something false about what exists, so those are different exits. argparse
+# usage errors keep its 2.
+EXIT_NO_RESULTS = 1
+EXIT_BROKEN_INDEX = 3
+
 
 @contextmanager
 def index_lock():
@@ -1158,27 +1165,33 @@ def main():
     # Index updates write to shared SQLite and FTS5 state. Serialize that phase,
     # then release the lock so WAL-backed searches can run concurrently.
     t0 = time.time()
-    with index_lock() as have_lock:
-        migrate_db_location()
-        # The index holds the text of every conversation, so keep it readable
-        # only by its owner. The umask covers the -wal and -shm files too.
-        old_umask = os.umask(0o077)
-        conn = sqlite3.connect(str(DB_PATH))
-        os.umask(old_umask)
-        os.chmod(str(DB_PATH), 0o600)
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA synchronous=NORMAL")
+    try:
+        with index_lock() as have_lock:
+            migrate_db_location()
+            # The index holds the text of every conversation, so keep it readable
+            # only by its owner. The umask covers the -wal and -shm files too.
+            old_umask = os.umask(0o077)
+            try:
+                conn = sqlite3.connect(str(DB_PATH))
+            finally:
+                os.umask(old_umask)
+            os.chmod(str(DB_PATH), 0o600)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
 
-        # Creating and migrating write to the database, so they need the lock
-        # as much as indexing does. Without it a run that gave up waiting would
-        # try DDL against a database the holder still has open, and die where
-        # it was supposed to fall back to searching.
-        indexed = 0
-        if have_lock:
-            create_schema(conn)
-            migrate_schema(conn)
-            migrate_message_columns(conn)
-            indexed = index_sessions(conn, force=args.reindex)
+            # Creating and migrating write to the database, so they need the lock
+            # as much as indexing does. Without it a run that gave up waiting would
+            # try DDL against a database the holder still has open, and die where
+            # it was supposed to fall back to searching.
+            indexed = 0
+            if have_lock:
+                create_schema(conn)
+                migrate_schema(conn)
+                migrate_message_columns(conn)
+                indexed = index_sessions(conn, force=args.reindex)
+    except (sqlite3.Error, OSError) as e:
+        print(f"Cannot use the index at {DB_PATH}: {e}", file=sys.stderr)
+        sys.exit(EXIT_BROKEN_INDEX)
     # Counted from before the lock, so the number covers time spent waiting too.
     index_time = time.time() - t0
 
@@ -1200,7 +1213,7 @@ def main():
     if not results:
         print(nothing_found)
         conn.close()
-        return
+        sys.exit(EXIT_NO_RESULTS)
 
     # Counting an FTS5 table walks the whole index, so pay for it outside the
     # lock and only once we know there is a header to print.

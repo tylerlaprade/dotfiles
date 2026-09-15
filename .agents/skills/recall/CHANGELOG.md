@@ -5,6 +5,18 @@ Forked from [arjunkmrm/recall](https://github.com/arjunkmrm/recall) at 0.2.2 on
 third source is `pi` where ours is Grok, so the two cannot simply be merged.
 Versions below 0.2.3 are upstream's; from 0.2.3 on they are local.
 
+## 0.6.0 — 2026-09-15
+
+- Exit codes now distinguish "no results" from "the index is broken": `0`
+  means results, `1` means nothing matched, `3` means the index could not be
+  opened or migrated. A broken index used to exit 0 with an empty result, so
+  every caller concluded nothing about the query exists — the one wrong
+  conclusion an agent is most likely to act on.
+- Audited the never-prune rule while here: the parse-then-replace ordering
+  from 0.3.1 already means a file that cannot be read keeps whatever the
+  index holds, and the suite's unreadable-file tests pin it. Nothing in the
+  code had to change for that half.
+
 ## 0.5.0 — 2026-08-28
 
 - Index Antigravity (`agy`) and OpenCode sessions, so a ruling or decision made
