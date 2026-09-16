@@ -262,17 +262,17 @@ format_rate() {
   if [ "$time_remaining" -gt 0 ]; then
     pace_gradient "$pct" "$resets" "$window_secs"
     local time_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
-    local reset_str=$(TZ="America/New_York" date -r "$resets" +"%-I:%M %p" 2>/dev/null)
+    local reset_str
     local today=$(TZ="America/New_York" date +"%Y%j")
     local tomorrow=$(TZ="America/New_York" date -v+1d +"%Y%j")
     local reset_day=$(TZ="America/New_York" date -r "$resets" +"%Y%j" 2>/dev/null)
-    local reset_day_label=""
-    if [ "$reset_day" = "$tomorrow" ]; then
-      reset_day_label="tomorrow"
-    elif [ "$reset_day" != "$today" ]; then
-      reset_day_label=$(TZ="America/New_York" date -r "$resets" +"%a" 2>/dev/null)
+    if [ "$reset_day" = "$today" ]; then
+      reset_str=$(TZ="America/New_York" date -r "$resets" +"%-I:%M %p" 2>/dev/null)
+    elif [ "$reset_day" = "$tomorrow" ]; then
+      reset_str="$(TZ="America/New_York" date -r "$resets" +"%-I:%M %p" 2>/dev/null)${RESET} ${DIM}tomorrow"
+    else
+      reset_str=$(TZ="America/New_York" date -r "$resets" +"%a %-I:%M %p" 2>/dev/null)
     fi
-    [ -n "$reset_day_label" ] && reset_str="${reset_str}${RESET} ${DIM}${reset_day_label}"
     local days=$(( time_remaining / 86400 ))
     local hrs=$(( (time_remaining % 86400) / 3600 ))
     local mins=$(( (time_remaining % 3600) / 60 ))
