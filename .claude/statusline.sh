@@ -263,8 +263,13 @@ format_rate() {
     pace_gradient "$pct" "$resets" "$window_secs"
     local time_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
     local reset_str
-    if [ "$time_remaining" -lt 86400 ]; then
+    local today=$(TZ="America/New_York" date +"%Y%j")
+    local tomorrow=$(TZ="America/New_York" date -v+1d +"%Y%j")
+    local reset_day=$(TZ="America/New_York" date -r "$resets" +"%Y%j" 2>/dev/null)
+    if [ "$reset_day" = "$today" ]; then
       reset_str=$(TZ="America/New_York" date -r "$resets" +"%-I:%M %p" 2>/dev/null)
+    elif [ "$reset_day" = "$tomorrow" ]; then
+      reset_str=$(TZ="America/New_York" date -r "$resets" +"tomorrow %-I:%M %p" 2>/dev/null)
     else
       reset_str=$(TZ="America/New_York" date -r "$resets" +"%a %-I:%M %p" 2>/dev/null)
     fi
