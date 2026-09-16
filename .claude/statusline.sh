@@ -269,7 +269,7 @@ format_rate() {
     if [ "$reset_day" = "$today" ]; then
       reset_str=$(TZ="America/New_York" date -r "$resets" +"%-I:%M %p" 2>/dev/null)
     elif [ "$reset_day" = "$tomorrow" ]; then
-      reset_str="$(TZ="America/New_York" date -r "$resets" +"%-I:%M %p" 2>/dev/null)${RESET} ${DIM}tomorrow"
+      reset_str="$(TZ="America/New_York" date -r "$resets" +"%-I:%M %p" 2>/dev/null)${RESET} tomorrow"
     else
       reset_str=$(TZ="America/New_York" date -r "$resets" +"%a %-I:%M %p" 2>/dev/null)
     fi
