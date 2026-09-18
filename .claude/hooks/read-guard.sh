@@ -72,7 +72,7 @@ record_repo() {
 }
 
 ask() {
-  jq -n --arg reason "Cross-project access: $1 is outside this session's project ($root). Approve to permit $2 for the rest of this session, or whitelist the repo in ~/.claude/hooks/read-guard.sh." '
+  jq -n --arg reason "Cross-project access: $1 outside this session's project ($root). Approve to permit $2 for the rest of this session, or whitelist the repo in ~/.claude/hooks/read-guard.sh." '
     {hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: $reason}}'
   exit 0
 }
@@ -95,7 +95,7 @@ if [ -n "$command" ]; then
   done <<< "$repos"
   [ "$event" = "PostToolUse" ] && exit 0
   [ ${#need[@]} -eq 0 ] && exit 0
-  ask "this command touches ${need[*]}" "that repo"
+  ask "this command touches ${need[*]}, which is" "that repo"
 fi
 
 # File tools. No path: Grep/Glob default to the session cwd, always allowed.
@@ -132,4 +132,4 @@ if [ "$event" = "PostToolUse" ]; then
   exit 0
 fi
 approved_repo "$path_top" && exit 0
-ask "$path" "reads of $HOME/Code/$path_top"
+ask "$path is" "reads of $HOME/Code/$path_top"
