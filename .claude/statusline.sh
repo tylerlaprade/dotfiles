@@ -416,4 +416,6 @@ if (( ${#rate_parts[@]} )); then
 fi
 
 # Git info
-[ -n "$git_status" ] && echo -e "$git_status"
+if [ -n "$git_status" ]; then
+  echo -e "$git_status"
+fi
