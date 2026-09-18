@@ -53,7 +53,7 @@ if command -v cargo &>/dev/null; then
   echo "  [cargo] starting..."
   (
     cargo install cargo-binstall 2>/dev/null
-    cargo binstall -y apple-codesign bacon cargo-insta cargo-update cargo-workspaces claude-title codebook-lsp commit-fix genemichaels 2>/dev/null
+    cargo binstall -y apple-codesign bacon cargo-insta cargo-update cargo-workspaces codebook-lsp commit-fix genemichaels 2>/dev/null
     cargo install --git https://github.com/tylerlaprade/session-guard >"$LOGDIR/session-guard.log" 2>&1 \
       && session-guard install --terminal ghostty >>"$LOGDIR/session-guard.log" 2>&1 \
       || echo "  [session-guard] FAILED — see $LOGDIR/session-guard.log"

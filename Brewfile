@@ -1,4 +1,5 @@
 tap "tyler/pins", "/Users/tyler/Code/dotfiles/homebrew-pins"
+tap "tylerlaprade/tap"
 tap "withgraphite/tap"
 brew "bat"
 brew "bats-core"
@@ -6,6 +7,7 @@ brew "bottom"
 brew "brush", args: ["HEAD"]
 brew "caddy"
 brew "cargo-dist"
+brew "claude-title"
 brew "cliproxyapi"
 brew "cosign"
 brew "difftastic"

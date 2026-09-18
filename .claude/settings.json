@@ -64,7 +64,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/tyler/.cargo/bin/claude-title hook"
+            "command": "/opt/homebrew/bin/claude-title hook"
           }
         ]
       }
@@ -100,7 +100,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/tyler/.cargo/bin/claude-title hook"
+            "command": "/opt/homebrew/bin/claude-title hook"
           }
         ]
       }
@@ -126,7 +126,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/tyler/.cargo/bin/claude-title hook"
+            "command": "/opt/homebrew/bin/claude-title hook"
           }
         ]
       }
@@ -146,7 +146,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/tyler/.cargo/bin/claude-title hook"
+            "command": "/opt/homebrew/bin/claude-title hook"
           }
         ]
       }
@@ -172,7 +172,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/tyler/.cargo/bin/claude-title hook"
+            "command": "/opt/homebrew/bin/claude-title hook"
           }
         ]
       }
@@ -190,7 +190,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/tyler/.cargo/bin/claude-title hook"
+            "command": "/opt/homebrew/bin/claude-title hook"
           }
         ]
       }
@@ -200,7 +200,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/tyler/.cargo/bin/claude-title hook"
+            "command": "/opt/homebrew/bin/claude-title hook"
           }
         ]
       }
@@ -210,7 +210,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/tyler/.cargo/bin/claude-title hook"
+            "command": "/opt/homebrew/bin/claude-title hook"
           }
         ]
       }
@@ -221,7 +221,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/tyler/.cargo/bin/claude-title hook"
+            "command": "/opt/homebrew/bin/claude-title hook"
           }
         ]
       }
