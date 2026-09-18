@@ -78,6 +78,25 @@ if [[ -f "$RESTORE_DIR/sourcery/auth.yaml" ]]; then
   cp "$RESTORE_DIR/sourcery/auth.yaml" "$HOME/.config/sourcery/auth.yaml"
 fi
 
+echo "  ~/.netrc, ~/.zshenv.local"
+[[ -f "$RESTORE_DIR/netrc" ]] && cp "$RESTORE_DIR/netrc" "$HOME/.netrc" && chmod 600 "$HOME/.netrc"
+[[ -f "$RESTORE_DIR/zshenv.local" ]] && cp "$RESTORE_DIR/zshenv.local" "$HOME/.zshenv.local"
+
+echo "  Codex, Gemini, Grok, OpenCode configs and auth"
+for pair in codex:.codex gemini:.gemini grok:.grok opencode:.config/opencode; do
+  src="$RESTORE_DIR/${pair%%:*}"
+  dest="$HOME/${pair#*:}"
+  [[ -d "$src" ]] || continue
+  mkdir -p "$dest"
+  cp -a "$src/"* "$dest/" 2>/dev/null || true
+done
+
+echo "  ~/.cli-proxy-api/"
+if [[ -d "$RESTORE_DIR/cli-proxy-api" ]]; then
+  mkdir -p "$HOME/.cli-proxy-api"
+  cp -a "$RESTORE_DIR/cli-proxy-api/"* "$HOME/.cli-proxy-api/"
+fi
+
 # Claude memories
 # Project keys are derived from repo paths. If the home directory changed,
 # remap old keys to match the new home directory.
@@ -156,3 +175,5 @@ echo "     (Do NOT add Monologue — it opens itself at login, so a login item"
 echo "      here makes it open twice)"
 echo "  7. Reinstall Google Calendar PWA in Brave (three dots > Install page as app):"
 echo "     https://calendar.google.com/calendar/r"
+echo "  8. Code signing: double-click $RESTORE_DIR/xcode.developerprofile to import"
+echo "     the Apple ID and signing identities into Xcode (kept in the archive)"

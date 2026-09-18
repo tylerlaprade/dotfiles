@@ -51,29 +51,17 @@ pid_brew=$!
 # Cargo crates
 if command -v cargo &>/dev/null; then
   echo "  [cargo] starting..."
-  (cargo install cargo-binstall 2>/dev/null; cargo binstall -y bacon cargo-insta cargo-workspaces codebook-lsp genemichaels 2>/dev/null; echo "  [cargo] done") &
-  pid_cargo=$!
-fi
-
-# cw (Rust numbered-workspace dev-CLI — github.com/tylerlaprade/cw)
-if command -v cargo &>/dev/null; then
-  echo "  [cw] starting..."
   (
-    CW_DIR="$HOME/Code/cw"
-    if [[ ! -d "$CW_DIR" ]]; then
-      mkdir -p "$(dirname "$CW_DIR")"
-      git clone git@github.com:tylerlaprade/cw.git "$CW_DIR" >"$LOGDIR/cw.log" 2>&1 \
-        || git clone https://github.com/tylerlaprade/cw.git "$CW_DIR" >>"$LOGDIR/cw.log" 2>&1
-    fi
-    if [[ -d "$CW_DIR" ]]; then
-      (cd "$CW_DIR" && cargo build --release) >>"$LOGDIR/cw.log" 2>&1 \
-        && mkdir -p "$HOME/.local/bin" \
-        && ln -sf "$CW_DIR/target/release/cw" "$HOME/.local/bin/cw" \
-        && echo "  [cw] done" \
-        || echo "  [cw] FAILED — see $LOGDIR/cw.log"
-    fi
+    cargo install cargo-binstall 2>/dev/null
+    cargo binstall -y apple-codesign bacon cargo-insta cargo-update cargo-workspaces claude-title codebook-lsp commit-fix genemichaels 2>/dev/null
+    cargo install --git https://github.com/tylerlaprade/session-guard >"$LOGDIR/session-guard.log" 2>&1 \
+      && session-guard install --terminal ghostty >>"$LOGDIR/session-guard.log" 2>&1 \
+      || echo "  [session-guard] FAILED — see $LOGDIR/session-guard.log"
+    cargo install --git https://github.com/tylerlaprade/lint-staged-rs >"$LOGDIR/lint-staged-rs.log" 2>&1 \
+      || echo "  [lint-staged-rs] FAILED — see $LOGDIR/lint-staged-rs.log"
+    echo "  [cargo] done"
   ) &
-  pid_cw=$!
+  pid_cargo=$!
 fi
 
 # Quiet Light helix theme (github.com/tylerlaprade/helix-quiet-light-theme)
@@ -137,8 +125,15 @@ fi
 
 # Wait for background jobs
 wait $pid_brew 2>/dev/null
+
+# Kanata runs as a root daemon from a stable path, so the Input Monitoring
+# grant survives brew upgrades of the formula.
+mkdir -p "$HOME/.local/bin"
+cp /opt/homebrew/bin/kanata "$HOME/.local/bin/kanata"
+sudo mkdir -p /usr/local/var/log
+sudo cp "$DOTFILES/LaunchDaemons/com.tylerlaprade.kanata.plist" /Library/LaunchDaemons/
+sudo launchctl bootstrap system /Library/LaunchDaemons/com.tylerlaprade.kanata.plist 2>/dev/null || true
 [[ -n "${pid_cargo:-}" ]] && wait $pid_cargo 2>/dev/null
-[[ -n "${pid_cw:-}" ]] && wait $pid_cw 2>/dev/null
 [[ -n "${pid_bun:-}" ]] && wait $pid_bun 2>/dev/null
 wait $pid_helix_theme 2>/dev/null
 wait $pid_sourcery 2>/dev/null

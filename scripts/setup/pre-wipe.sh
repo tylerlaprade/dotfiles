@@ -115,6 +115,27 @@ echo "  ~/.config/sourcery/"
 mkdir -p "$BACKUP_DIR/sourcery"
 cp "$HOME/.config/sourcery/auth.yaml" "$BACKUP_DIR/sourcery/auth.yaml" 2>/dev/null || echo "    (not found, skipping)"
 
+echo "  ~/.netrc, ~/.zshenv.local"
+cp "$HOME/.netrc" "$BACKUP_DIR/netrc" 2>/dev/null || echo "    (~/.netrc not found, skipping)"
+cp "$HOME/.zshenv.local" "$BACKUP_DIR/zshenv.local" 2>/dev/null || echo "    (~/.zshenv.local not found, skipping)"
+
+echo "  Codex, Gemini, Grok, OpenCode configs and auth"
+mkdir -p "$BACKUP_DIR/codex" "$BACKUP_DIR/gemini" "$BACKUP_DIR/grok" "$BACKUP_DIR/opencode"
+for f in config.toml auth.json; do cp "$HOME/.codex/$f" "$BACKUP_DIR/codex/" 2>/dev/null || true; done
+for f in settings.json oauth_creds.json google_accounts.json; do cp "$HOME/.gemini/$f" "$BACKUP_DIR/gemini/" 2>/dev/null || true; done
+for f in config.toml auth.json mcp_credentials.json; do cp "$HOME/.grok/$f" "$BACKUP_DIR/grok/" 2>/dev/null || true; done
+cp "$HOME/.config/opencode/opencode.jsonc" "$BACKUP_DIR/opencode/" 2>/dev/null || true
+
+echo "  ~/.cli-proxy-api/"
+cp -a "$HOME/.cli-proxy-api" "$BACKUP_DIR/cli-proxy-api" 2>/dev/null || echo "    (not found, skipping)"
+
+echo ""
+echo "  Code-signing identities live only in the keychain. In Xcode: Settings >"
+echo "  Accounts > your Apple ID > Export Apple ID and Code Signing Assets..."
+echo "  Save it as $BACKUP_DIR/xcode.developerprofile"
+read -p "  Exported (or skipping)? [y/N] " -r
+[[ "$REPLY" =~ ^[Yy]$ ]] || exit 1
+
 # Claude memories
 echo "  Claude memory files"
 mkdir -p "$BACKUP_DIR/claude-memories"
