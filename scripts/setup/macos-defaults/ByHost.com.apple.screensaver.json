@@ -1,0 +1,18 @@
+{
+  "idleTime": {
+    "type": "int",
+    "value": 300
+  },
+  "moduleDict": {
+    "type": "plist",
+    "value": {
+      "moduleName": "Ventura",
+      "path": "/System/Library/ExtensionKit/Extensions/Ventura.appex",
+      "type": 0
+    }
+  },
+  "showClock": {
+    "type": "bool",
+    "value": false
+  }
+}

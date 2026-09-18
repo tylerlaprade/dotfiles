@@ -3,13 +3,15 @@
 
 The repo copy contains a SOURCERY_TOKEN placeholder. The live copy has the real
 token injected from ~/.config/sourcery/auth.yaml. On sync, non-secret edits
-flow both ways using last-writer-wins (mtime), while the token never touches
-the repo.
+flow both ways by a three-way comparison against the last synced text (see
+threeway.py), while the token never touches the repo.
 """
 
 import os
-import re
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import threeway  # noqa: E402
 
 repo_path, local_path = sys.argv[1], sys.argv[2]
 
@@ -57,20 +59,17 @@ token = get_token()
 repo_content = read(repo_path)
 local_content = read(local_path)
 
-repo_mtime = os.path.getmtime(repo_path) if os.path.exists(repo_path) else 0
-local_mtime = os.path.getmtime(local_path) if os.path.exists(local_path) else 0
+local_redacted = redact(local_content, token) if local_content else ""
+base = threeway.load_base("helix-languages")
+merged = threeway.merge(base, {"text": local_redacted}, {"text": repo_content})["text"]
 
-if local_content:
-    local_redacted = redact(local_content, token)
-else:
-    local_redacted = ""
-
-if local_mtime > repo_mtime and local_redacted and local_redacted != repo_content:
-    # Local is newer — push non-secret changes back to repo
-    write(repo_path, local_redacted)
-    repo_content = local_redacted
+if merged and merged != repo_content:
+    write(repo_path, merged)
 
 # Always write live file with real token
-live_content = inject(repo_content, token)
+live_content = inject(merged, token)
 if live_content != local_content:
+    threeway.log_applied("helix-languages", local_path, {"text": "updated from repo"})
     write(local_path, live_content)
+
+threeway.save_base("helix-languages", {"text": merged})

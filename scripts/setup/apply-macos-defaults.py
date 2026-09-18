@@ -1,25 +1,20 @@
 #!/usr/bin/python3
 # Apple's stable python3 on purpose — see sync-macos-defaults.py shebang note.
-"""Apply macOS defaults from per-domain snapshot files.
+"""Apply macOS defaults on a fresh machine.
 
-Reads scripts/setup/macos-defaults/*.json and writes each setting via
-`defaults write`. Run on a new machine after install.
+Adopts scripts/setup/macos-defaults/*.json through the sync engine (repo wins
+everywhere, and that becomes the sync base), then applies the settings that
+live outside the defaults domains. Run on a new machine after install.
 """
 
 import json
 import os
-import plistlib
 import subprocess
 import sys
-import tempfile
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DOMAIN_DIR = os.path.join(SCRIPT_DIR, "macos-defaults")
-
-PER_HOST_SETTINGS = [
-    # (domain, key, type_flag, value_str)
-    ("com.apple.screensaver", "idleTime", "-int", "600"),
-]
+SYNC_SCRIPT = os.path.join(SCRIPT_DIR, "..", "sync", "sync-macos-defaults.py")
 
 # pmset lives outside the defaults domains; -c scopes a setting to power adapter.
 POWER_ADAPTER_SETTINGS = [
@@ -41,39 +36,7 @@ def run_defaults(args):
         failed.append((args, result.stderr.strip()))
 
 
-for filename in sorted(os.listdir(DOMAIN_DIR)):
-    if not filename.endswith(".json"):
-        continue
-    # Strip .json; "--" undoes sync-macos-defaults.py's slash sanitization
-    # (com.apple.LaunchServices--com.apple.launchservices.secure.json)
-    domain = filename[:-5].replace("--", "/")
-
-    with open(os.path.join(DOMAIN_DIR, filename)) as f:
-        entries = json.load(f)
-
-    for key, info in entries.items():
-        t = info["type"]
-        val = info.get("value")
-        if t == "plist-file":
-            plist_path = os.path.join(SCRIPT_DIR, info["file"])
-            run_defaults(["defaults", "import", domain, plist_path])
-        elif t == "bool":
-            run_defaults(["defaults", "write", domain, key, "-bool", str(val).lower()])
-        elif t == "int":
-            run_defaults(["defaults", "write", domain, key, "-int", str(val)])
-        elif t == "float":
-            run_defaults(["defaults", "write", domain, key, "-float", str(val)])
-        elif t == "string":
-            run_defaults(["defaults", "write", domain, key, "-string", val])
-        elif t == "plist":
-            with tempfile.NamedTemporaryFile(suffix=".plist", delete=False) as tmp:
-                plistlib.dump({key: val}, tmp, fmt=plistlib.FMT_XML)
-                tmp_path = tmp.name
-            run_defaults(["defaults", "import", domain, tmp_path])
-            os.unlink(tmp_path)
-
-for domain, key, type_flag, value in PER_HOST_SETTINGS:
-    run_defaults(["defaults", "-currentHost", "write", domain, key, type_flag, value])
+run_defaults([SYNC_SCRIPT, "--adopt"])
 
 for setting, value in POWER_ADAPTER_SETTINGS:
     run_defaults(["sudo", "pmset", "-c", setting, value])

@@ -10,3 +10,8 @@
 - The `claude()` GPG prewarm already heals a stale keyboxd lock. Diagnose its
   current log and code before changing the wrapper; do not restart
   `gpg-agent` as a first response.
+- The bidirectional syncs (macOS defaults, browser Local State, VS Code,
+  Graphite, Helix) merge three ways against the last synced state in
+  `~/.local/state/dotfiles-sync/`; the live machine wins a conflict. Every
+  write to the live machine is logged in `~/Library/Logs/dotfiles-sync.log`.
+  `sync-macos-defaults.py --dry-run` previews; `--adopt` is for a fresh Mac.

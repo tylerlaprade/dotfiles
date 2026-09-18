@@ -5,12 +5,17 @@
 """Bidirectional sync of macOS defaults using per-domain files.
 
 Each tracked domain gets its own JSON file under scripts/setup/macos-defaults/.
-Uses last-writer-wins (mtime) to decide direction per domain, matching the
-pattern used by sync-graphite.py and sync-vscode-settings.py.
+Direction is decided per key by a three-way merge against the state recorded
+at the last run (see threeway.py). A domain written as host:<name> in the
+config is per-host (defaults -currentHost).
 
 Called by sync-dotfiles.sh (LaunchAgent: at login and daily).
+  --adopt    fresh machine: write every repo value to the system, record that
+             as the base, and export nothing (install.sh)
+  --dry-run  print what would be written to the system and change nothing
 """
 
+import argparse
 import fnmatch
 import json
 import os
@@ -36,6 +41,14 @@ SECRET_KEY_RE = re.compile(r"token|secret|passw|credential|api[_-]?key", re.IGNO
 ACCOUNT_RECORD_KEYS = {"AccountID", "AccountAlternateDSID", "AccountDescription", "AccountAuthenticationType"}
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, SCRIPT_DIR)
+import threeway  # noqa: E402
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--adopt", action="store_true")
+parser.add_argument("--dry-run", action="store_true")
+options = parser.parse_args()
+
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 SETUP_DIR = os.path.join(REPO_ROOT, "scripts", "setup")
 CONF_PATH = os.path.join(SETUP_DIR, "macos-defaults.conf")
@@ -240,9 +253,16 @@ def stabilize_string(key, value, existing):
     return value
 
 
+def defaults_command(domain):
+    if domain.startswith("host:"):
+        return ["defaults", "-currentHost"], domain[len("host:"):]
+    return ["defaults"], domain
+
+
 def export_domain(domain, blacklist, existing):
     """Export a single domain from system, returning entries dict or None."""
-    raw = subprocess.run(["defaults", "export", domain, "-"], capture_output=True)
+    command, name = defaults_command(domain)
+    raw = subprocess.run([*command, "export", name, "-"], capture_output=True)
     if raw.returncode != 0:
         return None
     try:
@@ -306,31 +326,32 @@ def run_defaults(args):
 
 def apply_domain(domain, entries):
     """Write entries to system via `defaults write`."""
+    command, name = defaults_command(domain)
     for key, info in entries.items():
         t = info["type"]
         val = info.get("value")
         if t == "plist-file":
             plist_path = os.path.join(SETUP_DIR, info["file"])
-            run_defaults(["defaults", "import", domain, plist_path])
+            run_defaults([*command, "import", name, plist_path])
         elif t == "bool":
-            run_defaults(["defaults", "write", domain, key, "-bool", str(val).lower()])
+            run_defaults([*command, "write", name, key, "-bool", str(val).lower()])
         elif t == "int":
-            run_defaults(["defaults", "write", domain, key, "-int", str(val)])
+            run_defaults([*command, "write", name, key, "-int", str(val)])
         elif t == "float":
-            run_defaults(["defaults", "write", domain, key, "-float", str(val)])
+            run_defaults([*command, "write", name, key, "-float", str(val)])
         elif t == "string":
-            run_defaults(["defaults", "write", domain, key, "-string", val])
+            run_defaults([*command, "write", name, key, "-string", val])
         elif t == "plist":
             with tempfile.NamedTemporaryFile(suffix=".plist", delete=False) as tmp:
                 plistlib.dump({key: val}, tmp, fmt=plistlib.FMT_XML)
                 tmp_path = tmp.name
-            run_defaults(["defaults", "import", domain, tmp_path])
+            run_defaults([*command, "import", name, tmp_path])
             os.unlink(tmp_path)
 
 
 def domain_file_name(domain):
     # Slash-containing domains (com.apple.LaunchServices/...) must not create subdirs
-    return domain.replace("/", "--")
+    return domain.replace("/", "--").replace("host:", "ByHost.")
 
 
 def domain_path(domain):
@@ -353,57 +374,69 @@ def write_domain_file(domain, entries):
 
 
 # ---------------------------------------------------------------------------
-# Bidirectional sync — per-domain, mtime-based newer-wins
+# Bidirectional sync — per key, three-way against the last reconciled state
 # ---------------------------------------------------------------------------
-
-MARKER_DIR = os.path.join(DOMAIN_DIR, ".sync-markers")
-os.makedirs(MARKER_DIR, exist_ok=True)
 
 applied_domains = set()
 
+
+def base_name(domain):
+    return os.path.join("macos-defaults", domain_file_name(domain))
+
+
+def write_to_system(domain, updates):
+    if not updates:
+        return
+    if options.dry_run:
+        for key, info in updates.items():
+            print(f"would write {domain} {key} = {json.dumps(info.get('value', info), sort_keys=True)}")
+        return
+    apply_domain(domain, updates)
+    applied_domains.add(domain)
+    threeway.log_applied("macos-defaults", domain, updates)
+
+
 for domain in sorted(domains_to_export):
     blacklist = global_key_blacklist + domains_to_export[domain]
-    repo_file = domain_path(domain)
     repo_entries = read_domain_file(domain)
-    repo_mtime = os.path.getmtime(repo_file) if os.path.exists(repo_file) else 0
+
+    if options.adopt:
+        if repo_entries is not None:
+            write_to_system(domain, repo_entries)
+            if not options.dry_run:
+                threeway.save_base(base_name(domain), repo_entries)
+        continue
 
     local_entries = export_domain(domain, blacklist, repo_entries or {})
     if local_entries is None and repo_entries is None:
         continue
 
-    marker = os.path.join(MARKER_DIR, domain_file_name(domain))
-    marker_mtime = os.path.getmtime(marker) if os.path.exists(marker) else 0
-
-    reconciled = True
-    if repo_entries is not None and local_entries is not None:
-        if repo_entries == local_entries:
-            pass  # In sync
-        elif repo_mtime > marker_mtime:
-            # Repo file updated (git pull) since last sync — apply repo values
-            apply_domain(domain, repo_entries)
-            applied_domains.add(domain)
-            # Re-export to capture merged state
-            local_entries = export_domain(domain, blacklist, repo_entries)
-            if local_entries:
-                write_domain_file(domain, local_entries)
-        else:
-            # Local system changed — export
-            write_domain_file(domain, local_entries)
-    elif local_entries is not None:
+    if repo_entries is None:
         # New domain, no repo file yet
-        write_domain_file(domain, local_entries)
-    else:
-        # Domain in repo but app not installed (or export failed) — preserve the
-        # file AND the marker, so a repo file that arrives later (git pull/edit)
-        # can still win once the domain appears.
-        reconciled = False
+        if not options.dry_run:
+            write_domain_file(domain, local_entries)
+            threeway.save_base(base_name(domain), local_entries)
+        continue
+    if local_entries is None:
+        # Domain in repo but app not installed (or export failed) — keep the
+        # file and the base, so a repo change still lands once the domain appears.
+        continue
 
-    if reconciled:
-        with open(marker, "w") as f:
-            pass
+    base = threeway.load_base(base_name(domain))
+    merged = threeway.merge(base, local_entries, repo_entries, repo_can_delete=False)
+    updates, _ = threeway.changes(local_entries, merged)
+    write_to_system(domain, updates)
+    if options.dry_run:
+        continue
+    if updates:
+        # Re-export to capture what the system actually accepted
+        merged = export_domain(domain, blacklist, merged) or merged
+    if merged != repo_entries:
+        write_domain_file(domain, merged)
+    threeway.save_base(base_name(domain), merged)
 
 # Restart affected services if we applied anything
-if applied_domains:
+if applied_domains and not options.dry_run:
     needs_restart = set()
     for domain in applied_domains:
         if "dock" in domain.lower():
@@ -442,6 +475,8 @@ return output
 """
 
 LOGIN_ITEMS_PATH = os.path.join(SETUP_DIR, "login-items.json")
+if options.adopt or options.dry_run:
+    sys.exit(0)
 raw = subprocess.run(["osascript", "-e", LOGIN_ITEMS_SCRIPT], capture_output=True, text=True)
 if raw.returncode == 0 and raw.stdout.strip():
     lines = raw.stdout.rstrip("\n").split("\n")
