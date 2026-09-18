@@ -115,6 +115,12 @@ for app in GarageBand iMovie Keynote Numbers Pages; do
   [[ -d "/Applications/$app.app" ]] && sudo rm -rf "/Applications/$app.app"
 done
 
+# Hand-kept /etc/hosts entries (dev hostnames and self-blocks)
+while IFS= read -r entry; do
+  [[ -z "$entry" ]] && continue
+  grep -qxF "$entry" /etc/hosts || echo "$entry" | sudo tee -a /etc/hosts >/dev/null
+done < "$DOTFILES/scripts/setup/hosts"
+
 # Pin a static HostName so `uname -n` stops tracking the network-assigned name.
 # A hostname that flips breaks GPG's stale-lock reclamation (a dead-process lock
 # is only auto-broken when its recorded hostname matches the current one), which

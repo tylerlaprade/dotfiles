@@ -82,21 +82,6 @@ echo "  ~/.netrc, ~/.zshenv.local"
 [[ -f "$RESTORE_DIR/netrc" ]] && cp "$RESTORE_DIR/netrc" "$HOME/.netrc" && chmod 600 "$HOME/.netrc"
 [[ -f "$RESTORE_DIR/zshenv.local" ]] && cp "$RESTORE_DIR/zshenv.local" "$HOME/.zshenv.local"
 
-echo "  Codex, Gemini, Grok, OpenCode configs and auth"
-for pair in codex:.codex gemini:.gemini grok:.grok opencode:.config/opencode; do
-  src="$RESTORE_DIR/${pair%%:*}"
-  dest="$HOME/${pair#*:}"
-  [[ -d "$src" ]] || continue
-  mkdir -p "$dest"
-  cp -a "$src/"* "$dest/" 2>/dev/null || true
-done
-
-echo "  ~/.cli-proxy-api/"
-if [[ -d "$RESTORE_DIR/cli-proxy-api" ]]; then
-  mkdir -p "$HOME/.cli-proxy-api"
-  cp -a "$RESTORE_DIR/cli-proxy-api/"* "$HOME/.cli-proxy-api/"
-fi
-
 # Claude memories
 # Project keys are derived from repo paths. If the home directory changed,
 # remap old keys to match the new home directory.
@@ -166,8 +151,7 @@ echo "  1. Verify Brave Sync pulled everything down"
 echo "  2. Run: $HOME/Code/dotfiles/scripts/setup/apply-macos-defaults.py"
 echo "  3. Grant accessibility permissions for Kanata"
 echo "  4. Grant Input Monitoring + Accessibility for /Users/\$USER/.local/bin/kanata"
-echo "  5. Add custom /etc/hosts entries:"
-echo "     sudo sh -c 'echo \"127.0.0.1       local.paqarina.dev\" >> /etc/hosts'"
+echo "  5. /etc/hosts entries are applied by install.sh from scripts/setup/hosts"
 echo "  6. Re-add login items if needed: Discord, Granola, Graphite, Google Calendar, Slack"
 echo "     (Do NOT re-enable full Karabiner-Elements — Kanata owns Caps;"
 echo "      only Karabiner VirtualHID daemon is needed for Kanata on macOS)"

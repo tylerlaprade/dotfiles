@@ -25,3 +25,21 @@ Comments do not hide anything. Claude Code strips `<!-- ... -->` out of these
 files, but Codex, Grok, Antigravity, and opencode all pass it straight to the
 model.
 
+## Second Mac
+
+Both machines stay in use, so nothing is wiped and nothing is zipped. The
+repo carries the configuration; each machine logs in on its own.
+
+1. Clone this repo to `~/Code/dotfiles` and run `install.sh`. It installs the
+   tools, links the configs, applies `/etc/hosts` from `scripts/setup/hosts`,
+   loads the Kanata daemon, and adopts the captured macOS defaults as the sync
+   base. From then on the daily sync merges changes both ways.
+2. Log in: `gh auth login`, `claude`, `codex`, `gemini`, `grok`, `gt auth`,
+   `sourcery login`, `aws configure`.
+3. Keys: create a new SSH key on the machine and add it to GitHub. Export the
+   GPG signing key from the first Mac (`gpg --export-secret-keys`) and import
+   it, so commits sign as the same key.
+4. Code signing: on the first Mac, Xcode > Settings > Accounts > Export Apple
+   ID and Code Signing Assets; open the file on the second Mac.
+5. Grant Input Monitoring and Accessibility to `~/.local/bin/kanata`, and
+   Accessibility to Ghostty, AltTab, and Homerow when they ask.

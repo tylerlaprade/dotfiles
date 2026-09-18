@@ -1,0 +1,40 @@
+{
+  "security": {
+    "auth": {
+      "selectedType": "oauth-personal"
+    },
+    "enablePermanentToolApproval": true,
+    "autoAddToPolicyByDefault": true,
+    "environmentVariableRedaction": {
+      "enabled": true
+    }
+  },
+  "general": {
+    "enableNotifications": true,
+    "notificationMethod": "auto",
+    "defaultApprovalMode": "auto_edit",
+    "plan": {
+      "modelRouting": false
+    }
+  },
+  "ui": {
+    "terminalBuffer": true,
+    "loadingPhrases": "all"
+  },
+  "model": {
+    "name": ""
+  },
+  "experimental": {
+    "voiceMode": true,
+    "voice": {
+      "backend": "whisper",
+      "whisperModel": "ggml-large-v3-turbo-q8_0.bin"
+    },
+    "worktrees": true,
+    "modelSteering": true,
+    "directWebFetch": true,
+    "autoMemory": true,
+    "contextManagement": true,
+    "generalistProfile": true
+  }
+}

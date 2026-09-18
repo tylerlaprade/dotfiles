@@ -112,12 +112,14 @@ done
 # Gemini CLI home at ~/.gemini and still reads GEMINI.md there.
 mkdir -p "$HOME/.gemini"
 link "$DOTFILES/.agents/AGENTS.md" "$HOME/.gemini/GEMINI.md"
+link "$DOTFILES/.gemini/settings.json" "$HOME/.gemini/settings.json"
 
 # Grok global rules: shared prefs only. Pair with [compat.claude] agents = false
 # in ~/.grok/config.toml so Grok does not also load Claude's STE layer from
 # ~/.claude/CLAUDE.md / project .claude/CLAUDE.md.
 mkdir -p "$HOME/.grok/rules"
 link "$DOTFILES/.agents/AGENTS.md" "$HOME/.grok/rules/agents.md"
+link "$DOTFILES/.grok/config.toml" "$HOME/.grok/config.toml"
 
 # Agent Skills (agentskills.io standard) — symlink each skill folder as a whole
 # so the dir stays a single link instead of a per-file mirror.

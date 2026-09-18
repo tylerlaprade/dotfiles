@@ -1,0 +1,40 @@
+[cli]
+installer = "internal"
+
+[ui]
+max_thoughts_width = 120
+fork_secondary_model = "grok-build"
+yolo = false
+compact_mode = true
+permission_mode = "always-approve"
+prompt_suggestions = false
+remember_tool_approvals = true
+show_thinking_blocks = true
+theme = "tokyonight"
+
+[marketplace]
+official_marketplace_auto_installed = true
+default_skills_installs_purged = true
+
+[[marketplace.sources]]
+name = "xAI Official"
+git = "https://github.com/xai-org/plugin-marketplace.git"
+
+[compat.claude]
+hooks = false
+agents = false
+
+[privacy]
+privacy_banner_acked = "2026-08-05T16:27:08Z"
+
+[models]
+default = "grok-4.6"
+default_reasoning_effort = "high"
+
+[plugins]
+enabled = [
+    "browser-use",
+    "chrome-devtools-mcp",
+    "sentry",
+    "stripe",
+]
