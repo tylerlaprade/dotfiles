@@ -16,6 +16,9 @@
 # Top-level repos under ~/Code that every session may read (standing rule:
 # sessions consult dotfiles/scripts/bin before writing new helpers).
 SHARED=("dotfiles")
+# Groups of top-level repos that may read each other, one space-separated
+# group per entry.
+ASSOCIATED=("Fondly scrollfondly.com")
 # One file per session id, holding approved repo roots one per line.
 state_dir="${READ_GUARD_STATE_DIR:-/tmp/claude-read-guard}"
 
@@ -37,11 +40,22 @@ esac
 
 state_file="$state_dir/$sid"
 
+in_group() {
+  local member
+  for member in $2; do
+    [ "$1" = "$member" ] && return 0
+  done
+  return 1
+}
+
 allowed_repo() {
   [ "$1" = "$project_top" ] && return 0
-  local s
+  local s group
   for s in "${SHARED[@]}"; do
     [ "$1" = "$s" ] && return 0
+  done
+  for group in "${ASSOCIATED[@]}"; do
+    in_group "$project_top" "$group" && in_group "$1" "$group" && return 0
   done
   return 1
 }

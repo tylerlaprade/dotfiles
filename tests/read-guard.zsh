@@ -111,6 +111,21 @@ test_shared_dotfiles() {
   expect_allow
 }
 
+test_associated_repo_read() {
+  run_hook "$HOME/Code/Fondly" "$(pre s1 "$HOME/Code/Fondly" "$(read_input "$HOME/Code/scrollfondly.com/src/index.ts")")"
+  expect_allow
+}
+
+test_associated_repo_reverse() {
+  run_hook "$HOME/Code/scrollfondly.com" "$(pre s1 "$HOME/Code/scrollfondly.com" "$(bash_input "git -C ~/Code/Fondly log")")"
+  expect_allow
+}
+
+test_associated_not_transitive_to_foreign() {
+  run_hook "$HOME/Code/Fondly" "$(pre s1 "$HOME/Code/Fondly" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
+  expect_ask
+}
+
 test_dot_dot_escape() {
   run_hook "$HOME/Code/dotfiles" "$(pre s1 "$HOME/Code/dotfiles" "$(read_input "$HOME/Code/dotfiles/../BrainDump/App.swift")")"
   expect_ask
@@ -200,6 +215,9 @@ run_case "umbrella sibling is allowed" test_umbrella_sibling
 run_case "foreign read from umbrella asks" test_foreign_from_umbrella
 run_case "path outside ~/Code is allowed" test_outside_code_dir
 run_case "shared dotfiles repo is allowed" test_shared_dotfiles
+run_case "associated repo read is allowed" test_associated_repo_read
+run_case "associated repo bash in reverse is allowed" test_associated_repo_reverse
+run_case "associated group excludes foreign repos" test_associated_not_transitive_to_foreign
 run_case "dot-dot escape asks" test_dot_dot_escape
 run_case "subdir session reads own repo" test_subdir_session_own_repo
 run_case "bash touching foreign repo asks" test_bash_foreign_git
