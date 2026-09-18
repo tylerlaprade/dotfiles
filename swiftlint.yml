@@ -1,0 +1,129 @@
+# One SwiftLint policy for every Swift project, the way cargo-clippy.py is
+# for Rust: every rule on, opt-in included, warnings block the build, and a
+# short list of rules off, each with why. A project's own .swiftlint.yml
+# points here:
+#
+#   parent_config: https://raw.githubusercontent.com/tylerlaprade/dotfiles/master/swiftlint.yml
+#   included: [Sources, Tests]   # whatever the project's source roots are
+#   excluded: [build]
+#
+# and adds only what is its own (paths, a baseline while it pays down old
+# findings). A remote parent is fetched on first run and cached beside the
+# child, so a clone on another machine gets the same rules.
+opt_in_rules:
+  - all
+
+disabled_rules:
+  # Formatting the codebase does not follow; Xcode's formatter decides.
+  - contrasted_opening_brace
+  - indentation_width
+  - vertical_whitespace_between_cases
+  - vertical_whitespace_opening_braces
+  - vertical_whitespace_closing_braces
+  - vertical_parameter_alignment_on_call
+  - closure_end_indentation
+  - collection_alignment
+  - let_var_whitespace
+  - statement_position
+  - switch_case_on_newline
+  - conditional_returns_on_newline
+  - attributes
+  # Objective-C naming; Swift top-level constants carry no `k` prefix here.
+  - prefixed_toplevel_constant
+  - number_separator
+  - trailing_closure
+  - anonymous_argument_in_multiline_closure
+  # Line-breaking of arguments and parameters is a preference.
+  - multiline_arguments
+  - multiline_arguments_brackets
+  - multiline_call_arguments
+  - multiline_parameters
+  - multiline_parameters_brackets
+  - multiline_literal_brackets
+  - multiline_function_chains
+  # Type inference is the Swift idiom; explicit `internal` is noise.
+  - explicit_type_interface
+  - explicit_acl
+  - explicit_top_level_acl
+  # Member and type ordering, one type per file, file named for its type:
+  # a view's private helpers stay beside it on purpose.
+  - type_contents_order
+  - file_types_order
+  - one_declaration_per_file
+  - file_name
+  - no_grouping_extension
+  # These two contradict each other; where the ACL sits is a preference.
+  - extension_access_modifier
+  - no_extension_access_modifier
+  # Requiring a deinit, forbidding default parameter values, ordering
+  # enum cases alphabetically, `if a, b` over `if a && b`: preferences.
+  - required_deinit
+  - discouraged_default_parameter
+  - sorted_enum_cases
+  - prefer_condition_list
+  # Layout constants are numbers; naming every 12 and 0.35 is noise.
+  - no_magic_numbers
+  # SwiftData models must write `= nil` on optional stored properties or
+  # lightweight migration fails at launch.
+  - implicit_optional_initialization
+  # `fileprivate` is the right access for a helper shared within one file.
+  - strict_fileprivate
+  # The tests use Swift Testing and XCTest, not Nimble.
+  - prefer_nimble
+  # A setUp with nothing to tear down has no tearDown, and an empty
+  # tearDown is itself a finding.
+  - balanced_xctest_lifecycle
+  # `let indexer = self.indexer` before a Sendable closure and
+  # `let scale = max(scale, 1)` are idioms; definite initialization keeps
+  # them safe, and renaming them adds nothing.
+  - variable_shadowing
+  # PhotoKit takes NSArray, Core Data takes NSFetchRequest, and NSCache
+  # has no Swift counterpart: the bridged types are Apple's API surface.
+  - legacy_objc_type
+  # Key paths versus closures is a readability preference, and its
+  # rewrite does not compile inside Swift Testing's #expect macro.
+  - prefer_key_path
+  # A nil vector, list, or flag means "not known yet", which an empty
+  # collection or a false would misstate; nil is the honest value.
+  - discouraged_optional_collection
+  - discouraged_optional_boolean
+  # Length and branch counts, the same call as the Rust policy, which
+  # leaves Clippy's too_many_lines off and cognitive_complexity out: a
+  # function is split when it has two jobs, not when it passes a count.
+  - function_body_length
+  - type_body_length
+  - file_length
+  - closure_body_length
+  - cyclomatic_complexity
+
+# Clippy's too_many_arguments, part of clippy::all in the Rust policy,
+# fires at the eighth parameter; the same bar here.
+function_parameter_count:
+  warning: 7
+  error: 7
+
+# Empty cancel-button actions, `init() {}`, `while step() {}`, and a
+# representable's update method with nothing to update are idioms.
+no_empty_block:
+  disabled_block_types: [closure_blocks, function_bodies, initializer_bodies, statement_blocks]
+
+# A user-facing string is its own localization key, so it stays on one
+# line however long it is; code lines keep the default limits.
+line_length:
+  warning: 120
+  error: 200
+  ignores_urls: true
+  excluded_lines_patterns:
+    - '^\s*(return )?(String\(localized: |Text\(|note\(|policyLead\(|policySection\(|\.accessibilityHint\(|\w+ = String\(localized: )"'
+    # A diagnostics line is one message; wrapped, it reads worse in the code and the same in the log.
+    - '^\s*fondlyLog\('
+
+identifier_name:
+  min_length: 2
+  max_length: 50
+  # Single letters are the vocabulary of vectors, colours, and affine
+  # matrices (CGAffineTransform's own fields are a, b, c, d, tx, ty).
+  excluded: [i, j, k, n, x, y, z, w, h, r, g, b, a, c, d, t, dx, dy, tx, ty, id, at, to, of, in, on, up, is, ok, ui, os]
+
+# Warnings block the build.
+strict: true
