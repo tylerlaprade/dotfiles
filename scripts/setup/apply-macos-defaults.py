@@ -21,6 +21,11 @@ PER_HOST_SETTINGS = [
     ("com.apple.screensaver", "idleTime", "-int", "600"),
 ]
 
+# pmset lives outside the defaults domains; -c scopes a setting to power adapter.
+POWER_ADAPTER_SETTINGS = [
+    ("sleep", "0"),  # System Settings: "Prevent automatic sleeping on power adapter when the display is off"
+]
+
 if not os.path.exists(DOMAIN_DIR):
     print("No snapshot directory found at", DOMAIN_DIR)
     sys.exit(1)
@@ -69,6 +74,9 @@ for filename in sorted(os.listdir(DOMAIN_DIR)):
 
 for domain, key, type_flag, value in PER_HOST_SETTINGS:
     run_defaults(["defaults", "-currentHost", "write", domain, key, type_flag, value])
+
+for setting, value in POWER_ADAPTER_SETTINGS:
+    run_defaults(["sudo", "pmset", "-c", setting, value])
 
 # Restore login items
 login_items_file = os.path.join(SCRIPT_DIR, "login-items.json")
