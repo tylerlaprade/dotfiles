@@ -1,7 +1,7 @@
 {
   "idleTime": {
     "type": "int",
-    "value": 300
+    "value": 0
   },
   "moduleDict": {
     "type": "plist",
