@@ -3,6 +3,10 @@
     "type": "int",
     "value": 0
   },
+  "lastDelayTime": {
+    "type": "int",
+    "value": 300
+  },
   "moduleDict": {
     "type": "plist",
     "value": {
