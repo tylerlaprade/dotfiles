@@ -21,7 +21,6 @@ bind "set menu-complete-display-prefix on"
 bind "TAB:menu-complete"
 bind '"\e[Z": menu-complete-backward' # Shift-Tab
 
-alias brew="wax"
 alias dot='cd "$HOME/Code/dotfiles"'
 
 # VSCode shell integration
