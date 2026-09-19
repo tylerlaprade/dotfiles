@@ -125,5 +125,6 @@ identifier_name:
   # matrices (CGAffineTransform's own fields are a, b, c, d, tx, ty).
   excluded: [i, j, k, n, x, y, z, w, h, r, g, b, a, c, d, t, dx, dy, tx, ty, id, at, to, of, in, on, up, is, ok, ui, os]
 
-# Warnings block the build.
+# Warnings block the build. SwiftLint does not pass `strict` down through
+# `parent_config`, so every project's own .swiftlint.yml repeats this line.
 strict: true
