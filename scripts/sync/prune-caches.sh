@@ -21,9 +21,6 @@ if command -v xcrun >/dev/null; then
   xcrun simctl delete unavailable || true
 fi
 
-# Tree-sitter git checkouts are build inputs; Helix loads the .dylibs.
-rm -rf "$HOME/Code/helix/runtime/grammars/sources"
-
 if command -v rustup >/dev/null; then
   rustup set profile minimal >/dev/null
   rustup component remove rust-docs >/dev/null 2>&1 || true

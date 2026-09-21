@@ -1,43 +1,40 @@
 #!/bin/bash
-# Pull gj1118/helix master and rebuild hx if the installed binary is behind.
-# Triggered weekly by ~/Library/LaunchAgents/com.tylerlaprade.update-helix.plist.
+# Install the latest gj1118/helix GitHub release (binary plus runtime) into
+# ~/.local/share/helix and link hx into ~/.local/bin. Triggered weekly by
+# ~/Library/LaunchAgents/com.tylerlaprade.update-helix.plist.
 set -euo pipefail
 
-export PATH="$HOME/.cargo/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-REPO="$HOME/Code/helix"
+export PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+REPO="gj1118/helix"
+SHARE="$HOME/.local/share/helix"
+BIN="$HOME/.local/bin"
+
+case "$(uname -m)" in
+  arm64) ARCH="aarch64" ;;
+  x86_64) ARCH="x86_64" ;;
+  *) echo "Unsupported architecture: $(uname -m)"; exit 1 ;;
+esac
 
 echo "=== $(date) ==="
-cd "$REPO"
+tag=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" \
+  | sed -n 's/^ *"tag_name": *"\([^"]*\)".*/\1/p')
+[[ -n "$tag" ]] || { echo "No release tag found for $REPO"; exit 1; }
 
-if [[ -n "$(git status --porcelain)" ]]; then
-  echo "Working tree dirty; skip"
+name="helix-$tag-$ARCH-macos"
+if [[ -d "$SHARE/$name" && "$(readlink "$SHARE/current")" == "$name" ]]; then
+  echo "hx already at $tag"
   exit 0
 fi
 
-git fetch --quiet origin master
-after=$(git rev-parse origin/master)
-
-if [[ -n "$(git rev-list -n 1 HEAD --not origin/master)" ]]; then
-  echo "HEAD has commits not on origin/master; skip"
-  exit 0
-fi
-
-if [[ "$(git branch --show-current)" != "master" ]]; then
-  echo "Leaving $(git branch --show-current) for master"
-  git checkout master
-fi
-git merge --ff-only origin/master
-
-installed=$(hx --version 2>/dev/null | sed -n 's/.*(\([0-9a-f][0-9a-f]*\)).*/\1/p' || true)
-if [[ -n "$installed" ]] && git rev-parse --verify "${installed}^{commit}" >/dev/null 2>&1 \
-  && [[ "$(git rev-parse "${installed}^{commit}")" == "$after" ]]; then
-  echo "hx already at $installed"
-  exit 0
-fi
-
-echo "Rebuilding ${installed:-none} -> $(git rev-parse --short "$after")"
-# 8 GB machine: unlimited rustc jobs with LTO will swap the box to death.
-CARGO_BUILD_JOBS=2 cargo install --path helix-term --locked --force
-# Grammar git checkouts are build inputs; Helix loads the .dylibs.
-rm -rf "$REPO/runtime/grammars/sources"
-echo "Rebuilt hx: $(hx --version)"
+echo "Installing $name"
+mkdir -p "$SHARE" "$BIN"
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+curl -fsSL "https://github.com/$REPO/releases/download/$tag/$name.tar.xz" -o "$tmp/$name.tar.xz"
+tar xJf "$tmp/$name.tar.xz" -C "$SHARE"
+ln -sfn "$name" "$SHARE/current"
+ln -sfn "$SHARE/current/hx" "$BIN/hx"
+for old in "$SHARE"/helix-*-macos; do
+  [[ "$old" == "$SHARE/$name" ]] || rm -rf "$old"
+done
+echo "Installed: $("$BIN/hx" --version)"

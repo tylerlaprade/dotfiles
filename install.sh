@@ -64,6 +64,17 @@ if command -v cargo &>/dev/null; then
   pid_cargo=$!
 fi
 
+# helix (gj1118 fork release)
+echo "  [helix] starting..."
+(
+  if "$DOTFILES/scripts/sync/update-helix.sh" >"$LOGDIR/helix.log" 2>&1; then
+    echo "  [helix] done"
+  else
+    echo "  [helix] FAILED — see $LOGDIR/helix.log"
+  fi
+) &
+pid_helix=$!
+
 # Quiet Light helix theme (github.com/tylerlaprade/helix-quiet-light-theme)
 echo "  [helix-theme] starting..."
 (
@@ -141,6 +152,7 @@ sudo cp "$DOTFILES/LaunchDaemons/com.tylerlaprade.kanata.plist" /Library/LaunchD
 sudo launchctl bootstrap system /Library/LaunchDaemons/com.tylerlaprade.kanata.plist 2>/dev/null || true
 [[ -n "${pid_cargo:-}" ]] && wait $pid_cargo 2>/dev/null
 [[ -n "${pid_bun:-}" ]] && wait $pid_bun 2>/dev/null
+wait $pid_helix 2>/dev/null
 wait $pid_helix_theme 2>/dev/null
 wait $pid_sourcery 2>/dev/null
 [[ -n "${pid_claude:-}" ]] && wait $pid_claude 2>/dev/null
