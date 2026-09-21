@@ -11,6 +11,15 @@
 - I primarily use voice-to-text. Read each phrase in the full context of my request, its established scope, and these standing rules. A loose word or "I don't care about X" does not grant permission to change X; preserve existing behavior unless I explicitly ask to change it.
 - Don't ask me questions you can easily verify yourself, whether in the codebase or with any other means.
 - Don't ask me to run a readonly command myself. Just do it.
+- Your closing report is the only output I read. Working narration, commit
+  messages, and side files scroll past unseen, so never move report content
+  into a file for me to read. Write the report as speech: lead with what
+  happened, use complete sentences, restate any name you coined mid-session,
+  rank what matters instead of enumerating everything, and name each open
+  item with what it waits on. By the end of a long session your context is
+  all diffs and compressed notes, and your prose drifts toward a dense
+  manifest register built for a reader who never loses the thread. I am not
+  that reader. Write the report for me.
 - Outward-facing work on my own projects is durably authorized: pushing, TestFlight builds to my testers, publishing to my own listings and sites, restarting my own processes. Do it and report; never ask first. Deleting data that is not mine to recreate is the one exception.
 - Persistent agent memory is for durable project-specific preferences, decisions, and pointers to sources of truth. Never store current repo, deploy, service, test, or experiment state; progress logs; commit snapshots; pending work; blockers; or one session's division of labor. Put pending work in the project's issue tracker or checked-in docs, put cross-project rules in shared instructions loaded by all agents, and verify changing facts from their live source.
 - Do not treat silence, skipped messages, or unrelated later work as rejection. Keep a requested or open item until it is resolved or I explicitly drop it.

@@ -93,15 +93,15 @@ done
 # TUI setting toggles don't create formatting-only diffs.
 "$DOTFILES/scripts/sync/format-claude-settings.py" "$DOTFILES/.claude/settings.json"
 
-# Shared global agent prefs (all hosts). Claude-only extras live in
-# .agents/CLAUDE.md, kept out of .claude/ so this repo's own AGENTS.md still
-# loads: a .claude/CLAUDE.md in the working tree counts as project
-# instructions and would suppress it.
+# Shared global agent prefs (all hosts). Claude Code has no user-level
+# AGENTS.md, so ~/.claude/CLAUDE.md links straight to the shared file. Keep
+# it out of this repo's .claude/: a .claude/CLAUDE.md in the working tree
+# counts as project instructions and would suppress this repo's AGENTS.md.
 mkdir -p "$HOME/.agents"
 link "$DOTFILES/.agents/AGENTS.md" "$HOME/.agents/AGENTS.md"
-link "$DOTFILES/.agents/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+link "$DOTFILES/.agents/AGENTS.md" "$HOME/.claude/CLAUDE.md"
 
-# Codex global instructions: shared prefs only (no Claude-only STE layer).
+# Codex global instructions.
 mkdir -p "$HOME/.codex"
 link "$DOTFILES/.agents/AGENTS.md" "$HOME/.codex/AGENTS.md"
 
@@ -112,14 +112,14 @@ for item in "$DOTFILES"/.codex/skills/*; do
   link "$item" "$HOME/.codex/skills/$(basename "$item")"
 done
 
-# Antigravity CLI (agy) global context: shared prefs only. It took over the old
+# Antigravity CLI (agy) global context. It took over the old
 # Gemini CLI home at ~/.gemini and still reads GEMINI.md there.
 mkdir -p "$HOME/.gemini"
 link "$DOTFILES/.agents/AGENTS.md" "$HOME/.gemini/GEMINI.md"
 link "$DOTFILES/.gemini/settings.json" "$HOME/.gemini/settings.json"
 
-# Grok global rules: shared prefs only. Pair with [compat.claude] agents = false
-# in ~/.grok/config.toml so Grok does not also load Claude's STE layer from
+# Grok global rules. Pair with [compat.claude] agents = false in
+# ~/.grok/config.toml so Grok does not load the same file twice through
 # ~/.claude/CLAUDE.md.
 mkdir -p "$HOME/.grok/rules"
 link "$DOTFILES/.agents/AGENTS.md" "$HOME/.grok/rules/agents.md"
