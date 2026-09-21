@@ -55,6 +55,12 @@ disabled_rules:
   # These two contradict each other; where the ACL sits is a preference.
   - extension_access_modifier
   - no_extension_access_modifier
+  # These two contradict each other for a String enum whose value equals
+  # its case name. The one kept is explicit_enum_raw_value, because an
+  # enum stored on disk must spell its value out: a raw value that comes
+  # from the case name changes when the case is renamed, and the rows
+  # written under the old spelling stop being readable.
+  - redundant_string_enum_value
   # Requiring a deinit, forbidding default parameter values, ordering
   # enum cases alphabetically, `if a, b` over `if a && b`: preferences.
   - required_deinit
