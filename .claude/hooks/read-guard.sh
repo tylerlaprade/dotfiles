@@ -49,6 +49,7 @@ in_group() {
 }
 
 allowed_repo() {
+  [ "$project_top" = "dotfiles" ] && return 0
   [ "$1" = "$project_top" ] && return 0
   local s group
   for s in "${SHARED[@]}"; do

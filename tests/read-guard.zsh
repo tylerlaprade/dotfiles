@@ -75,8 +75,51 @@ test_in_project_read() {
 }
 
 test_foreign_repo_read() {
-  run_hook "$HOME/Code/dotfiles" "$(pre s1 "$HOME/Code/dotfiles" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
+  run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/flint" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
   expect_ask
+}
+
+test_dotfiles_foreign_repo_read() {
+  run_hook "$HOME/Code/dotfiles" "$(pre s1 "$HOME/Code/dotfiles" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
+  expect_allow
+}
+
+test_dotfiles_foreign_repo_search() {
+  run_hook "$HOME/Code/dotfiles" "$(pre s1 "$HOME/Code/dotfiles" '{"pattern":"foo","path":"../BrainDump"}')"
+  expect_allow
+}
+
+test_dotfiles_bash_foreign_repos() {
+  run_hook "$HOME/Code/dotfiles" "$(pre s1 "$HOME/Code/dotfiles" "$(bash_input "cat ~/Code/BrainDump/README.md \$HOME/Code/swarm-forge/README.md $HOME/Code/flint/README.md")")"
+  expect_allow
+}
+
+test_dotfiles_subdir_session() {
+  run_hook "$HOME/Code/dotfiles/scripts" "$(pre s1 "$HOME/Code/dotfiles/scripts" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
+  expect_allow
+}
+
+test_dotfiles_cwd_fallback() {
+  run_hook - "$(pre s1 "$HOME/Code/dotfiles" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
+  expect_allow
+}
+
+test_foreign_project_with_dotfiles_cwd() {
+  run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/dotfiles" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
+  expect_ask
+}
+
+test_dotfiles_prefix_repo() {
+  run_hook "$HOME/Code/dotfiles-copy" "$(pre s1 "$HOME/Code/dotfiles-copy" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
+  expect_ask
+}
+
+test_dotfiles_post_does_not_record_approval() {
+  run_hook "$HOME/Code/dotfiles" "$(post dotfiles-post "$HOME/Code/dotfiles" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
+  expect_allow
+  run_hook "$HOME/Code/dotfiles" "$(post dotfiles-post "$HOME/Code/dotfiles" "$(bash_input "git -C ~/Code/BrainDump log")")"
+  expect_allow
+  [[ ! -e "$state_dir/dotfiles-post" ]] || fail "dotfiles access recorded an approval"
 }
 
 test_grep_without_path() {
@@ -127,7 +170,7 @@ test_associated_not_transitive_to_foreign() {
 }
 
 test_dot_dot_escape() {
-  run_hook "$HOME/Code/dotfiles" "$(pre s1 "$HOME/Code/dotfiles" "$(read_input "$HOME/Code/dotfiles/../BrainDump/App.swift")")"
+  run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/flint" "$(read_input "$HOME/Code/flint/../BrainDump/App.swift")")"
   expect_ask
 }
 
@@ -137,7 +180,7 @@ test_subdir_session_own_repo() {
 }
 
 test_bash_foreign_git() {
-  run_hook "$HOME/Code/dotfiles" "$(pre s1 "$HOME/Code/dotfiles" "$(bash_input "git -C ~/Code/BrainDump status")")"
+  run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/flint" "$(bash_input "git -C ~/Code/BrainDump status")")"
   expect_ask
 }
 
@@ -158,7 +201,7 @@ test_bash_umbrella_sibling() {
 }
 
 test_bash_dollar_home() {
-  run_hook "$HOME/Code/dotfiles" "$(pre s1 "$HOME/Code/dotfiles" '{"command":"ls $HOME/Code/swarm-forge"}')"
+  run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/flint" '{"command":"ls $HOME/Code/swarm-forge"}')"
   expect_ask
 }
 
@@ -168,29 +211,29 @@ test_bash_no_repo_mention() {
 }
 
 test_sticky_same_session() {
-  run_hook "$HOME/Code/dotfiles" "$(post sticky "$HOME/Code/dotfiles" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
+  run_hook "$HOME/Code/flint" "$(post sticky "$HOME/Code/flint" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
   expect_allow
-  run_hook "$HOME/Code/dotfiles" "$(pre sticky "$HOME/Code/dotfiles" "$(read_input "$HOME/Code/BrainDump/Other.swift")")"
+  run_hook "$HOME/Code/flint" "$(pre sticky "$HOME/Code/flint" "$(read_input "$HOME/Code/BrainDump/Other.swift")")"
   expect_allow
 }
 
 test_sticky_covers_bash() {
-  run_hook "$HOME/Code/dotfiles" "$(pre sticky "$HOME/Code/dotfiles" "$(bash_input "git -C ~/Code/BrainDump log")")"
+  run_hook "$HOME/Code/flint" "$(pre sticky "$HOME/Code/flint" "$(bash_input "git -C ~/Code/BrainDump log")")"
   expect_allow
 }
 
 test_sticky_not_other_repo() {
-  run_hook "$HOME/Code/dotfiles" "$(pre sticky "$HOME/Code/dotfiles" "$(read_input "$HOME/Code/swarm-forge/src/main.rs")")"
+  run_hook "$HOME/Code/flint" "$(pre sticky "$HOME/Code/flint" "$(read_input "$HOME/Code/swarm-forge/src/main.rs")")"
   expect_ask
 }
 
 test_sticky_not_other_session() {
-  run_hook "$HOME/Code/dotfiles" "$(pre other "$HOME/Code/dotfiles" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
+  run_hook "$HOME/Code/flint" "$(pre other "$HOME/Code/flint" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
   expect_ask
 }
 
 test_cwd_fallback_without_env() {
-  run_hook - "$(pre s9 "$HOME/Code/dotfiles" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
+  run_hook - "$(pre s9 "$HOME/Code/flint" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
   expect_ask
 }
 
@@ -209,6 +252,14 @@ run_case() {
 
 run_case "in-project read is allowed" test_in_project_read
 run_case "foreign repo read asks" test_foreign_repo_read
+run_case "dotfiles reads foreign repos" test_dotfiles_foreign_repo_read
+run_case "dotfiles searches foreign repos" test_dotfiles_foreign_repo_search
+run_case "dotfiles bash reads multiple foreign repos" test_dotfiles_bash_foreign_repos
+run_case "dotfiles subdir session reads foreign repos" test_dotfiles_subdir_session
+run_case "dotfiles cwd fallback reads foreign repos" test_dotfiles_cwd_fallback
+run_case "foreign project with dotfiles cwd still asks" test_foreign_project_with_dotfiles_cwd
+run_case "dotfiles prefix repo still asks" test_dotfiles_prefix_repo
+run_case "dotfiles access does not record approvals" test_dotfiles_post_does_not_record_approval
 run_case "grep without path is allowed" test_grep_without_path
 run_case "grep relative path is allowed" test_grep_relative_path
 run_case "umbrella sibling is allowed" test_umbrella_sibling
