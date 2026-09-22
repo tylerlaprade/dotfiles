@@ -5,7 +5,7 @@
 script_path=$(realpath "${BASH_SOURCE[0]}")
 keychain_check="$(dirname "$script_path")/../keychain-unlocked.py"
 if [ -z "${GH_TOKEN:-}${GITHUB_TOKEN:-}${GH_ENTERPRISE_TOKEN:-}${GITHUB_ENTERPRISE_TOKEN:-}" ]; then
-  python3 "$keychain_check" 2>/dev/null || exit 12
+  timeout 2 python3 "$keychain_check" 2>/dev/null || exit 12
 fi
 
 stderr=$(mktemp)

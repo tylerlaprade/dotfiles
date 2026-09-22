@@ -94,6 +94,15 @@ class BackgroundHelpersTest(unittest.TestCase):
         self.assertEqual(json.loads(result.stdout)['error'], 'keychain unavailable')
         self.assertFalse(self.calls.exists())
 
+    def test_unresponsive_keychain_check_skips_credential_commands(self):
+        (self.root / 'scripts/keychain-unlocked.py').write_text(
+            'import time\ntime.sleep(30)\n')
+        self.assertEqual(self.run_helper('gh-background', 'api', 'user').returncode, 12)
+        result = self.run_helper('claude-usage')
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(json.loads(result.stdout)['error'], 'keychain unavailable')
+        self.assertFalse(self.calls.exists())
+
     def test_locked_keychain_preserves_usage_without_reading_credentials(self):
         self.environment['FAKE_KEYCHAIN_STATUS'] = '1'
         self.cache.write_text(json.dumps({'ok': True, 'fable': 23, 'fetched_at': 0}))

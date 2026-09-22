@@ -1,7 +1,8 @@
 # Keychain recovery
 
 The September 21, 2026 prompt storm remains partly unresolved. The status helpers
-skip credential reads when the default keychain is locked, and Claude usage
+skip credential reads when the default keychain is locked or its status probe
+does not finish within two seconds, and Claude usage
 failures stay in the statusline and event log without desktop notifications.
 These changes do not repair macOS's security service or alter Claude's own reads.
 
