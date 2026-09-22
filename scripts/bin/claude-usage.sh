@@ -117,8 +117,10 @@ if [ "$fresh" -eq 0 ] && should_serve_cache; then
   exit $?
 fi
 
-# Claude Code stores the login through /usr/bin/security, so reading it with
-# the same tool never opens a macOS password dialog. 44 is "item not found".
+script_path=$(realpath "${BASH_SOURCE[0]}")
+keychain_check="$(dirname "$script_path")/../keychain-unlocked.py"
+python3 "$keychain_check" 2>/dev/null || emit_stale "keychain unavailable"
+
 credential_status=0
 blob=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null) || credential_status=$?
 if [ -z "$blob" ]; then

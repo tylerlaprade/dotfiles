@@ -20,12 +20,19 @@ class BackgroundHelpersTest(unittest.TestCase):
         self.home = self.root / 'home'
         self.home.mkdir()
         self.environment = dict(os.environ, HOME=str(self.home), PATH=f'{self.bin}:{os.environ["PATH"]}')
+        for name in ['GH_TOKEN', 'GITHUB_TOKEN', 'GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN']:
+            self.environment.pop(name, None)
+        (self.root / 'scripts/keychain-unlocked.py').write_text(
+            'import os, sys\nsys.exit(int(os.environ.get("FAKE_KEYCHAIN_STATUS", "0")))\n')
         self.cache = self.root / 'claude-usage.json'
         for name in ['gh-background', 'gh-pr-lookup', 'gh-pr-status', 'git-status-line', 'claude-usage']:
             source = (REPOSITORY / f'scripts/bin/{name}.sh').read_text()
             source = source.replace('/tmp/claude-usage.json', str(self.cache)).replace('/tmp/claude-usage.fetch', str(self.root / 'usage.fetch'))
+            source = source.replace('/tmp/claude-usage.acl-notify.lock', str(self.root / 'acl-notify.lock'))
             self.install(name, source)
         self.calls = self.root / 'calls'
+        self.install('osascript', '#!/bin/bash\n'
+                     f'printf "osascript\\n" >> {str(self.calls)!r}\n')
         self.install('gh', '#!/bin/bash\n'
                      f'printf "%s\\n" "$*" >> {str(self.calls)!r}\n'
                      'sleep "${FAKE_DELAY:-0}"\n'
@@ -68,6 +75,57 @@ class BackgroundHelpersTest(unittest.TestCase):
         second = self.run_helper('gh-pr-lookup', 'example', 'feature/[test]', '--async')
         self.assertEqual(second.stdout, first.stdout)
         self.assertEqual(len(self.calls.read_text().splitlines()), 1)
+
+    def test_locked_keychain_skips_background_github(self):
+        self.environment['FAKE_KEYCHAIN_STATUS'] = '1'
+        self.assertEqual(self.run_helper('gh-background', 'api', 'user').returncode, 12)
+        self.assertFalse(self.calls.exists())
+
+    def test_github_environment_token_does_not_need_unlocked_keychain(self):
+        self.environment.update(FAKE_KEYCHAIN_STATUS='1', GH_TOKEN='example-token',
+                                FAKE_STATUS='0', FAKE_RESULT='{"login":"Tyler"}')
+        result = self.run_helper('gh-background', 'api', 'user')
+        self.assertEqual((result.returncode, result.stdout), (0, '{"login":"Tyler"}'))
+
+    def test_missing_keychain_check_skips_credential_commands(self):
+        (self.root / 'scripts/keychain-unlocked.py').unlink()
+        self.assertEqual(self.run_helper('gh-background', 'api', 'user').returncode, 12)
+        result = self.run_helper('claude-usage')
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(json.loads(result.stdout)['error'], 'keychain unavailable')
+        self.assertFalse(self.calls.exists())
+
+    def test_locked_keychain_preserves_usage_without_reading_credentials(self):
+        self.environment['FAKE_KEYCHAIN_STATUS'] = '1'
+        self.cache.write_text(json.dumps({'ok': True, 'fable': 23, 'fetched_at': 0}))
+        result = self.run_helper('claude-usage')
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(json.loads(result.stdout)['error'], 'keychain unavailable')
+        self.assertEqual(json.loads(result.stdout)['fable'], 23)
+        self.assertFalse(self.calls.exists())
+
+    def test_usage_recovers_when_keychain_is_unlocked(self):
+        self.environment['FAKE_KEYCHAIN_STATUS'] = '1'
+        self.run_helper('claude-usage')
+        self.environment['FAKE_KEYCHAIN_STATUS'] = '0'
+        result = self.run_helper('claude-usage', '--fresh')
+        self.assertEqual(json.loads(result.stdout)['error'], 'no login')
+        self.assertEqual(self.calls.read_text(), 'security find-generic-password -s Claude Code-credentials -w\n')
+
+    def test_concurrent_locked_usage_refreshes_skip_credentials(self):
+        self.environment['FAKE_KEYCHAIN_STATUS'] = '1'
+        requests = [subprocess.Popen([str(self.bin / 'claude-usage'), '--async'],
+                    env=self.environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                    for _ in range(8)]
+        for request in requests:
+            request.communicate(timeout=5)
+            self.assertEqual(request.returncode, 0)
+        deadline = time.monotonic() + 4
+        while (self.root / 'usage.fetch').exists() and time.monotonic() < deadline:
+            time.sleep(0.02)
+        self.assertFalse((self.root / 'usage.fetch').exists())
+        self.assertEqual(json.loads(self.cache.read_text())['error'], 'keychain unavailable')
+        self.assertFalse(self.calls.exists())
 
     def test_concurrent_pr_refreshes_share_one_request(self):
         self.environment['FAKE_DELAY'] = '0.3'

@@ -1,8 +1,12 @@
 #!/bin/bash
 # Run gh for a background status check: prompts off, 8s deadline.
 # Exit: 0 ok, 11 login required, 12 request failed.
-# gh stores and reads its token through /usr/bin/security, so the read never
-# opens a macOS password dialog and survives gh, Python, and OS upgrades.
+
+script_path=$(realpath "${BASH_SOURCE[0]}")
+keychain_check="$(dirname "$script_path")/../keychain-unlocked.py"
+if [ -z "${GH_TOKEN:-}${GITHUB_TOKEN:-}${GH_ENTERPRISE_TOKEN:-}${GITHUB_ENTERPRISE_TOKEN:-}" ]; then
+  python3 "$keychain_check" 2>/dev/null || exit 12
+fi
 
 stderr=$(mktemp)
 trap 'rm -f "$stderr"' EXIT
