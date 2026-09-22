@@ -62,7 +62,7 @@ claude() {
   # Prewarm GPG agent so pinentry never fires mid-Claude-session
   if command -v gpg >/dev/null 2>&1; then
     local _key
-    _key=$(git config --global user.signingkey 2>/dev/null)
+    _key=$(git config user.signingkey 2>/dev/null)
     if [ -n "$_key" ]; then
       export GPG_TTY=$(tty)   # refresh: point pinentry at the current terminal, not a stale one
       gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
