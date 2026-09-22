@@ -28,7 +28,6 @@ class BackgroundHelpersTest(unittest.TestCase):
         for name in ['gh-background', 'gh-pr-lookup', 'gh-pr-status', 'git-status-line', 'claude-usage']:
             source = (REPOSITORY / f'scripts/bin/{name}.sh').read_text()
             source = source.replace('/tmp/claude-usage.json', str(self.cache)).replace('/tmp/claude-usage.fetch', str(self.root / 'usage.fetch'))
-            source = source.replace('/tmp/claude-usage.acl-notify.lock', str(self.root / 'acl-notify.lock'))
             self.install(name, source)
         self.calls = self.root / 'calls'
         self.install('osascript', '#!/bin/bash\n'
@@ -285,12 +284,15 @@ class BackgroundHelpersTest(unittest.TestCase):
                        text=True, capture_output=True, timeout=5)
         self.assertIn('security find-generic-password', self.calls.read_text())
 
-    def test_acl_failure_writes_event_log(self):
+    def test_acl_failure_logs_without_desktop_notifications(self):
         self.environment['FAKE_SECURITY_STATUS'] = '36'
-        self.run_helper('claude-usage')
+        result = self.run_helper('claude-usage')
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(json.loads(result.stdout)['error'], 'keychain unavailable')
         log = self.home / '.claude/acl-events.log'
         self.assertTrue(log.exists())
         self.assertIn('security exit=36', log.read_text().splitlines()[-1])
+        self.assertEqual(self.calls.read_text(), 'security find-generic-password -s Claude Code-credentials -w\n')
 
     def test_statusline_labels_rate_limit_distinctly(self):
         payload = {'workspace': {'current_dir': str(self.root)}, 'context_window': {'total_input_tokens': 1000, 'context_window_size': 200000},

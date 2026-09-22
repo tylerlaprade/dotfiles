@@ -131,26 +131,6 @@ if [ -z "$blob" ]; then
     log="${HOME}/.claude/acl-events.log"
     printf '%s security exit=%d\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$credential_status" >> "$log"
 
-    # Post one Notification Center banner per hour across every session on
-    # this machine. Atomic via mkdir: concurrent paints all try to claim the
-    # same lock directory, only one succeeds. A stale lock older than an hour
-    # is cleared so the next real failure can post.
-    notify_lock=/tmp/claude-usage.acl-notify.lock
-    _fire_notify=0
-    if mkdir "$notify_lock" 2>/dev/null; then
-      _fire_notify=1
-    else
-      stamp=$(stat -f %m "$notify_lock" 2>/dev/null || echo 0)
-      if [ $(( now - stamp )) -gt 3600 ]; then
-        rmdir "$notify_lock" 2>/dev/null || true
-        mkdir "$notify_lock" 2>/dev/null && _fire_notify=1
-      fi
-    fi
-    if [ "$_fire_notify" -eq 1 ]; then
-      osascript >/dev/null 2>&1 <<APPLESCRIPT &
-display notification "Restart Claude Code to restore. Log: ~/.claude/acl-events.log" with title "Fable usage: Keychain access denied" subtitle "security exit=$credential_status" sound name "Basso"
-APPLESCRIPT
-    fi
     emit_stale "keychain unavailable"
   fi
   echo "claude-usage: no Claude Code login (Keychain item Claude Code-credentials)" >&2
