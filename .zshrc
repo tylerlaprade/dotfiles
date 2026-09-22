@@ -270,6 +270,12 @@ _gt_yargs_completions()
 }
 compdef _gt_yargs_completions gt
 
+if [[ $ZSH_EVAL_CONTEXT == file && -o login && -o interactive &&
+      -z $ZSH_EXECUTION_STRING && $TERM_PROGRAM == ghostty ]] &&
+    (( ${+_ghostty_state} && _ghostty_state == 0 )); then
+    session-guard shell-start
+fi
+
 # Must be last — wraps zsh widgets, breaks if loaded before other plugins
 # https://github.com/zsh-users/zsh-syntax-highlighting#why-must-zsh-syntax-highlightingzsh-be-sourced-at-the-end-of-the-zshrc-file
 source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
