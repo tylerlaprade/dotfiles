@@ -8,6 +8,7 @@ export PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 REPO="gj1118/helix"
 SHARE="$HOME/.local/share/helix"
 BIN="$HOME/.local/bin"
+ZSH_COMPLETIONS="$HOME/.local/share/zsh/site-functions"
 
 case "$(uname -m)" in
   arm64) ARCH="aarch64" ;;
@@ -27,13 +28,14 @@ if [[ -d "$SHARE/$name" && "$(readlink "$SHARE/current")" == "$name" ]]; then
 fi
 
 echo "Installing $name"
-mkdir -p "$SHARE" "$BIN"
+mkdir -p "$SHARE" "$BIN" "$ZSH_COMPLETIONS"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 curl -fsSL "https://github.com/$REPO/releases/download/$tag/$name.tar.xz" -o "$tmp/$name.tar.xz"
 tar xJf "$tmp/$name.tar.xz" -C "$SHARE"
 ln -sfn "$name" "$SHARE/current"
 ln -sfn "$SHARE/current/hx" "$BIN/hx"
+ln -sfn "$SHARE/current/contrib/completion/hx.zsh" "$ZSH_COMPLETIONS/_hx"
 for old in "$SHARE"/helix-*-macos; do
   [[ "$old" == "$SHARE/$name" ]] || rm -rf "$old"
 done
