@@ -5,7 +5,8 @@
 # pruning them blanks group icons until someone re-sets the photo. Safe to run
 # with Messages open: the age filter excludes anything mid-transfer or in
 # active use, and macOS keeps deleted-but-open files alive until closed.
-# Triggered weekly by ~/Library/LaunchAgents/com.tylerlaprade.prune-messages-attachments.plist.
+# Opened weekly in a Ghostty tab by ~/Library/LaunchAgents/com.tylerlaprade.prune-messages-attachments.plist,
+# because launchd jobs lack the Full Disk Access that ~/Library/Messages needs.
 set -euo pipefail
 
 echo "=== $(date) ==="
