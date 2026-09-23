@@ -1,17 +1,11 @@
 #!/bin/bash
 # Outputs formatted git status for statuslines
 
-# In zellij: always use session's project. Outside: use current git repo.
-if [[ -n "$ZELLIJ_SESSION_NAME" && -d "$HOME/Code/$ZELLIJ_SESSION_NAME/.git" ]]; then
-    cd "$HOME/Code/$ZELLIJ_SESSION_NAME" || exit 0
-fi
-
 # git-meta caches (repo, repo_full, branch) per-PWD, invalidated by HEAD/config
 # mtime. One subprocess on cold call, ~0 on cache hit. Shared with the zsh
 # tab-title hook.
 meta=$(git-meta 2>/dev/null) || exit 0
-IFS=$'\t' read -r repo_default repo_full full_branch <<<"$meta"
-repo_name="${ZELLIJ_SESSION_NAME:-$repo_default}"
+IFS=$'\t' read -r repo_name repo_full full_branch <<<"$meta"
 dirty=$(git diff --quiet && git diff --cached --quiet || echo "*")
 
 # PR number + title (cached indefinitely, tab-separated)

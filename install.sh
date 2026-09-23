@@ -28,6 +28,8 @@ if ! command -v rustup &>/dev/null; then
 fi
 rustup set profile minimal >/dev/null
 rustup component add rust-analyzer rustfmt clippy 2>/dev/null || true
+mkdir -p "$HOME/.local/share/zsh/site-functions"
+rustup completions zsh cargo >"$HOME/.local/share/zsh/site-functions/_cargo"
 
 export PATH="$HOME/.local/bin:$PATH"
 

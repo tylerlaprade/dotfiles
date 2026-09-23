@@ -1,5 +1,9 @@
 # Prompt (Pure)
 fpath+=("/opt/homebrew/share/zsh/site-functions" "$HOME/.local/share/zsh/site-functions")
+() {
+  local completion_dirs_changed_since_dump=(${^fpath}(N/e:'[[ $REPLY -nt ~/.zcompdump ]]':))
+  (( $#completion_dirs_changed_since_dump )) && rm -f ~/.zcompdump
+}
 autoload -Uz compinit && compinit -C
 autoload -U promptinit; promptinit
 export VIRTUAL_ENV_DISABLE_PROMPT=1
@@ -40,16 +44,6 @@ export PATH="$HOME/.cargo/bin:$PATH"
 
 # opencode
 export PATH="$HOME/.opencode/bin:$PATH"
-
-# Zellij dev session - uses git repo name or optional argument
-zj() {
-  local name="${1:-$(basename "$(git rev-parse --show-toplevel 2>/dev/null)")}"
-  if [[ -z "$name" ]]; then
-    echo "Not in a git repo and no session name provided"
-    return 1
-  fi
-  ZJ_PROJECT_DIR="$HOME/Code/$name" zellij -n ~/.config/zellij/layouts/condor.kdl -s "$name" 2>/dev/null || zellij attach "$name"
-}
 
 # Claude: allow bypass-permissions + overage gate (requires ~/.claude/overage-gate)
 claude() {

@@ -36,16 +36,6 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 # opencode
 export PATH="$HOME/.opencode/bin:$PATH"
 
-# Zellij dev session
-zj() {
-  local name="${1:-$(basename "$(git rev-parse --show-toplevel 2>/dev/null)")}"
-  if [[ -z "$name" ]]; then
-    echo "Not in a git repo and no session name provided"
-    return 1
-  fi
-  ZJ_PROJECT_DIR="$HOME/Code/$name" zellij -n ~/.config/zellij/layouts/condor.kdl -s "$name" 2>/dev/null || zellij attach "$name"
-}
-
 # Claude
 claude() {
   command claude --allow-dangerously-skip-permissions "$@"
