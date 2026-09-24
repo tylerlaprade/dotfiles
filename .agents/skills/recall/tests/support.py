@@ -286,7 +286,7 @@ def index(corpus, db_path, force=False):
     with pointed_at(corpus, db_path):
         conn = connect(db_path)
         try:
-            return recall.index_sessions(conn, force=force)
+            return recall.index_sessions(conn, force=force).indexed
         finally:
             conn.close()
 

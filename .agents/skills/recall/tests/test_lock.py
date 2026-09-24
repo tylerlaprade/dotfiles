@@ -140,7 +140,7 @@ class LockBehaviour(unittest.TestCase):
             conn = sqlite3.connect(self.db)
             try:
                 recall.create_schema(conn)
-                self.assertEqual(recall.index_sessions(conn), 0)
+                self.assertEqual(recall.index_sessions(conn).indexed, 0)
             finally:
                 conn.close()
 

@@ -5,6 +5,18 @@ Forked from [arjunkmrm/recall](https://github.com/arjunkmrm/recall) at 0.2.2 on
 third source is `pi` where ours is Grok, so the two cannot simply be merged.
 Versions below 0.2.3 are upstream's; from 0.2.3 on they are local.
 
+## 0.7.0 — 2026-09-24
+
+- A run that skips session files now says so: exit `4` means the results (or
+  their absence) came from a partial index, replacing the `0` or `1` a whole
+  index would have given. An agent must not conclude "nothing exists" from a
+  4, the way it must not from a 3 — the trap the exit-3 change closed, one
+  step further down.
+- Skipped files are reported once per run instead of one warning line each:
+  up to ten are named with their reason on stderr, then a count of the rest.
+  A directory of unreadable files no longer buries the terminal, and the
+  names are what diagnose it.
+
 ## 0.6.0 — 2026-09-15
 
 - Exit codes now distinguish "no results" from "the index is broken": `0`

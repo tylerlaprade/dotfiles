@@ -8,7 +8,7 @@ metadata:
   author: tylerlaprade
   upstream: arjunkmrm/recall
   fork: diverged from upstream 0.2.2
-  version: "0.6.0"
+  version: "0.7.0"
   license: MIT
 ---
 
@@ -77,6 +77,11 @@ to show:
 - `3` — the index could not be opened or migrated. This is not the same as
   empty. A caller that cannot read the index must report "unknown", never
   "nothing exists".
+- `4` — degraded: some session files could not be read while indexing, so
+  whatever came back — results or their absence — was drawn from a partial
+  index. A caller that gets a 4 must not conclude "nothing exists" either.
+  The skipped files are named on stderr, ten at most, then a count of the
+  rest.
 
 ## After Finding a Match
 

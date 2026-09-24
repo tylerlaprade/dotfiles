@@ -43,10 +43,14 @@ LOCK_WAIT_SECONDS = 20
 
 # Exit codes, so the caller can tell "nothing matched" from "the index could
 # not be read". An agent reading a broken index as an empty one concludes
-# something false about what exists, so those are different exits. argparse
-# usage errors keep its 2.
+# something false about what exists, so those are different exits. A degraded
+# index is a third case: some session files could not be read while indexing,
+# so whatever comes back — results or their absence — is drawn from a partial
+# index, and "nothing exists" is not a conclusion the caller may draw from it.
+# argparse usage errors keep its 2.
 EXIT_NO_RESULTS = 1
 EXIT_BROKEN_INDEX = 3
+EXIT_DEGRADED_INDEX = 4
 
 
 @contextmanager
@@ -319,12 +323,13 @@ def parse_iso_timestamp(ts_str):
 
 # — Claude Code session parser —————————————————————————————————————————————
 
-def parse_claude_session(path, start=0):
+def parse_claude_session(path, start, skipped):
     """Parse a Claude Code JSONL session file.
 
     Returns (metadata, messages, end_offset). With `start` past 0 only the
     bytes after it are read, so metadata reflects the tail alone and the
-    caller keeps what it already stored.
+    caller keeps what it already stored. A file that cannot be read costs
+    nothing: its (path, reason) goes into `skipped` and it returns None.
     """
     session_id = Path(path).stem
     project = None
@@ -381,7 +386,7 @@ def parse_claude_session(path, start=0):
                 messages.append((role, text))
 
     except (OSError, PermissionError) as e:
-        print(f"Warning: skipping {path}: {e}", file=sys.stderr)
+        skipped.append((str(path), str(e)))
         return None
 
     metadata = {
@@ -397,12 +402,13 @@ def parse_claude_session(path, start=0):
 
 # — Codex session parser ———————————————————————————————————————————————————
 
-def parse_codex_session(path, start=0):
+def parse_codex_session(path, start, skipped):
     """Parse a Codex JSONL session file.
 
     Returns (metadata, messages, end_offset). With `start` past 0 only the
     bytes after it are read, so metadata reflects the tail alone and the
-    caller keeps what it already stored.
+    caller keeps what it already stored. A file that cannot be read costs
+    nothing: its (path, reason) goes into `skipped` and it returns None.
 
     Codex sessions live in ~/.codex/sessions/YYYY/MM/DD/rollout-<ts>-<uuid>.jsonl.
     Supports two formats:
@@ -488,7 +494,7 @@ def parse_codex_session(path, start=0):
             messages.append((role, text))
 
     except (OSError, PermissionError) as e:
-        print(f"Warning: skipping {path}: {e}", file=sys.stderr)
+        skipped.append((str(path), str(e)))
         return None
 
     metadata = {
@@ -504,12 +510,14 @@ def parse_codex_session(path, start=0):
 
 # — Grok session parser ————————————————————————————————————————————————————
 
-def parse_grok_session(path, start=0):
+def parse_grok_session(path, start, skipped):
     """Parse a Grok chat_history.jsonl.
 
     Returns (metadata, messages, end_offset). With `start` past 0 only the
     bytes after it are read; summary.json is re-read either way, since Grok
-    fills in the generated title after the session has begun.
+    fills in the generated title after the session has begun. A file that
+    cannot be read costs nothing: its (path, reason) goes into `skipped` and
+    it returns None.
 
     Grok sessions live in ~/.grok/sessions/<url-encoded-cwd>/<uuid>/chat_history.jsonl.
     Optional summary.json supplies cwd, title, and created_at.
@@ -571,7 +579,7 @@ def parse_grok_session(path, start=0):
             messages.append((role, text))
 
     except (OSError, PermissionError) as e:
-        print(f"Warning: skipping {path}: {e}", file=sys.stderr)
+        skipped.append((str(path), str(e)))
         return None
 
     metadata = {
@@ -615,12 +623,14 @@ def antigravity_message(entry):
     return None
 
 
-def parse_antigravity_session(path, start=0):
+def parse_antigravity_session(path, start, skipped):
     """Parse an Antigravity CLI transcript.
 
     Returns (metadata, messages, end_offset). Transcripts live in
     ~/.gemini/antigravity-cli/brain/<id>/.system_generated/logs/transcript.jsonl
-    and are only appended to, so a tail read resumes from `start`.
+    and are only appended to, so a tail read resumes from `start`. A file that
+    cannot be read costs nothing: its (path, reason) goes into `skipped` and
+    it returns None.
 
     Antigravity records no working directory anywhere in the trajectory, so
     these sessions carry no project and `--project` cannot narrow to them.
@@ -644,7 +654,7 @@ def parse_antigravity_session(path, start=0):
                 messages.append(message)
 
     except (OSError, PermissionError) as e:
-        print(f"Warning: skipping {path}: {e}", file=sys.stderr)
+        skipped.append((str(path), str(e)))
         return None
 
     metadata = {
@@ -714,14 +724,15 @@ def opencode_messages(db_path, session_id):
     return messages
 
 
-def parse_opencode_session(path, start=0):
+def parse_opencode_session(path, start, skipped):
     """Parse one session out of the OpenCode database.
 
     Returns (metadata, messages, end_offset). `path` is the database and the
     session id joined by OPENCODE_PATH_SEP, because the index is keyed by path
     and OpenCode keeps every session in the one file. `start` is ignored: there
     is no byte offset to resume from, so a session is re-read whenever its own
-    time_updated moves.
+    time_updated moves. A session that cannot be read costs nothing: its
+    (path, reason) goes into `skipped` and it returns None.
     """
     db_path, session_id = split_opencode_path(path)
 
@@ -736,7 +747,7 @@ def parse_opencode_session(path, start=0):
             conn.close()
         messages = opencode_messages(db_path, session_id)
     except sqlite3.Error as e:
-        print(f"Warning: skipping {path}: {e}", file=sys.stderr)
+        skipped.append((str(path), str(e)))
         return None
 
     directory, title, time_created = row if row else ("", "", 0)
@@ -761,9 +772,13 @@ PARSERS = {
 }
 
 
-def parse_session(path, source, start=0):
-    """Parse one session file with the parser for its source."""
-    return PARSERS[source](path, start)
+def parse_session(path, source, start, skipped):
+    """Parse one session file with the parser for its source.
+
+    `skipped` collects (path, reason) for files that could not be read, so
+    the run can report them instead of each parser printing on its own.
+    """
+    return PARSERS[source](path, start, skipped)
 
 
 # — Indexing ———————————————————————————————————————————————————————————————
@@ -783,13 +798,14 @@ def load_indexed_state(conn):
     }
 
 
-def scan_opencode_sessions():
+def scan_opencode_sessions(skipped):
     """Every session inside the OpenCode database, as (path, source, mtime).
 
     OpenCode stores sessions in one SQLite file, so each gets a path of its
     own — database and session id — and carries its own last-changed time in
     place of the file's, letting one changed session be re-read without
-    touching the rest.
+    touching the rest. A database that cannot be read skips every session it
+    holds, and lands in `skipped` once rather than once per session.
     """
     if not OPENCODE_DB.exists():
         return []
@@ -802,7 +818,7 @@ def scan_opencode_sessions():
         finally:
             conn.close()
     except sqlite3.Error as e:
-        print(f"Warning: skipping {OPENCODE_DB}: {e}", file=sys.stderr)
+        skipped.append((str(OPENCODE_DB), str(e)))
         return []
     return [
         (
@@ -814,7 +830,7 @@ def scan_opencode_sessions():
     ]
 
 
-def scan_session_files():
+def scan_session_files(skipped):
     """Every session on disk, paired with the tool that wrote it.
 
     Yields (path, source, mtime), where mtime is None for a real file — the
@@ -832,7 +848,7 @@ def scan_session_files():
         for pattern, source in patterns
         for fpath in glob(str(pattern), recursive=True)
     ]
-    return found + scan_opencode_sessions()
+    return found + scan_opencode_sessions(skipped)
 
 
 def claim_session_id(conn, session_id, fpath, has_own_row, claimed_by):
@@ -858,6 +874,12 @@ def claim_session_id(conn, session_id, fpath, has_own_row, claimed_by):
     return session_id
 
 
+# What one indexing pass did: how many files it read, and which ones it could
+# not, each paired with why. The caller reports the skips and takes the exit
+# code from them — a run that skipped files searched a partial index.
+IndexRun = namedtuple("IndexRun", "indexed skipped")
+
+
 def index_sessions(conn, force=False):
     """Scan and index new/changed session files from all sources."""
     existing = load_indexed_state(conn)
@@ -874,15 +896,17 @@ def index_sessions(conn, force=False):
 
     claimed_by = {row.session_id: path for path, row in existing.items()}
     indexed = 0
+    skipped = []
 
     # Disable FTS5 automerge during bulk insert to avoid repeated segment merges
     conn.execute("INSERT INTO messages(messages, rank) VALUES('automerge', 0)")
 
-    for fpath, source, stored_mtime in scan_session_files():
+    for fpath, source, stored_mtime in scan_session_files(skipped):
         if stored_mtime is None:
             try:
                 mtime = os.path.getmtime(fpath)
-            except OSError:
+            except OSError as e:
+                skipped.append((fpath, str(e)))
                 continue
         else:
             mtime = stored_mtime
@@ -898,7 +922,7 @@ def index_sessions(conn, force=False):
             start = resume_offset(fpath, prior.byte_offset, prior.tail_hash,
                                   prior.parser_version)
 
-        result = parse_session(fpath, source, start)
+        result = parse_session(fpath, source, start, skipped)
         # A file that could not be read keeps whatever is already indexed for
         # it. Dropping the rows first would prune a session on a transient
         # error, and the index is the only place some of them survive.
@@ -963,7 +987,7 @@ def index_sessions(conn, force=False):
         conn.execute("INSERT INTO messages(messages) VALUES('optimize')")
     conn.commit()
 
-    return indexed
+    return IndexRun(indexed, skipped)
 
 
 # — Search —————————————————————————————————————————————————————————————————
@@ -1142,6 +1166,28 @@ def format_timestamp(ts_ms):
         return "unknown"
 
 
+# Names this many skipped files before collapsing the rest into a count. A
+# directory of unreadable files should not bury the terminal, but the first
+# few names are what diagnose it.
+MAX_NAMED_SKIPS = 10
+
+
+def report_skipped(skipped):
+    """Name the session files indexing could not read, capped.
+
+    Every skip means the index may be missing that file's content. The names
+    are what let someone fix it, hence naming as many as stays readable
+    rather than printing only a count.
+    """
+    count = len(skipped)
+    noun = "file" if count == 1 else "files"
+    print(f"Skipped {count} session {noun} during indexing:", file=sys.stderr)
+    for path, reason in skipped[:MAX_NAMED_SKIPS]:
+        print(f"  {path}: {reason}", file=sys.stderr)
+    if count > MAX_NAMED_SKIPS:
+        print(f"  ... and {count - MAX_NAMED_SKIPS} more", file=sys.stderr)
+
+
 def positive_int(value):
     """A result count. Zero or less reaches SQLite as "no limit" and then gets
     sliced from the wrong end, so refuse it rather than answer wrongly."""
@@ -1184,11 +1230,13 @@ def main():
             # try DDL against a database the holder still has open, and die where
             # it was supposed to fall back to searching.
             indexed = 0
+            skipped = []
             if have_lock:
                 create_schema(conn)
                 migrate_schema(conn)
                 migrate_message_columns(conn)
-                indexed = index_sessions(conn, force=args.reindex)
+                run = index_sessions(conn, force=args.reindex)
+                indexed, skipped = run.indexed, run.skipped
     except (sqlite3.Error, OSError) as e:
         print(f"Cannot use the index at {DB_PATH}: {e}", file=sys.stderr)
         sys.exit(EXIT_BROKEN_INDEX)
@@ -1197,6 +1245,12 @@ def main():
 
     if indexed > 0:
         print(f"Indexed {indexed} sessions in {index_time:.1f}s", file=sys.stderr)
+
+    # Skips make the index partial: whatever follows — results or their
+    # absence — was drawn from it, so the exit code says so too.
+    degraded = bool(skipped)
+    if degraded:
+        report_skipped(skipped)
 
     # Search for a query, or list what is there when there is none
     if args.query:
@@ -1213,7 +1267,7 @@ def main():
     if not results:
         print(nothing_found)
         conn.close()
-        sys.exit(EXIT_NO_RESULTS)
+        sys.exit(EXIT_DEGRADED_INDEX if degraded else EXIT_NO_RESULTS)
 
     # Counting an FTS5 table walks the whole index, so pay for it outside the
     # lock and only once we know there is a header to print.
@@ -1240,6 +1294,9 @@ def main():
         print()
 
     conn.close()
+
+    if degraded:
+        sys.exit(EXIT_DEGRADED_INDEX)
 
 
 if __name__ == "__main__":

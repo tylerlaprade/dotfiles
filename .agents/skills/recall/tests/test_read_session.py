@@ -50,7 +50,7 @@ class SharedWithTheIndexer(unittest.TestCase):
             {"type": "assistant", "message": {"content": "the answer"}},
         ]
         path = self.write("proj/1111.jsonl", entries)
-        _, indexed, _ = recall.parse_claude_session(str(path))
+        _, indexed, _ = recall.parse_claude_session(str(path), 0, [])
         printed = list(read_session.iter_messages(str(path)))
         self.assertEqual(printed, indexed)
         self.assertEqual(len(printed), 2)
@@ -67,7 +67,7 @@ class SharedWithTheIndexer(unittest.TestCase):
                          "content": [{"type": "input_text", "text": "a real question"}]}},
         ]
         path = self.write("sessions/rollout-2026-01-01T00-00-00-abc.jsonl", entries)
-        _, indexed, _ = recall.parse_codex_session(str(path))
+        _, indexed, _ = recall.parse_codex_session(str(path), 0, [])
         printed = list(read_session.iter_messages(str(path)))
         self.assertEqual(printed, indexed)
         self.assertEqual(printed, [("user", "a real question")])
@@ -84,7 +84,7 @@ class SharedWithTheIndexer(unittest.TestCase):
         with path.open("w", encoding="utf-8") as handle:
             for entry in entries:
                 handle.write(json.dumps(entry) + "\n")
-        _, indexed, _ = recall.parse_grok_session(str(path))
+        _, indexed, _ = recall.parse_grok_session(str(path), 0, [])
         printed = list(read_session.iter_messages(str(path)))
         self.assertEqual(printed, indexed)
         self.assertEqual(printed, [("user", "a real question")])

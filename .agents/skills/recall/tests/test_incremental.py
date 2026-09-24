@@ -473,7 +473,7 @@ class InterruptedRebuild(IndexingCase):
             try:
                 original = recall.parse_session
 
-                def explode(path, source, start=0):
+                def explode(path, source, start=0, skipped=None):
                     raise KeyboardInterrupt("killed mid-rebuild")
 
                 recall.parse_session = explode
