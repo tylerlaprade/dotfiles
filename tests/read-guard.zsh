@@ -122,6 +122,54 @@ test_dotfiles_post_does_not_record_approval() {
   [[ ! -e "$state_dir/dotfiles-post" ]] || fail "dotfiles access recorded an approval"
 }
 
+test_foreign_dot_file_read() {
+  run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/flint" "$(read_input "$HOME/Code/BrainDump/.swiftlint.yml")")"
+  expect_allow
+}
+
+test_foreign_dot_directory_read() {
+  run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/flint" "$(read_input "$HOME/Code/BrainDump/.github/workflows/ci.yml")")"
+  expect_allow
+}
+
+test_foreign_dot_directory_search() {
+  run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/flint" '{"pattern":"foo","path":"../BrainDump/.github"}')"
+  expect_allow
+}
+
+test_dot_directory_escape() {
+  run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/flint" "$(read_input "$HOME/Code/BrainDump/.github/../App.swift")")"
+  expect_ask
+}
+
+test_dot_file_post_does_not_record_approval() {
+  run_hook "$HOME/Code/flint" "$(post dot-post "$HOME/Code/flint" "$(read_input "$HOME/Code/BrainDump/.swiftlint.yml")")"
+  expect_allow
+  run_hook "$HOME/Code/flint" "$(post dot-post "$HOME/Code/flint" "$(bash_input "cat ~/Code/BrainDump/.swiftlint.yml")")"
+  expect_allow
+  [[ ! -e "$state_dir/dot-post" ]] || fail "dot file access recorded an approval"
+}
+
+test_bash_foreign_dot_files() {
+  run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/flint" "$(bash_input "diff ~/Code/BrainDump/.swiftlint.yml \$HOME/Code/swarm-forge/.github/workflows/ci.yml")")"
+  expect_allow
+}
+
+test_bash_dot_file_with_foreign_source() {
+  run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/flint" "$(bash_input "cat ~/Code/BrainDump/.swiftlint.yml ~/Code/BrainDump/App.swift")")"
+  expect_ask
+}
+
+test_bash_dot_directory_escape() {
+  run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/flint" "$(bash_input "cat ~/Code/BrainDump/.github/../App.swift")")"
+  expect_ask
+}
+
+test_bash_current_directory_component() {
+  run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/flint" "$(bash_input "cat ~/Code/BrainDump/./App.swift")")"
+  expect_ask
+}
+
 test_grep_without_path() {
   run_hook "$HOME/Code/dotfiles" "$(pre s1 "$HOME/Code/dotfiles" '{"pattern":"foo"}')"
   expect_allow
@@ -260,6 +308,15 @@ run_case "dotfiles cwd fallback reads foreign repos" test_dotfiles_cwd_fallback
 run_case "foreign project with dotfiles cwd still asks" test_foreign_project_with_dotfiles_cwd
 run_case "dotfiles prefix repo still asks" test_dotfiles_prefix_repo
 run_case "dotfiles access does not record approvals" test_dotfiles_post_does_not_record_approval
+run_case "foreign dot file read is allowed" test_foreign_dot_file_read
+run_case "foreign dot directory read is allowed" test_foreign_dot_directory_read
+run_case "foreign dot directory search is allowed" test_foreign_dot_directory_search
+run_case "dot directory escape asks" test_dot_directory_escape
+run_case "dot file access does not record approvals" test_dot_file_post_does_not_record_approval
+run_case "bash reading foreign dot files is allowed" test_bash_foreign_dot_files
+run_case "bash mixing dot file and foreign source asks" test_bash_dot_file_with_foreign_source
+run_case "bash dot directory escape asks" test_bash_dot_directory_escape
+run_case "bash current directory component asks" test_bash_current_directory_component
 run_case "grep without path is allowed" test_grep_without_path
 run_case "grep relative path is allowed" test_grep_relative_path
 run_case "umbrella sibling is allowed" test_umbrella_sibling
