@@ -370,7 +370,7 @@ if [ -n "$model_name" ]; then
 fi
 parts+=("$ctx_info")
 [ -n "$drift_warning" ] && parts+=("${ALERT}⚠ ${drift_warning}${RESET}")
-[ -n "$session_id" ] && parts+=("${DIM}${session_id:0:8}${RESET}")
+[ -n "$session_id" ] && parts+=("${DIM}${session_id}${RESET}")
 parts+=("$(format_time_color "$current_time")")
 echo -e "$(join_parts "${parts[@]}")"
 
