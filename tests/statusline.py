@@ -177,14 +177,16 @@ class StatuslineTest(unittest.TestCase):
             self.assertLessEqual(display_width(visible(line)), WIDTH_BUDGET, repr(visible(line)))
         return lines
 
-    def assert_context_line(self, line, expected_percent, expected_tokens, expected_clock, prefix='Opus 5 max · '):
+    def assert_context_line(self, line, expected_percent, expected_tokens, expected_clock, prefix='Opus 5 max · ',
+                            expected_warning=None):
         text = visible(line)
-        match = re.fullmatch(r'(.*)([▓▒░]{10}) (\d+)% · (\S+) · (\d{1,2}:\d\d [AP]M)', text)
+        match = re.fullmatch(r'(.*)([▓▒░]{10}) (\d+)% · (\S+)(?: · ⚠ ([^·]+))? · (\d{1,2}:\d\d [AP]M)', text)
         self.assertIsNotNone(match, text)
         self.assertEqual(match.group(1), prefix)
         self.assertEqual(int(match.group(3)), expected_percent)
         self.assertEqual(match.group(4), expected_tokens)
-        self.assertEqual(match.group(5), expected_clock)
+        self.assertEqual(match.group(5), expected_warning)
+        self.assertEqual(match.group(6), expected_clock)
         filled = min(expected_percent // 10, 10)
         self.assertEqual(match.group(2)[:filled], '▓' * filled, text)
         if filled < 10:
@@ -198,7 +200,8 @@ class StatuslineTest(unittest.TestCase):
                 with self.subTest(window=window, percent=percent):
                     lines = self.render(self.payload(tokens=tokens, window=window))
                     used = f'{tokens // 1000}k' if tokens < 1000000 else f'{tokens // 100000 / 10:g}m'
-                    self.assert_context_line(lines[0], percent, f'{used}/{unit}', '3:00 PM')
+                    warning = 'no compaction past limit' if percent > 101 else None
+                    self.assert_context_line(lines[0], percent, f'{used}/{unit}', '3:00 PM', expected_warning=warning)
 
     def test_context_limit_follows_auto_compact_settings(self):
         user_settings = self.home / '.claude/settings.json'
@@ -223,6 +226,36 @@ class StatuslineTest(unittest.TestCase):
                 user_settings.write_text(json.dumps(settings or {}))
                 lines = self.render(self.payload(tokens=10000, window=window), claude_environment=claude_environment)
                 self.assertIn(f' · 10k/{limit} · ', visible(lines[0]))
+
+    def test_compaction_drift_warning(self):
+        transcript = self.root / 'transcript.jsonl'
+
+        def boundary(trigger, pre_tokens):
+            return json.dumps({'type': 'system', 'subtype': 'compact_boundary',
+                               'compactMetadata': {'trigger': trigger, 'preTokens': pre_tokens}},
+                              separators=(',', ':'))
+
+        cases = (
+            ('below limit', 900000, [], {}, None),
+            ('trigger overshoot', 968000, [], {}, None),
+            ('no compaction past limit', 980000, [], {}, 'no compaction past limit'),
+            ('compaction disabled past limit', 980000, [], {'DISABLE_AUTO_COMPACT': '1'}, None),
+            ('compaction on schedule', 10000, [boundary('auto', 966793)], {}, None),
+            ('early compaction', 10000, [boundary('auto', 900000)], {}, 'compacted early at 900k'),
+            ('late compaction', 10000, [boundary('auto', 1000387)], {}, 'compacted late at 1m'),
+            ('latest compaction on schedule', 10000, [boundary('auto', 900000), boundary('auto', 967307)], {}, None),
+            ('manual compaction after early one', 10000, [boundary('auto', 900000), boundary('manual', 500000)],
+             {}, None),
+        )
+        for name, tokens, records, claude_environment, warning in cases:
+            with self.subTest(name):
+                transcript.write_text(''.join(f'{record}\n' for record in records))
+                payload = dict(self.payload(tokens=tokens, window=1000000), transcript_path=str(transcript))
+                text = visible(self.render(payload, claude_environment=claude_environment)[0])
+                if warning is None:
+                    self.assertNotIn('⚠', text)
+                else:
+                    self.assertRegex(text, rf'/967k · ⚠ {warning} · \d{{1,2}}:\d\d [AP]M$')
 
     def test_project_settings_override_user_settings(self):
         for directory, window in ((self.home, 500000), (self.workspace, 400000)):

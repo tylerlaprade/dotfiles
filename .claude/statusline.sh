@@ -10,7 +10,7 @@ done
 settings=$(jq -n 'reduce inputs as $layer ({}; . + $layer)' "${settings_layers[@]}" </dev/null)
 
 # Mirror Claude Code's auto-compact trigger from the raw input count so a routing mismatch can exceed 100%.
-read -r used_tokens limit_tokens < <(
+read -r used_tokens limit_tokens auto_compacts < <(
   echo "$input" | jq -r --argjson settings "$settings" '
     def positive_env($name): $ENV[$name] // "" | tonumber? // null | select(. != null and . > 0);
     def truthy_env($name): $ENV[$name] // "" | ascii_downcase | IN("1", "true", "yes", "on");
@@ -20,7 +20,7 @@ read -r used_tokens limit_tokens < <(
     | [
         .context_window.total_input_tokens,
         if truthy_env("DISABLE_COMPACT") or truthy_env("DISABLE_AUTO_COMPACT") or $settings.autoCompactEnabled == false then
-          $window
+          $window, false
         else
           ((positive_env("CLAUDE_CODE_AUTO_COMPACT_WINDOW") | [[., 1000000] | min, 100000] | max)
             // $settings.autoCompactWindow // $window) as $compact_window
@@ -30,7 +30,8 @@ read -r used_tokens limit_tokens < <(
           | ($effective_window - $summary_reserve) as $reserved_limit
           | ((positive_env("CLAUDE_AUTOCOMPACT_PCT_OVERRIDE") | select(. <= 100)) // null) as $percent_override
           | if $percent_override then [($effective_window * $percent_override / 100 | floor), $reserved_limit] | min
-            else $reserved_limit end
+            else $reserved_limit end,
+          true
         end
       ] | @tsv'
 )
@@ -53,9 +54,28 @@ format_tokens() {
 used_display=$(format_tokens "$used_tokens")
 limit_display=$(format_tokens "$limit_tokens")
 
+# Flag a compaction that fires away from the mirrored limit, since Claude Code can change its trigger.
+drift_tolerance=$(( limit_tokens / 100 ))
+drift_warning=""
+if [ "$auto_compacts" = true ]; then
+  if [ "$used_tokens" -gt $(( limit_tokens + drift_tolerance )) ]; then
+    drift_warning="no compaction past limit"
+  else
+    transcript_path=$(echo "$input" | jq -r '.transcript_path // empty')
+    last_auto_compaction=$(rg -F '"subtype":"compact_boundary"' "$transcript_path" 2>/dev/null | tail -1 |
+      jq -r 'select(.compactMetadata.trigger == "auto") | .compactMetadata.preTokens')
+    if [ -n "$last_auto_compaction" ] && [ "$last_auto_compaction" -lt $(( limit_tokens - drift_tolerance )) ]; then
+      drift_warning="compacted early at $(format_tokens "$last_auto_compaction")"
+    elif [ -n "$last_auto_compaction" ] && [ "$last_auto_compaction" -gt $(( limit_tokens + drift_tolerance )) ]; then
+      drift_warning="compacted late at $(format_tokens "$last_auto_compaction")"
+    fi
+  fi
+fi
+
 RESET='\033[0m'
 WHITE='\033[97m'
 DIM='\033[90m'
+ALERT='\033[91m'
 YELLOW='\033[33m'
 
 # Tomorrow Night gradient: (blue →) green → yellow → red with asymptotic red tail
@@ -341,7 +361,7 @@ join_parts() {
   printf '%s' "$joined"
 }
 
-# Line 1: model · context bar · session · time
+# Line 1: model · context bar · compaction drift · session · time
 parts=()
 if [ -n "$model_name" ]; then
   model_part="${DIM}${model_name}"
@@ -349,6 +369,7 @@ if [ -n "$model_name" ]; then
   parts+=("${model_part}${RESET}")
 fi
 parts+=("$ctx_info")
+[ -n "$drift_warning" ] && parts+=("${ALERT}⚠ ${drift_warning}${RESET}")
 [ -n "$session_id" ] && parts+=("${DIM}${session_id:0:8}${RESET}")
 parts+=("$(format_time_color "$current_time")")
 echo -e "$(join_parts "${parts[@]}")"
