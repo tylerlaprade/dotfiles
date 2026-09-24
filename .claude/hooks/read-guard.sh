@@ -4,8 +4,7 @@
 # targets a top-level repo under ~/Code other than the session's own.
 # "Own" is the first directory under ~/Code that holds the session's project,
 # so nested repos (the QueenspawnGames umbrella) share access with every
-# sibling under the same top-level directory. Dot files and anything inside a
-# dot directory (.swiftlint.yml, .github/) are readable from any repo.
+# sibling under the same top-level directory.
 #
 # PreToolUse: emit an ask decision for cross-project access, unless this
 # session already got approval for that repo. Output nothing to allow.
@@ -62,19 +61,6 @@ allowed_repo() {
   return 1
 }
 
-hidden_path() {
-  local parts part hidden=1
-  IFS=/ read -ra parts <<< "$1"
-  for part in "${parts[@]}"; do
-    case "$part" in
-      ..) return 1 ;;
-      .) ;;
-      .*) hidden=0 ;;
-    esac
-  done
-  return "$hidden"
-}
-
 approved_repo() {
   [ -n "$sid" ] && grep -qxF "$HOME/Code/$1" "$state_file" 2>/dev/null
 }
@@ -95,11 +81,8 @@ ask() {
 if [ -n "$command" ]; then
   # Bash: scan the command for references to top-level repos under ~/Code.
   repos=$(printf '%s' "$command" \
-    | grep -oE "(~|\\\$HOME|$HOME)/Code/[A-Za-z0-9._+-][A-Za-z0-9._+/-]*" \
-    | while IFS= read -r ref; do
-        rest="${ref#*/Code/}"
-        hidden_path "$rest" || printf '%s\n' "${rest%%/*}"
-      done | sort -u)
+    | grep -oE "(~|\\\$HOME|$HOME)/Code/[A-Za-z0-9._+-]*[A-Za-z0-9_+-]" \
+    | sed 's|.*/||' | sort -u)
   [ -n "$repos" ] || exit 0
   need=()
   while IFS= read -r repo; do
@@ -145,7 +128,6 @@ path_rest="${path#"$HOME"/Code/}"
 path_top="${path_rest%%/*}"
 
 allowed_repo "$path_top" && exit 0
-hidden_path "$path_rest" && exit 0
 if [ "$event" = "PostToolUse" ]; then
   record_repo "$path_top"
   exit 0
