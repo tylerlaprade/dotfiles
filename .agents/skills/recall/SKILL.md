@@ -1,9 +1,10 @@
 ---
 name: recall
 description: >
-  Search past Claude Code, Codex, Grok, Antigravity, and OpenCode sessions. Triggers: /recall, "search old conversations",
-  "find a past session", "recall a previous conversation", "search session history",
-  "what did we discuss", "remember when we"
+  Search and read past Claude Code, Codex, Grok, Antigravity, and OpenCode session
+  transcripts. Use whenever the answer depends on something said or done outside the
+  current context: an earlier discussion, decision, or promise, or another agent's
+  session. Triggers on /recall.
 metadata:
   author: tylerlaprade
   upstream: arjunkmrm/recall
