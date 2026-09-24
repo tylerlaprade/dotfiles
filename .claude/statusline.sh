@@ -2,11 +2,39 @@
 input=$(cat)
 cd "$(echo "$input" | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
 
-# Use the provider window and raw input count so a routing mismatch can exceed 100%.
-read -r used_tokens window_tokens < <(
-  echo "$input" | jq -r '[.context_window.total_input_tokens, .context_window.context_window_size] | @tsv'
+project_dir=$(echo "$input" | jq -r '.workspace.project_dir // .workspace.current_dir')
+settings_layers=()
+for layer in "$HOME/.claude/settings.json" "$project_dir/.claude/settings.json" "$project_dir/.claude/settings.local.json"; do
+  [ -f "$layer" ] && settings_layers+=("$layer")
+done
+settings=$(jq -n 'reduce inputs as $layer ({}; . + $layer)' "${settings_layers[@]}" </dev/null)
+
+# Mirror Claude Code's auto-compact trigger from the raw input count so a routing mismatch can exceed 100%.
+read -r used_tokens limit_tokens < <(
+  echo "$input" | jq -r --argjson settings "$settings" '
+    def positive_env($name): $ENV[$name] // "" | tonumber? // null | select(. != null and . > 0);
+    def truthy_env($name): $ENV[$name] // "" | ascii_downcase | IN("1", "true", "yes", "on");
+    20000 as $output_reserve_cap
+    | 13000 as $summary_reserve
+    | .context_window.context_window_size as $window
+    | [
+        .context_window.total_input_tokens,
+        if truthy_env("DISABLE_COMPACT") or truthy_env("DISABLE_AUTO_COMPACT") or $settings.autoCompactEnabled == false then
+          $window
+        else
+          ((positive_env("CLAUDE_CODE_AUTO_COMPACT_WINDOW") | [[., 1000000] | min, 100000] | max)
+            // $settings.autoCompactWindow // $window) as $compact_window
+          | (([$window, $compact_window] | min)
+            - ([positive_env("CLAUDE_CODE_MAX_OUTPUT_TOKENS") // $output_reserve_cap, $output_reserve_cap] | min))
+            as $effective_window
+          | ($effective_window - $summary_reserve) as $reserved_limit
+          | ((positive_env("CLAUDE_AUTOCOMPACT_PCT_OVERRIDE") | select(. <= 100)) // null) as $percent_override
+          | if $percent_override then [($effective_window * $percent_override / 100 | floor), $reserved_limit] | min
+            else $reserved_limit end
+        end
+      ] | @tsv'
 )
-pct=$(( used_tokens * 100 / window_tokens ))
+pct=$(( used_tokens * 100 / limit_tokens ))
 
 format_tokens() {
   local tokens=$1
@@ -23,7 +51,7 @@ format_tokens() {
 }
 
 used_display=$(format_tokens "$used_tokens")
-window_display=$(format_tokens "$window_tokens")
+limit_display=$(format_tokens "$limit_tokens")
 
 RESET='\033[0m'
 WHITE='\033[97m'
@@ -149,7 +177,7 @@ format_time_color() {
   printf '%b\033[38;2;%d;%d;%dm%b%s\033[0m' "$bold" "$r" "$g" "$b" "$reverse" "$t_str"
 }
 
-# Color tracks pressure against the model's actual context capacity.
+# Color tracks pressure against the auto-compact trigger.
 # 0-55% stays green, 55-75% blends to yellow, 75-95% blends to red,
 # and anything above 95% stays bright red.
 rate_usage_gradient "$pct"
@@ -173,7 +201,7 @@ if [ "$filled" -lt 10 ]; then
   empty=$((9 - filled))
   [ "$empty" -gt 0 ] && printf -v pad "%${empty}s" && bar="${bar}${pad// /░}"
 fi
-ctx_info="${bar}${bar_color} ${pct}% · ${used_display}/${window_display}${RESET}"
+ctx_info="${bar}${bar_color} ${pct}% · ${used_display}/${limit_display}${RESET}"
 
 # Rate limit info
 rate_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty | floor')

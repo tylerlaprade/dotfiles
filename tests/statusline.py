@@ -152,9 +152,10 @@ class StatuslineTest(unittest.TestCase):
         return {'five_hour': {'used_percentage': five_hour, 'resets_at': int(five_hour_reset.timestamp())},
                 'seven_day': {'used_percentage': seven_day, 'resets_at': int(seven_day_reset.timestamp())}}
 
-    def render(self, payload, now=at(15, 0), usage=USAGE_OK, usage_status=0, git=PLAIN_GIT, usage_command=True):
+    def render(self, payload, now=at(15, 0), usage=USAGE_OK, usage_status=0, git=PLAIN_GIT, usage_command=True,
+               claude_environment=None):
         environment = dict(self.environment, FAKE_NOW=str(int(now.timestamp())), FAKE_GIT=git,
-                           FAKE_USAGE_STATUS=str(usage_status))
+                           FAKE_USAGE_STATUS=str(usage_status), **(claude_environment or {}))
         if usage is not None:
             environment['FAKE_USAGE'] = json.dumps(usage)
         shim = self.bin / 'claude-usage'
@@ -191,20 +192,52 @@ class StatuslineTest(unittest.TestCase):
             self.assertEqual(match.group(2)[filled + 1:], '░' * (9 - filled), text)
 
     def test_context_pressure_across_both_windows(self):
-        for window, unit in ((200000, '200k'), (1000000, '1m')):
+        for window, limit, unit in ((200000, 167000, '167k'), (1000000, 967000, '967k')):
             for percent in (0, 10, 55, 60, 75, 90, 95, 96, 100, 120, 200):
-                tokens = window * percent // 100
+                tokens = limit * percent // 100
                 with self.subTest(window=window, percent=percent):
                     lines = self.render(self.payload(tokens=tokens, window=window))
-                    used = f'{tokens // 1000}k' if tokens < 1000000 else f'{tokens / 1000000:g}m'
+                    used = f'{tokens // 1000}k' if tokens < 1000000 else f'{tokens // 100000 / 10:g}m'
                     self.assert_context_line(lines[0], percent, f'{used}/{unit}', '3:00 PM')
+
+    def test_context_limit_follows_auto_compact_settings(self):
+        user_settings = self.home / '.claude/settings.json'
+        user_settings.parent.mkdir()
+        cases = (
+            ('Claudex compact window', 272000, {'CLAUDE_CODE_AUTO_COMPACT_WINDOW': '258400'}, None, '225k'),
+            ('compact window floor', 1000000, {'CLAUDE_CODE_AUTO_COMPACT_WINDOW': '50000'}, None, '67k'),
+            ('invalid compact window', 1000000, {'CLAUDE_CODE_AUTO_COMPACT_WINDOW': 'junk'}, None, '967k'),
+            ('/autocompact setting', 1000000, {}, {'autoCompactWindow': 500000}, '467k'),
+            ('environment beats setting', 1000000, {'CLAUDE_CODE_AUTO_COMPACT_WINDOW': '300000'},
+             {'autoCompactWindow': 500000}, '267k'),
+            ('smaller output reserve', 1000000, {'CLAUDE_CODE_MAX_OUTPUT_TOKENS': '8000'}, None, '979k'),
+            ('larger output limit', 1000000, {'CLAUDE_CODE_MAX_OUTPUT_TOKENS': '64000'}, None, '967k'),
+            ('percent override', 1000000, {'CLAUDE_AUTOCOMPACT_PCT_OVERRIDE': '50'}, None, '490k'),
+            ('percent override above reserve', 1000000, {'CLAUDE_AUTOCOMPACT_PCT_OVERRIDE': '100'}, None, '967k'),
+            ('auto-compact disabled', 1000000, {'DISABLE_AUTO_COMPACT': '1'}, None, '1m'),
+            ('compaction disabled', 1000000, {'DISABLE_COMPACT': 'true'}, None, '1m'),
+            ('auto-compact setting off', 1000000, {}, {'autoCompactEnabled': False}, '1m'),
+        )
+        for name, window, claude_environment, settings, limit in cases:
+            with self.subTest(name):
+                user_settings.write_text(json.dumps(settings or {}))
+                lines = self.render(self.payload(tokens=10000, window=window), claude_environment=claude_environment)
+                self.assertIn(f' · 10k/{limit} · ', visible(lines[0]))
+
+    def test_project_settings_override_user_settings(self):
+        for directory, window in ((self.home, 500000), (self.workspace, 400000)):
+            (directory / '.claude').mkdir()
+            (directory / '.claude/settings.json').write_text(json.dumps({'autoCompactWindow': window}))
+        (self.workspace / '.claude/settings.local.json').write_text(json.dumps({'autoCompactWindow': 300000}))
+        lines = self.render(self.payload(tokens=10000, window=1000000))
+        self.assertIn(' · 10k/267k · ', visible(lines[0]))
 
     def test_model_label_variants(self):
         for model, effort, prefix in (('Opus 5', 'max', 'Opus 5 max · '), ('Opus 5', None, 'Opus 5 · '),
                                       ('Sonnet 5 (1M context)', 'high', 'Sonnet 5 high · '), (None, None, '')):
             with self.subTest(model=model, effort=effort):
                 lines = self.render(self.payload(model=model, effort=effort))
-                self.assert_context_line(lines[0], 25, '50k/200k', '3:00 PM', prefix=prefix)
+                self.assert_context_line(lines[0], 29, '50k/167k', '3:00 PM', prefix=prefix)
 
     def test_clock_color_follows_the_time_of_day(self):
         cases = [
@@ -222,7 +255,7 @@ class StatuslineTest(unittest.TestCase):
         for now, clock, present, absent in cases:
             with self.subTest(now=now.isoformat()):
                 lines = self.render(self.payload(), now=now)
-                self.assert_context_line(lines[0], 25, '50k/200k', clock)
+                self.assert_context_line(lines[0], 29, '50k/167k', clock)
                 clock_part = lines[0][lines[0].rindex(' · ') + 3:]
                 for needle in present:
                     self.assertIn(needle, clock_part)
