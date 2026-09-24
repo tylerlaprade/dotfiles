@@ -330,6 +330,7 @@ current_time=$(TZ="America/New_York" date +"%-I:%M %p")
 model_name=$(echo "$input" | jq -r '.model.display_name // empty')
 model_name="${model_name% (1M context)}"
 effort_level=$(echo "$input" | jq -r '.effort.level // empty')
+session_id=$(echo "$input" | jq -r '.session_id // empty')
 
 join_parts() {
   local joined=$1 part
@@ -340,7 +341,7 @@ join_parts() {
   printf '%s' "$joined"
 }
 
-# Line 1: model · context bar · time
+# Line 1: model · context bar · session · time
 parts=()
 if [ -n "$model_name" ]; then
   model_part="${DIM}${model_name}"
@@ -348,6 +349,7 @@ if [ -n "$model_name" ]; then
   parts+=("${model_part}${RESET}")
 fi
 parts+=("$ctx_info")
+[ -n "$session_id" ] && parts+=("${DIM}${session_id:0:8}${RESET}")
 parts+=("$(format_time_color "$current_time")")
 echo -e "$(join_parts "${parts[@]}")"
 
