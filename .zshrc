@@ -175,7 +175,7 @@ claude() {
   done
 }
 
-# fableplan — Fable 5 plans, Opus 5 executes (wraps claude() above)
+# fableplan — Fable 5.1 plans, Opus 5.5 executes (wraps claude() above)
 [[ -f ~/Code/fableplan/fableplan.sh ]] && source ~/Code/fableplan/fableplan.sh
 
 # cwc — change workspace (condor): create workspace + start Claude
