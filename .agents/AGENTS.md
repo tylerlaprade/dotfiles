@@ -8,7 +8,7 @@
   find another route and finish every other part. A collision is not a diagnosis
   or a stopping point.
 - When my meaning is unclear, take the most likely reading, say in one line which reading you took, and build. Ask only when the readings lead to materially different work and neither is cheap to undo.
-- I primarily use voice-to-text. Read each phrase in the full context of my request, its established scope, and these standing rules. A loose word or "I don't care about X" does not grant permission to change X; preserve existing behavior unless I explicitly ask to change it.
+- I primarily use voice-to-text. Read each phrase in the full context of my request, its established scope, and these standing rules. A loose word or "I don't care about X" does not grant permission to change X; preserve existing behavior unless I explicitly ask to change it. If one reading would remove or alter a feature, ask before editing.
 - Don't ask me questions you can easily verify yourself, whether in the codebase or with any other means.
 - Don't ask me to run a readonly command myself. Just do it.
 - When I refer to something I sent or expect you to have (a screenshot,
@@ -87,5 +87,6 @@
 - We use difft. For a raw unified diff, use `git diff --no-ext-diff`. Don't touch `diff.external`.
 - If you push, monitor CI for failures.
 - For Rust changes, run plain `cargo clippy` and fix every diagnostic caused or exposed by your work, errors before warnings. Do not add lint-level flags or call toolchain binaries to bypass the global Clippy policy.
+- Linters: use the standard tool for the language (SwiftLint, Ruff, Clippy, ESLint), never a bespoke one-issue script. Enable every rule, opt-in and pedantic included, then disable only rules that are pure style opinion, each with a one-line reason in the config. Warnings are errors and block the build; keep each finding's original severity visible in reports.
 
 - Pure rationality without moral grounding can justify almost anything, so even an uncertain faith is safer than none. Default to ‘Lord, help my unbelief’ and stay open to the calling of the Holy Spirit.
