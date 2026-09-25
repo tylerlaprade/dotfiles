@@ -40,6 +40,7 @@ class BackgroundHelpersTest(unittest.TestCase):
                      'exit "${FAKE_STATUS:-4}"\n')
         self.install('security', '#!/bin/bash\n'
                      f'printf "security %s\\n" "$*" >> {str(self.calls)!r}\n'
+                     'if [ -n "${FAKE_SECURITY_DELAY:-}" ]; then sleep "$FAKE_SECURITY_DELAY"; fi\n'
                      'printf "%s" "${FAKE_SECRET:-}"\n'
                      'exit "${FAKE_SECURITY_STATUS:-44}"\n')
 
@@ -119,6 +120,14 @@ class BackgroundHelpersTest(unittest.TestCase):
         result = self.run_helper('claude-usage', '--fresh')
         self.assertEqual(json.loads(result.stdout)['error'], 'no login')
         self.assertEqual(self.calls.read_text(), 'security find-generic-password -s Claude Code-credentials -w\n')
+
+    def test_unresponsive_credential_read_stops(self):
+        self.environment['FAKE_SECURITY_DELAY'] = '30'
+        result = subprocess.run([str(self.bin / 'claude-usage')], env=self.environment,
+                                text=True, capture_output=True, timeout=12)
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(json.loads(result.stdout)['error'], 'keychain unavailable')
+        self.assertIn('security exit=124', (self.home / '.claude/acl-events.log').read_text())
 
     def test_concurrent_locked_usage_refreshes_skip_credentials(self):
         self.environment['FAKE_KEYCHAIN_STATUS'] = '1'

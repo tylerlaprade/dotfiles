@@ -1,8 +1,7 @@
 #!/bin/bash
 input=$(cat)
-cd "$(echo "$input" | jq -r '.workspace.current_dir')" 2>/dev/null || exit 0
-
-project_dir=$(echo "$input" | jq -r '.workspace.project_dir // .workspace.current_dir')
+IFS=$'\037' read -r current_dir project_dir < <(printf '%s' "$input" | jq -r '[.workspace.current_dir, .workspace.project_dir // .workspace.current_dir] | join("\u001f")')
+cd "$current_dir" 2>/dev/null || exit 0
 settings_layers=()
 for layer in "$HOME/.claude/settings.json" "$project_dir/.claude/settings.json" "$project_dir/.claude/settings.local.json"; do
   [ -f "$layer" ] && settings_layers+=("$layer")
@@ -36,6 +35,20 @@ read -r used_tokens limit_tokens auto_compacts < <(
       ] | @tsv'
 )
 pct=$(( used_tokens * 100 / limit_tokens ))
+IFS=$'\037' read -r transcript_path rate_5h rate_7d resets_5h resets_7d model_name effort_level session_id raw_cost cost_cents < <(
+  printf '%s' "$input" | jq -r '[
+    .transcript_path // "",
+    (.rate_limits.five_hour.used_percentage | if type == "number" then floor else "" end),
+    (.rate_limits.seven_day.used_percentage | if type == "number" then floor else "" end),
+    .rate_limits.five_hour.resets_at // "",
+    .rate_limits.seven_day.resets_at // "",
+    .model.display_name // "",
+    .effort.level // "",
+    .session_id // "",
+    .cost.total_cost_usd // "",
+    ((.cost.total_cost_usd // 0) * 100 | round)
+  ] | join("\u001f")'
+)
 
 format_tokens() {
   local tokens=$1
@@ -63,7 +76,6 @@ drift_tolerance=$(( limit_tokens / 100 ))
 drift_warning=""
 compaction_due=false
 if [ "$auto_compacts" = true ]; then
-  transcript_path=$(echo "$input" | jq -r '.transcript_path // empty')
   read -r drift_kind drift_tokens < <(python3 - "$transcript_path" "$limit_tokens" "$drift_tolerance" 2>/dev/null <<'PYTHON'
 import json
 import os
@@ -282,12 +294,6 @@ if [ "$filled" -lt 10 ]; then
 fi
 ctx_info="${bar}${bar_color} ${pct}% · ${used_display}/${limit_display}${RESET}"
 
-# Rate limit info
-rate_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty | floor')
-rate_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty | floor')
-resets_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
-resets_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
-
 # Persist 5h/7d so the claude() overage gate can read latest state.
 # Per-session harness rate_limits is cached at last API response, so an idle
 # session's render carries stale numbers. Skip the write unless our resets_5h
@@ -406,10 +412,7 @@ else
   git_status=$(git-status-line --async-pr)
 fi
 current_time=$(TZ="America/New_York" date +"%-I:%M %p")
-model_name=$(echo "$input" | jq -r '.model.display_name // empty')
 model_name="${model_name% (1M context)}"
-effort_level=$(echo "$input" | jq -r '.effort.level // empty')
-session_id=$(echo "$input" | jq -r '.session_id // empty')
 
 join_parts() {
   local joined=$1 part
@@ -447,14 +450,25 @@ if [ -n "$_usage_cmd" ]; then
     "$_usage_cmd" --async 2>/dev/null) || true
 fi
 if [ -n "$_usage" ]; then
-  _usage_ok=$(printf '%s' "$_usage" | jq -r '.ok != false')
-  rate_fable=$(printf '%s' "$_usage" | jq -r '.fable // empty')
-  resets_fable=$(printf '%s' "$_usage" | jq -r '.resets_fable // empty')
-  usage_resets_7d=$(printf '%s' "$_usage" | jq -r '.resets_7d // empty')
+  IFS=$'\037' read -r _usage_ok rate_fable resets_fable usage_resets_7d _usage_error usage_5h usage_resets_5h usage_7d < <(
+    printf '%s' "$_usage" | jq -r '[
+      .ok != false,
+      .fable // "",
+      .resets_fable // "",
+      .resets_7d // "",
+      .error // "fetch failed",
+      .five_hour // "",
+      .resets_5h // "",
+      .seven_day // ""
+    ] | join("\u001f")'
+  )
   if [ "$_usage_ok" != true ]; then
-    _usage_error=$(printf '%s' "$_usage" | jq -r '.error // "fetch failed"')
     if [ "$_usage_error" = "keychain unavailable" ]; then
-      fable_part="${YELLOW}Fable: keychain unavailable${RESET}"
+      if [ -n "$rate_fable" ]; then
+        fable_part="${DIM}Fable ${rate_fable}% · stale${RESET}"
+      else
+        fable_part="${DIM}Fable unavailable${RESET}"
+      fi
     elif [ "$_usage_error" = "token expired" ] || [ "$_usage_error" = "no login" ] || [ "$_usage_error" = "no token" ] || [ "$_usage_error" = "HTTP 401" ]; then
       fable_part="${YELLOW}Fable: login required${RESET}"
     elif [ "$_usage_error" = "HTTP 429" ]; then
@@ -494,20 +508,18 @@ fi
 # stdin has nothing.
 if [ "${_usage_ok:-}" = true ]; then
   if [ -z "$rate_5h" ]; then
-    rate_5h=$(printf '%s' "$_usage" | jq -r '.five_hour // empty')
-    resets_5h=$(printf '%s' "$_usage" | jq -r '.resets_5h // empty')
+    rate_5h=$usage_5h
+    resets_5h=$usage_resets_5h
   fi
   if [ -z "$rate_7d" ]; then
-    rate_7d=$(printf '%s' "$_usage" | jq -r '.seven_day // empty')
-    resets_7d=$(printf '%s' "$_usage" | jq -r '.resets_7d // empty')
+    rate_7d=$usage_7d
+    resets_7d=$usage_resets_7d
   fi
 fi
 cost_display="" cost_color=""
 if [ "${rate_5h:-0}" -ge 100 ]; then
-  raw_cost=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
   if [ -n "$raw_cost" ]; then
     session_cost=$(printf "%.2f" "$raw_cost")
-    cost_cents=$(echo "$input" | jq -r '(.cost.total_cost_usd // 0) * 100 | round')
     # Asymptotic red from 100%-red base: (204,102,102) → (255,0,0)
     t=$(( cost_cents * 100 / (cost_cents + 2000) ))
     r=$(( 204 + (255 - 204) * t / 100 ))

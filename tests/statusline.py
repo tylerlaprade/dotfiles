@@ -367,7 +367,9 @@ class StatuslineTest(unittest.TestCase):
         cases = {
             'ok': (USAGE_OK, 0, True, 'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable 4%'),
             'keychain unavailable': ({'ok': False, 'error': 'keychain unavailable'}, 1, True,
-                                     'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable: keychain unavailable'),
+                                     'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable unavailable'),
+            'keychain unavailable with cache': ({'ok': False, 'error': 'keychain unavailable', 'fable': 40}, 1, True,
+                                                'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable 40% · stale'),
             'login required': ({'ok': False, 'error': 'HTTP 401', 'fable': 40}, 1, True,
                                'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable: login required'),
             'rate limited': ({'ok': False, 'error': 'HTTP 429', 'fable': 73}, 1, True,

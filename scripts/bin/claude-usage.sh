@@ -122,11 +122,9 @@ keychain_check="$(dirname "$script_path")/../keychain-unlocked.py"
 timeout 2 python3 "$keychain_check" 2>/dev/null || emit_stale "keychain unavailable"
 
 credential_status=0
-blob=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null) || credential_status=$?
+blob=$(timeout 5 security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null) || credential_status=$?
 if [ -z "$blob" ]; then
   if [ "$credential_status" -ne 44 ] && [ "$credential_status" -ne 0 ]; then
-    # Log every ACL failure with its exit code so a future storm has a paper
-    # trail. Exit 44 is item-not-found and is not a permission issue.
     mkdir -p "${HOME}/.claude" 2>/dev/null
     log="${HOME}/.claude/acl-events.log"
     printf '%s security exit=%d\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$credential_status" >> "$log"
