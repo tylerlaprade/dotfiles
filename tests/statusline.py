@@ -178,15 +178,17 @@ class StatuslineTest(unittest.TestCase):
         return lines
 
     def assert_context_line(self, line, expected_percent, expected_tokens, expected_clock, prefix='Opus 5 max · ',
-                            expected_warning=None):
+                            expected_warning=None, expected_due=False):
         text = visible(line)
-        match = re.fullmatch(r'(.*)([▓▒░]{10}) (\d+)% · (\S+)(?: · ⚠ ([^·]+))? · (\d{1,2}:\d\d [AP]M)', text)
+        match = re.fullmatch(r'(.*)([▓▒░]{10}) (\d+)% · (\S+)(?: · ⚠ ([^·]+))?( · compaction due)? · (\d{1,2}:\d\d [AP]M)',
+                             text)
         self.assertIsNotNone(match, text)
         self.assertEqual(match.group(1), prefix)
         self.assertEqual(int(match.group(3)), expected_percent)
         self.assertEqual(match.group(4), expected_tokens)
         self.assertEqual(match.group(5), expected_warning)
-        self.assertEqual(match.group(6), expected_clock)
+        self.assertEqual(match.group(6) is not None, expected_due)
+        self.assertEqual(match.group(7), expected_clock)
         filled = min(expected_percent // 10, 10)
         self.assertEqual(match.group(2)[:filled], '▓' * filled, text)
         if filled < 10:
@@ -200,7 +202,7 @@ class StatuslineTest(unittest.TestCase):
                 with self.subTest(window=window, percent=percent):
                     lines = self.render(self.payload(tokens=tokens, window=window))
                     used = f'{tokens // 1000}k' if tokens < 1000000 else f'{tokens // 100000 / 10:g}m'
-                    self.assert_context_line(lines[0], percent, f'{used}/{unit}', '3:00 PM')
+                    self.assert_context_line(lines[0], percent, f'{used}/{unit}', '3:00 PM', expected_due=percent >= 100)
 
     def test_context_limit_follows_auto_compact_settings(self):
         user_settings = self.home / '.claude/settings.json'
@@ -267,6 +269,28 @@ class StatuslineTest(unittest.TestCase):
                     self.assertNotIn('⚠', text)
                 else:
                     self.assertRegex(text, rf'/967k · ⚠ {warning} · \d{{1,2}}:\d\d [AP]M$')
+
+    def test_compaction_due_after_one_request_past_limit(self):
+        transcript = self.root / 'transcript.jsonl'
+
+        def response(tokens):
+            return json.dumps({'type': 'assistant',
+                               'message': {'id': f'msg_{tokens}', 'model': 'claude-sonnet-4-6',
+                                           'usage': {'input_tokens': tokens, 'output_tokens': 0}}},
+                              separators=(',', ':'))
+
+        cases = (
+            ('due', [response(165000), response(171000)], None, True),
+            ('missed', [response(171000), response(173000)], 'no compaction past limit', False),
+        )
+        for name, records, warning, due in cases:
+            with self.subTest(name):
+                transcript.write_text(''.join(f'{record}\n' for record in records))
+                payload = dict(self.payload(tokens=int(json.loads(records[-1])['message']['id'][4:])),
+                               transcript_path=str(transcript))
+                lines = self.render(payload)
+                self.assert_context_line(lines[0], 102 if due else 103, '171k/167k' if due else '173k/167k', '3:00 PM',
+                                         expected_warning=warning, expected_due=due)
 
     def test_project_settings_override_user_settings(self):
         for directory, window in ((self.home, 500000), (self.workspace, 400000)):
