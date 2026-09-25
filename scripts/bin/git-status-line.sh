@@ -6,27 +6,34 @@
 # tab-title hook.
 meta=$(git-meta 2>/dev/null) || exit 0
 IFS=$'\t' read -r repo_name repo_full full_branch <<<"$meta"
-dirty=$(git diff --quiet && git diff --cached --quiet || echo "*")
+
+# Tracked changes and ahead/behind upstream from one git call. Optional locks
+# stay off so a render never contends with another session's git command.
+dirty="" ahead=0 behind=0
+while read -r kind field head_only upstream_only; do
+  if [[ "$kind" == "#" ]]; then
+    [[ "$field" == branch.ab ]] && ahead=${head_only#+} behind=${upstream_only#-}
+  else
+    dirty="*"
+  fi
+done < <(git --no-optional-locks status --porcelain=v2 --branch --untracked-files=no 2>/dev/null)
 
 # PR number + title (cached indefinitely, tab-separated)
 pr_lookup=$(gh-pr-lookup "$repo_name" "$full_branch" --async)
-pr_num=$(echo "$pr_lookup" | cut -f1)
-pr_title=$(echo "$pr_lookup" | cut -f2-)
+pr_num=${pr_lookup%%$'\t'*}
+pr_title=${pr_lookup#*$'\t'}
 pr_notice=""
 if [[ "$pr_num" == "!" ]]; then
   pr_notice="$pr_title"
   pr_num=""
 fi
 
-# Ahead/behind upstream
-read ahead behind < <(git rev-list --left-right --count @{u}...HEAD 2>/dev/null || echo "0 0")
 arrows=""
-[[ $ahead -gt 0 ]] && arrows+="↓$ahead"
-[[ $behind -gt 0 ]] && arrows+="↑$behind"
+[[ $behind -gt 0 ]] && arrows+="↓$behind"
+[[ $ahead -gt 0 ]] && arrows+="↑$ahead"
 
-# Stash indicator
-stash=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
-[[ $stash -gt 0 ]] && stash="≡" || stash=""
+stash=""
+git rev-parse --quiet --verify refs/stash >/dev/null && stash="≡"
 
 # PR status (uses ETags - free if unchanged)
 pr_state=""

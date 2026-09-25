@@ -2,18 +2,18 @@
 # Cached Graphite branch metadata lookup (no gt CLI).
 # Usage: gt-status <repo> <branch> [--async]
 # Output: total:depth:unsubmitted (e.g., "5:2:1"), or empty if no Graphite branches.
-# Cache is keyed by repo:branch; async mode computes in background on miss.
+# Cache format: <repo:branch>\t<result>\t<unix-ts>, empty results included.
+# Entries older than the TTL are recomputed; async mode serves the stale entry
+# while a detached refresh runs.
 
 repo="$1"
 branch="$2"
 [[ -z "$repo" || -z "$branch" ]] && exit 0
 
-cache_file="$HOME/.cache/gt-status-map"
-mkdir -p "$(dirname "$cache_file")"
+cache_file="$HOME/.cache/gt-status-cache"
 key="$repo:$branch"
-
-# Randomly wipe cache (~1 in 32768 calls)
-[[ $RANDOM -eq 0 ]] && rm -f "$cache_file"
+ttl=60
+now=$(date +%s)
 
 compute() {
   git rev-parse --git-dir &>/dev/null || return
@@ -59,25 +59,35 @@ compute() {
   '
 }
 
-# Only cache results with no unsubmitted branches (mirrors gh-pr-lookup: don't cache misses)
-should_cache() {
-  [[ -n "$1" && "${1##*:}" == "0" ]]
+store() {
+  local result=$1 tmp
+  mkdir -p "${cache_file%/*}"
+  tmp=$(mktemp "${cache_file}.XXXXXX")
+  awk -F '\t' -v key="$key" '$1 != key' "$cache_file" 2>/dev/null > "$tmp"
+  printf '%s\t%s\t%s\n' "$key" "$result" "$now" >> "$tmp"
+  mv "$tmp" "$cache_file"
 }
 
-cached=$(grep -m1 "^$key	" "$cache_file" 2>/dev/null | cut -f2)
-if [[ -n "$cached" ]]; then
-  echo "$cached"
-elif [[ "${3:-}" == "--async" ]]; then
+entry=$(awk -F '\t' -v key="$key" '$1 == key { print; exit }' "$cache_file" 2>/dev/null)
+if [[ -n "$entry" ]]; then
+  cached="${entry#*$'\t'}"
+  cached_at="${cached##*$'\t'}"
+  cached="${cached%$'\t'*}"
+  if (( now - cached_at < ttl )); then
+    [[ -n "$cached" ]] && echo "$cached"
+    exit 0
+  fi
+fi
+
+if [[ "${3:-}" == "--async" ]]; then
   (
-    result=$(compute)
-    if [[ -n "$result" ]]; then
-      should_cache "$result" && ! grep -q "^$key	" "$cache_file" 2>/dev/null && echo "$key	$result" >> "$cache_file"
-    fi
+    exec >/dev/null 2>&1 </dev/null
+    store "$(compute)"
   ) &
+  disown 2>/dev/null
+  [[ -n "${cached:-}" ]] && echo "$cached"
 else
   result=$(compute)
-  if [[ -n "$result" ]]; then
-    should_cache "$result" && ! grep -q "^$key	" "$cache_file" 2>/dev/null && echo "$key	$result" >> "$cache_file"
-    echo "$result"
-  fi
+  store "$result"
+  [[ -n "$result" ]] && echo "$result"
 fi

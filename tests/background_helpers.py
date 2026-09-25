@@ -232,7 +232,7 @@ class BackgroundHelpersTest(unittest.TestCase):
             'git-meta': 'printf "example\\texample/project\\tfeature\\n"',
             'gh-pr-lookup': 'printf "!\\tlogin required\\n"',
             'gt-status': 'exit 0',
-            'git': 'if [[ "$1" = rev-list ]]; then echo "0 0"; fi',
+            'git': 'if [[ "$1" = rev-parse ]]; then exit 1; fi',
             'gh-pr-status': 'exit 99',
         }.items():
             self.install(name, '#!/bin/bash\n' + body + '\n')

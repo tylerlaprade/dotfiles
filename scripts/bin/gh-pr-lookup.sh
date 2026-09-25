@@ -13,11 +13,8 @@ async=0
 [[ -z "$repo" || -z "$branch" ]] && exit 0
 
 pr_map="$HOME/.cache/gh-pr-map"
-mkdir -p "$(dirname "$pr_map")"
 key="$repo:$branch"
 now=$(date +%s)
-cache_key=$(printf '%s' "$key" | shasum -a 256)
-fetch_lock="${pr_map}.fetch.${cache_key%% *}"
 write_lock="$pr_map.lock"
 
 # mkdir is atomic. A refresh killed mid-flight leaves its lock behind, so a
@@ -79,6 +76,9 @@ if [[ -n "$cached" && $age -lt $ttl ]]; then
   exit 0
 fi
 
+mkdir -p "${pr_map%/*}"
+cache_key=$(printf '%s' "$key" | shasum -a 256)
+fetch_lock="${pr_map}.fetch.${cache_key%% *}"
 if claim_lock "$fetch_lock" 30; then
   if (( async )); then
     (
