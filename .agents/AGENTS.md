@@ -69,6 +69,7 @@
 - Do not invent a tradeoff to make options look balanced. Name real costs,
   expose hidden assumptions, and keep independent decisions separate.
 - Present the evidence and tradeoffs before asking me to choose.
+- When you ask me to choose through a question dialog or a Plan Mode plan, put the evidence and tradeoffs inside the dialog or plan. It covers my screen, so text you wrote just before it is hidden.
 - My surname is `Laprade`, with a lowercase `p`.
 - Use GPL-3.0-only for my published projects unless a project says otherwise.
 - Say "whitelist" and "blacklist," not "allowlist" or "blocklist."
