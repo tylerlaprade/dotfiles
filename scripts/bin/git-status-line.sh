@@ -5,7 +5,7 @@
 # mtime. One subprocess on cold call, ~0 on cache hit. Shared with the zsh
 # tab-title hook.
 meta=$(git-meta 2>/dev/null) || exit 0
-IFS=$'\t' read -r repo_name repo_full full_branch <<<"$meta"
+IFS=$'\t' read -r repo_name repo_full full_branch common_dir <<<"$meta"
 
 # Tracked changes and ahead/behind upstream from one git call. Optional locks
 # stay off so a render never contends with another session's git command.
@@ -18,8 +18,14 @@ while read -r kind field head_only upstream_only; do
   fi
 done < <(git --no-optional-locks status --porcelain=v2 --branch --untracked-files=no 2>/dev/null)
 
-# PR number + title (cached indefinitely, tab-separated)
-pr_lookup=$(gh-pr-lookup "$repo_name" "$full_branch" --async)
+# PR number + title, skipped on the default branch, where no PR comes from.
+default_branch=""
+if [[ -f "$common_dir/refs/remotes/origin/HEAD" ]]; then
+  read -r _ origin_head < "$common_dir/refs/remotes/origin/HEAD"
+  default_branch=${origin_head#refs/remotes/origin/}
+fi
+pr_lookup=""
+[[ "$full_branch" != "$default_branch" ]] && pr_lookup=$(gh-pr-lookup "$repo_name" "$full_branch" --async)
 pr_num=${pr_lookup%%$'\t'*}
 pr_title=${pr_lookup#*$'\t'}
 pr_notice=""
@@ -66,8 +72,9 @@ indicators=""
 [[ "$pr_ci" == "fail" ]] && indicators+=$'\e[31m✗\e[0m'
 [[ -n "$indicators" ]] && indicators=" $indicators"
 
-# Graphite status (cached, async on new branch)
-gt_info=$(gt-status "$repo_name" "$full_branch" --async)
+# Graphite status, only in repos where `gt init` has run
+gt_info=""
+[[ -f "$common_dir/.graphite_repo_config" ]] && gt_info=$(gt-status "$repo_name" "$full_branch" --async)
 gt_display=""
 if [[ -n "$gt_info" ]]; then
   IFS=: read gt_total gt_depth gt_unsub <<< "$gt_info"
