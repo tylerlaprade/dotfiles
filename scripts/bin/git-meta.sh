@@ -13,7 +13,6 @@
 
 set -u
 cache="$HOME/.cache/git-meta"
-mkdir -p "$(dirname "$cache")"
 pwd_real=$(pwd -P)
 
 _emit() { printf '%s\t%s\t%s\n' "$1" "$2" "$3"; }
@@ -23,8 +22,7 @@ if [[ -f "$cache" ]]; then
   line=$(grep -m1 "^${pwd_real}	" "$cache" 2>/dev/null) || true
   if [[ -n "$line" ]]; then
     IFS=$'\t' read -r _ repo repo_full branch gitdir head_mtime config_mtime <<<"$line"
-    cur_head=$(stat -f %m "$gitdir/HEAD" 2>/dev/null || echo)
-    cur_cfg=$(stat -f %m "$gitdir/config" 2>/dev/null || echo)
+    { read -r cur_head; read -r cur_cfg; } < <(stat -f %m "$gitdir/HEAD" "$gitdir/config" 2>/dev/null)
     if [[ -n "$cur_head" && "$cur_head" == "$head_mtime" && "$cur_cfg" == "$config_mtime" ]]; then
       _emit "$repo" "$repo_full" "$branch"
       exit 0
@@ -48,6 +46,7 @@ config_mtime=$(stat -f %m "$gitdir/config" 2>/dev/null || echo)
 # refreshed entries float to the bottom of the file).
 new_line="${pwd_real}	${repo}	${repo_full}	${branch}	${gitdir}	${head_mtime}	${config_mtime}"
 lock="$cache.lock"
+mkdir -p "${cache%/*}"
 if mkdir "$lock" 2>/dev/null; then
   tmp="$cache.tmp.$$"
   {
