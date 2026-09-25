@@ -200,8 +200,7 @@ class StatuslineTest(unittest.TestCase):
                 with self.subTest(window=window, percent=percent):
                     lines = self.render(self.payload(tokens=tokens, window=window))
                     used = f'{tokens // 1000}k' if tokens < 1000000 else f'{tokens // 100000 / 10:g}m'
-                    warning = 'no compaction past limit' if percent > 101 else None
-                    self.assert_context_line(lines[0], percent, f'{used}/{unit}', '3:00 PM', expected_warning=warning)
+                    self.assert_context_line(lines[0], percent, f'{used}/{unit}', '3:00 PM')
 
     def test_context_limit_follows_auto_compact_settings(self):
         user_settings = self.home / '.claude/settings.json'
@@ -235,22 +234,34 @@ class StatuslineTest(unittest.TestCase):
                                'compactMetadata': {'trigger': trigger, 'preTokens': pre_tokens}},
                               separators=(',', ':'))
 
+        def response(tokens, response_id=None, model='claude-opus-5'):
+            return json.dumps({'type': 'assistant',
+                               'message': {'id': response_id or f'msg_{tokens}', 'model': model,
+                                           'usage': {'input_tokens': 1, 'cache_read_input_tokens': tokens - 1001,
+                                                     'cache_creation_input_tokens': 500, 'output_tokens': 500}}},
+                              separators=(',', ':'))
+
         cases = (
-            ('below limit', 900000, [], {}, None),
-            ('trigger overshoot', 968000, [], {}, None),
-            ('no compaction past limit', 980000, [], {}, 'no compaction past limit'),
-            ('compaction disabled past limit', 980000, [], {'DISABLE_AUTO_COMPACT': '1'}, None),
-            ('compaction on schedule', 10000, [boundary('auto', 966793)], {}, None),
-            ('early compaction', 10000, [boundary('auto', 900000)], {}, 'compacted early at 900k'),
-            ('late compaction', 10000, [boundary('auto', 1000387)], {}, 'compacted late at 1m'),
-            ('latest compaction on schedule', 10000, [boundary('auto', 900000), boundary('auto', 967307)], {}, None),
-            ('manual compaction after early one', 10000, [boundary('auto', 900000), boundary('manual', 500000)],
+            ('below limit', [response(900000), response(950000)], {}, None),
+            ('one request past limit', [response(960000), response(990000)], {}, None),
+            ('response split across records', [response(990000, 'msg_split'), response(990000, 'msg_split')], {}, None),
+            ('synthetic response after one past limit', [response(990000), response(0, model='<synthetic>')], {}, None),
+            ('request after one past limit', [response(990000), response(995000)], {}, 'no compaction past limit'),
+            ('trigger tolerance', [response(975000), response(980000)], {}, None),
+            ('compaction disabled past limit', [response(990000), response(995000)], {'DISABLE_AUTO_COMPACT': '1'}, None),
+            ('compaction on schedule', [response(966000), boundary('auto', 966793), response(20000)], {}, None),
+            ('compaction after one request past limit', [response(960000), response(990000), boundary('auto', 1000387)],
              {}, None),
+            ('late compaction', [response(990000), response(995000), boundary('auto', 1000387), response(20000)], {},
+             'compacted late at 1m'),
+            ('early compaction', [boundary('auto', 900000)], {}, 'compacted early at 900k'),
+            ('latest compaction on schedule', [boundary('auto', 900000), boundary('auto', 967307)], {}, None),
+            ('manual compaction after early one', [boundary('auto', 900000), boundary('manual', 500000)], {}, None),
         )
-        for name, tokens, records, claude_environment, warning in cases:
+        for name, records, claude_environment, warning in cases:
             with self.subTest(name):
                 transcript.write_text(''.join(f'{record}\n' for record in records))
-                payload = dict(self.payload(tokens=tokens, window=1000000), transcript_path=str(transcript))
+                payload = dict(self.payload(tokens=10000, window=1000000), transcript_path=str(transcript))
                 text = visible(self.render(payload, claude_environment=claude_environment)[0])
                 if warning is None:
                     self.assertNotIn('⚠', text)

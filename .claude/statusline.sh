@@ -55,21 +55,39 @@ used_display=$(format_tokens "$used_tokens")
 limit_display=$(format_tokens "$limit_tokens")
 
 # Flag a compaction that fires away from the mirrored limit, since Claude Code can change its trigger.
+# Claude Code checks before each request from the previous response's usage plus an estimate of what
+# was added since, so one request can overshoot. Only a request sent after a response already past the
+# limit proves a missed compaction.
 drift_tolerance=$(( limit_tokens / 100 ))
 drift_warning=""
 if [ "$auto_compacts" = true ]; then
-  if [ "$used_tokens" -gt $(( limit_tokens + drift_tolerance )) ]; then
-    drift_warning="no compaction past limit"
-  else
-    transcript_path=$(echo "$input" | jq -r '.transcript_path // empty')
-    last_auto_compaction=$(rg -F '"subtype":"compact_boundary"' "$transcript_path" 2>/dev/null | tail -1 |
-      jq -r 'select(.compactMetadata.trigger == "auto") | .compactMetadata.preTokens')
-    if [ -n "$last_auto_compaction" ] && [ "$last_auto_compaction" -lt $(( limit_tokens - drift_tolerance )) ]; then
-      drift_warning="compacted early at $(format_tokens "$last_auto_compaction")"
-    elif [ -n "$last_auto_compaction" ] && [ "$last_auto_compaction" -gt $(( limit_tokens + drift_tolerance )) ]; then
-      drift_warning="compacted late at $(format_tokens "$last_auto_compaction")"
-    fi
-  fi
+  transcript_path=$(echo "$input" | jq -r '.transcript_path // empty')
+  read -r drift_kind drift_tokens < <(
+    rg -F -e '"subtype":"compact_boundary"' -e '"type":"assistant"' "$transcript_path" 2>/dev/null |
+      jq -nr --argjson limit "$limit_tokens" --argjson tolerance "$drift_tolerance" '
+        reduce (inputs | select(.subtype == "compact_boundary" or (.type == "assistant" and .message.model != "<synthetic>")))
+          as $record ({missed: false, response_id: null, response_tokens: null, compaction: null};
+          if $record.subtype == "compact_boundary" then
+            {missed: false, response_id: null, response_tokens: null,
+             compaction: {trigger: $record.compactMetadata.trigger, tokens: $record.compactMetadata.preTokens, late: .missed}}
+          else
+            (if $record.message.id == .response_id then . else
+              .missed = (.missed or (.response_tokens != null and .response_tokens > $limit + $tolerance)) end)
+            | .response_id = $record.message.id
+            | .response_tokens = ($record.message.usage
+                | [.input_tokens, .cache_read_input_tokens, .cache_creation_input_tokens, .output_tokens] | add)
+          end)
+        | if .missed then "missed"
+          elif .compaction.trigger != "auto" then empty
+          elif .compaction.late then "late \(.compaction.tokens)"
+          elif .compaction.tokens < $limit - $tolerance then "early \(.compaction.tokens)"
+          else empty end'
+  )
+  case "$drift_kind" in
+    missed) drift_warning="no compaction past limit" ;;
+    late) drift_warning="compacted late at $(format_tokens "$drift_tokens")" ;;
+    early) drift_warning="compacted early at $(format_tokens "$drift_tokens")" ;;
+  esac
 fi
 
 RESET='\033[0m'
