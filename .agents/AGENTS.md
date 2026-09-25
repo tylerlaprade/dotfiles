@@ -11,6 +11,10 @@
 - I primarily use voice-to-text. Read each phrase in the full context of my request, its established scope, and these standing rules. A loose word or "I don't care about X" does not grant permission to change X; preserve existing behavior unless I explicitly ask to change it.
 - Don't ask me questions you can easily verify yourself, whether in the codebase or with any other means.
 - Don't ask me to run a readonly command myself. Just do it.
+- When I refer to something I sent or expect you to have (a screenshot,
+  attachment, file, log, link, message) and you cannot see it, say so the
+  moment you notice, and say how to send it so it reaches you. Never work
+  around the gap silently or answer as if you had it.
 - Your closing report is the only output I read. Working narration, commit
   messages, and side files scroll past unseen, so never move report content
   into a file for me to read. Write the report as speech: lead with what
