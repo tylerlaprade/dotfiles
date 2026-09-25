@@ -35,9 +35,8 @@ read -r used_tokens limit_tokens auto_compacts < <(
       ] | @tsv'
 )
 pct=$(( used_tokens * 100 / limit_tokens ))
-IFS=$'\037' read -r transcript_path rate_5h rate_7d resets_5h resets_7d model_name effort_level session_id raw_cost cost_cents < <(
+IFS=$'\037' read -r rate_5h rate_7d resets_5h resets_7d model_name effort_level session_id raw_cost cost_cents < <(
   printf '%s' "$input" | jq -r '[
-    .transcript_path // "",
     (.rate_limits.five_hour.used_percentage | if type == "number" then floor else "" end),
     (.rate_limits.seven_day.used_percentage | if type == "number" then floor else "" end),
     .rate_limits.five_hour.resets_at // "",
@@ -49,6 +48,9 @@ IFS=$'\037' read -r transcript_path rate_5h rate_7d resets_5h resets_7d model_na
     ((.cost.total_cost_usd // 0) * 100 | round)
   ] | join("\u001f")'
 )
+read -r now today clock_weekday clock_hour clock_minute clock_second current_time < <(
+  TZ="America/New_York" date '+%s %Y%j %u %H %M %S %-I:%M %p')
+tomorrow=$(TZ="America/New_York" date -v+1d +"%Y%j")
 
 format_tokens() {
   local tokens=$1
@@ -67,86 +69,13 @@ format_tokens() {
 used_display=$(format_tokens "$used_tokens")
 limit_display=$(format_tokens "$limit_tokens")
 
-# Flag a compaction that fires away from the mirrored limit, since Claude Code can change its trigger.
-# Claude Code checks before each request from the previous response's usage plus an estimate of what
-# was added since, so one request can overshoot and compaction is then due. Only a request sent after a
-# response already past the limit proves a missed compaction. The transcript is read backward so a long
-# session costs only its last few responses.
-drift_tolerance=$(( limit_tokens / 100 ))
-drift_warning=""
+# Claude Code decides compaction before each request, so a context past the limit compacts on the next one.
 compaction_due=false
-if [ "$auto_compacts" = true ]; then
-  read -r drift_kind drift_tokens < <(python3 - "$transcript_path" "$limit_tokens" "$drift_tolerance" 2>/dev/null <<'PYTHON'
-import json
-import os
-import sys
-
-transcript_path, limit, tolerance = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
-
-
-def lines_from_end(transcript):
-    position = transcript.seek(0, os.SEEK_END)
-    partial = b''
-    while position > 0:
-        chunk_size = min(position, 1 << 20)
-        position -= chunk_size
-        transcript.seek(position)
-        lines = (transcript.read(chunk_size) + partial).split(b'\n')
-        partial = lines.pop(0)
-        yield from reversed(lines)
-    yield partial
-
-
-def total_tokens(message):
-    usage = message['usage']
-    return sum(usage.get(key) or 0 for key in
-               ('input_tokens', 'cache_read_input_tokens', 'cache_creation_input_tokens', 'output_tokens'))
-
-
-def past_limit(responses):
-    return len(responses) == 2 and responses[1][1] > limit + tolerance
-
-
-latest_responses_by_segment = [[]]
-compaction = None
-with open(transcript_path, 'rb') as transcript:
-    for line in lines_from_end(transcript):
-        responses = latest_responses_by_segment[-1]
-        if past_limit(latest_responses_by_segment[0]) or compaction is not None and len(responses) == 2:
-            break
-        if b'"subtype":"compact_boundary"' in line:
-            if compaction is not None:
-                break
-            compaction = json.loads(line)['compactMetadata']
-            if compaction['trigger'] != 'auto':
-                break
-            latest_responses_by_segment.append([])
-        elif b'"type":"assistant"' in line and len(responses) < 2:
-            message = json.loads(line)['message']
-            if message['model'] != '<synthetic>' and (not responses or responses[-1][0] != message['id']):
-                responses.append((message['id'], total_tokens(message)))
-
-if past_limit(latest_responses_by_segment[0]):
-    print('missed')
-elif compaction is not None and compaction['trigger'] == 'auto':
-    if past_limit(latest_responses_by_segment[1]):
-        print('late', compaction['preTokens'])
-    elif compaction['preTokens'] < limit - tolerance:
-        print('early', compaction['preTokens'])
-PYTHON
-  )
-  case "$drift_kind" in
-    missed) drift_warning="no compaction past limit" ;;
-    late) drift_warning="compacted late at $(format_tokens "$drift_tokens")" ;;
-    early) drift_warning="compacted early at $(format_tokens "$drift_tokens")" ;;
-  esac
-  [ "$drift_kind" != missed ] && [ "$used_tokens" -ge "$limit_tokens" ] && compaction_due=true
-fi
+[ "$auto_compacts" = true ] && [ "$used_tokens" -ge "$limit_tokens" ] && compaction_due=true
 
 RESET='\033[0m'
 WHITE='\033[97m'
 DIM='\033[90m'
-ALERT='\033[91m'
 YELLOW='\033[33m'
 
 # Tomorrow Night gradient: (blue →) green → yellow → red with asymptotic red tail
@@ -209,8 +138,8 @@ rate_usage_gradient() {
 # on for seconds 0-29, off for 30-59. Statusline updates every 30s, so the toggle
 # reads as a steady 30s-on/30s-off blink without per-session race.
 format_time_color() {
-  local t_str=$1 dow h m s secs phase_start t r g b bold="" reverse="" night=0 start_r=255 start_g=255 start_b=255
-  read -r dow h m s < <(TZ="America/New_York" date "+%u %H %M %S")
+  local t_str=$1 dow=$clock_weekday h=$clock_hour m=$clock_minute s=$clock_second secs phase_start t r g b bold="" reverse=""
+  local night=0 start_r=255 start_g=255 start_b=255
   # 10# prefix prevents octal parsing on 08:xx / 09:xx
   secs=$((10#$h * 3600 + 10#$m * 60 + 10#$s))
   local P0 P1 P2 P3 P4 P_blue
@@ -304,7 +233,7 @@ _snap_resets_5h=0
   _snap_resets_5h=$(jq -r '.resets_5h // 0' /tmp/claude-rate-limits.json 2>/dev/null)
 if [ "${resets_5h:-0}" -ge "${_snap_resets_5h:-0}" ]; then
   printf '{"five_hour":%s,"seven_day":%s,"resets_5h":%s,"resets_7d":%s,"updated_at":%s}\n' \
-    "${rate_5h:-0}" "${rate_7d:-0}" "${resets_5h:-0}" "${resets_7d:-0}" "$(date +%s)" \
+    "${rate_5h:-0}" "${rate_7d:-0}" "${resets_5h:-0}" "${resets_7d:-0}" "$now" \
     > /tmp/claude-rate-limits.json
 fi
 
@@ -312,7 +241,7 @@ fi
 if [ -f ~/.claude/overage-gate ] && [ ! -f /tmp/claude-overage-override ]; then
   _threshold=${CLAUDE_OVERAGE_THRESHOLD:-95}
   if [ "${rate_5h:-0}" -ge "$_threshold" ] || [ "${rate_7d:-0}" -ge "$_threshold" ]; then
-    printf '%s 5h=%s%% 7d=%s%%\n' "$(date +%s)" "${rate_5h}" "${rate_7d}" >> /tmp/claude-overage-kills.log
+    printf '%s 5h=%s%% 7d=%s%%\n' "$now" "${rate_5h}" "${rate_7d}" >> /tmp/claude-overage-kills.log
     touch /tmp/claude-overage-killed
     pkill claude
   fi
@@ -324,7 +253,6 @@ fi
 # Args: $1 = used percent, $2 = resets (unix), $3 = window seconds.
 pace_gradient() {
   local pct=$1 resets=$2 window_secs=$3
-  local now=$(date +%s)
   local time_remaining=$(( resets - now ))
   [ "$time_remaining" -lt 0 ] && time_remaining=0
   [ "$time_remaining" -gt "$window_secs" ] && time_remaining=$window_secs
@@ -350,7 +278,6 @@ format_rate() {
   local pct=$1 resets=$2 window_secs=$3 display_override=$4 display_color=$5
   [ -z "$pct" ] && return
 
-  local now=$(date +%s)
   local time_remaining=$(( resets - now ))
   [ "$time_remaining" -lt 0 ] && time_remaining=0
   local time_elapsed=$(( window_secs - time_remaining ))
@@ -375,16 +302,15 @@ format_rate() {
   if [ "$time_remaining" -gt 0 ]; then
     pace_gradient "$pct" "$resets" "$window_secs"
     local time_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
-    local reset_str
-    local today=$(TZ="America/New_York" date +"%Y%j")
-    local tomorrow=$(TZ="America/New_York" date -v+1d +"%Y%j")
-    local reset_day=$(TZ="America/New_York" date -r "$resets" +"%Y%j" 2>/dev/null)
+    local reset_str reset_day reset_time reset_weekday_time
+    IFS='|' read -r reset_day reset_time reset_weekday_time < <(
+      TZ="America/New_York" date -r "$resets" +"%Y%j|%-I:%M %p|%a %-I:%M %p" 2>/dev/null)
     if [ "$reset_day" = "$today" ]; then
-      reset_str=$(TZ="America/New_York" date -r "$resets" +"%-I:%M %p" 2>/dev/null)
+      reset_str=$reset_time
     elif [ "$reset_day" = "$tomorrow" ]; then
-      reset_str="$(TZ="America/New_York" date -r "$resets" +"%-I:%M %p" 2>/dev/null)${RESET} tomorrow"
+      reset_str="${reset_time}${RESET} tomorrow"
     else
-      reset_str=$(TZ="America/New_York" date -r "$resets" +"%a %-I:%M %p" 2>/dev/null)
+      reset_str=$reset_weekday_time
     fi
     local days=$(( time_remaining / 86400 ))
     local hrs=$(( (time_remaining % 86400) / 3600 ))
@@ -411,7 +337,6 @@ if [[ -n "$HIDE_GIT_PROMPT" ]]; then
 else
   git_status=$(git-status-line --async-pr)
 fi
-current_time=$(TZ="America/New_York" date +"%-I:%M %p")
 model_name="${model_name% (1M context)}"
 
 join_parts() {
@@ -423,7 +348,7 @@ join_parts() {
   printf '%s' "$joined"
 }
 
-# Line 1: model · context bar · compaction drift · session · time
+# Line 1: model · context bar · compaction due · session · time
 parts=()
 if [ -n "$model_name" ]; then
   model_part="${DIM}${model_name}"
@@ -431,7 +356,6 @@ if [ -n "$model_name" ]; then
   parts+=("${model_part}${RESET}")
 fi
 parts+=("$ctx_info")
-[ -n "$drift_warning" ] && parts+=("${ALERT}⚠ ${drift_warning}${RESET}")
 [ "$compaction_due" = true ] && parts+=("${YELLOW}compaction due${RESET}")
 [ -n "$session_id" ] && parts+=("${DIM}${session_id}${RESET}")
 parts+=("$(format_time_color "$current_time")")

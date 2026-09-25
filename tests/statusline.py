@@ -178,17 +178,15 @@ class StatuslineTest(unittest.TestCase):
         return lines
 
     def assert_context_line(self, line, expected_percent, expected_tokens, expected_clock, prefix='Opus 5 max · ',
-                            expected_warning=None, expected_due=False):
+                            expected_due=False):
         text = visible(line)
-        match = re.fullmatch(r'(.*)([▓▒░]{10}) (\d+)% · (\S+)(?: · ⚠ ([^·]+))?( · compaction due)? · (\d{1,2}:\d\d [AP]M)',
-                             text)
+        match = re.fullmatch(r'(.*)([▓▒░]{10}) (\d+)% · (\S+)( · compaction due)? · (\d{1,2}:\d\d [AP]M)', text)
         self.assertIsNotNone(match, text)
         self.assertEqual(match.group(1), prefix)
         self.assertEqual(int(match.group(3)), expected_percent)
         self.assertEqual(match.group(4), expected_tokens)
-        self.assertEqual(match.group(5), expected_warning)
-        self.assertEqual(match.group(6) is not None, expected_due)
-        self.assertEqual(match.group(7), expected_clock)
+        self.assertEqual(match.group(5) is not None, expected_due)
+        self.assertEqual(match.group(6), expected_clock)
         filled = min(expected_percent // 10, 10)
         self.assertEqual(match.group(2)[:filled], '▓' * filled, text)
         if filled < 10:
@@ -228,69 +226,15 @@ class StatuslineTest(unittest.TestCase):
                 lines = self.render(self.payload(tokens=10000, window=window), claude_environment=claude_environment)
                 self.assertIn(f' · 10k/{limit} · ', visible(lines[0]))
 
-    def test_compaction_drift_warning(self):
-        transcript = self.root / 'transcript.jsonl'
-
-        def boundary(trigger, pre_tokens):
-            return json.dumps({'type': 'system', 'subtype': 'compact_boundary',
-                               'compactMetadata': {'trigger': trigger, 'preTokens': pre_tokens}},
-                              separators=(',', ':'))
-
-        def response(tokens, response_id=None, model='claude-opus-5'):
-            return json.dumps({'type': 'assistant',
-                               'message': {'id': response_id or f'msg_{tokens}', 'model': model,
-                                           'usage': {'input_tokens': 1, 'cache_read_input_tokens': tokens - 1001,
-                                                     'cache_creation_input_tokens': 500, 'output_tokens': 500}}},
-                              separators=(',', ':'))
-
+    def test_compaction_due_follows_auto_compact(self):
         cases = (
-            ('below limit', [response(900000), response(950000)], {}, None),
-            ('one request past limit', [response(960000), response(990000)], {}, None),
-            ('response split across records', [response(990000, 'msg_split'), response(990000, 'msg_split')], {}, None),
-            ('synthetic response after one past limit', [response(990000), response(0, model='<synthetic>')], {}, None),
-            ('request after one past limit', [response(990000), response(995000)], {}, 'no compaction past limit'),
-            ('trigger tolerance', [response(975000), response(980000)], {}, None),
-            ('compaction disabled past limit', [response(990000), response(995000)], {'DISABLE_AUTO_COMPACT': '1'}, None),
-            ('compaction on schedule', [response(966000), boundary('auto', 966793), response(20000)], {}, None),
-            ('compaction after one request past limit', [response(960000), response(990000), boundary('auto', 1000387)],
-             {}, None),
-            ('late compaction', [response(990000), response(995000), boundary('auto', 1000387), response(20000)], {},
-             'compacted late at 1m'),
-            ('early compaction', [boundary('auto', 900000)], {}, 'compacted early at 900k'),
-            ('latest compaction on schedule', [boundary('auto', 900000), boundary('auto', 967307)], {}, None),
-            ('manual compaction after early one', [boundary('auto', 900000), boundary('manual', 500000)], {}, None),
+            ('auto-compact past limit', {}, True),
+            ('auto-compact disabled', {'DISABLE_AUTO_COMPACT': '1'}, False),
         )
-        for name, records, claude_environment, warning in cases:
+        for name, claude_environment, due in cases:
             with self.subTest(name):
-                transcript.write_text(''.join(f'{record}\n' for record in records))
-                payload = dict(self.payload(tokens=10000, window=1000000), transcript_path=str(transcript))
-                text = visible(self.render(payload, claude_environment=claude_environment)[0])
-                if warning is None:
-                    self.assertNotIn('⚠', text)
-                else:
-                    self.assertRegex(text, rf'/967k · ⚠ {warning} · \d{{1,2}}:\d\d [AP]M$')
-
-    def test_compaction_due_after_one_request_past_limit(self):
-        transcript = self.root / 'transcript.jsonl'
-
-        def response(tokens):
-            return json.dumps({'type': 'assistant',
-                               'message': {'id': f'msg_{tokens}', 'model': 'claude-sonnet-4-6',
-                                           'usage': {'input_tokens': tokens, 'output_tokens': 0}}},
-                              separators=(',', ':'))
-
-        cases = (
-            ('due', [response(165000), response(171000)], None, True),
-            ('missed', [response(171000), response(173000)], 'no compaction past limit', False),
-        )
-        for name, records, warning, due in cases:
-            with self.subTest(name):
-                transcript.write_text(''.join(f'{record}\n' for record in records))
-                payload = dict(self.payload(tokens=int(json.loads(records[-1])['message']['id'][4:])),
-                               transcript_path=str(transcript))
-                lines = self.render(payload)
-                self.assert_context_line(lines[0], 102 if due else 103, '171k/167k' if due else '173k/167k', '3:00 PM',
-                                         expected_warning=warning, expected_due=due)
+                lines = self.render(self.payload(tokens=171000), claude_environment=claude_environment)
+                self.assertEqual('compaction due' in visible(lines[0]), due)
 
     def test_project_settings_override_user_settings(self):
         for directory, window in ((self.home, 500000), (self.workspace, 400000)):
