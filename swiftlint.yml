@@ -16,6 +16,7 @@ opt_in_rules:
 disabled_rules:
   # Formatting the codebase does not follow; Xcode's formatter decides.
   - contrasted_opening_brace
+  - line_length
   - indentation_width
   - vertical_whitespace_between_cases
   - vertical_whitespace_opening_braces
@@ -112,17 +113,6 @@ function_parameter_count:
 # representable's update method with nothing to update are idioms.
 no_empty_block:
   disabled_block_types: [closure_blocks, function_bodies, initializer_bodies, statement_blocks]
-
-# A user-facing string is its own localization key, so it stays on one
-# line however long it is; code lines keep the default limits.
-line_length:
-  warning: 120
-  error: 200
-  ignores_urls: true
-  excluded_lines_patterns:
-    - '^\s*(return )?(String\(localized: |Text\(|note\(|policyLead\(|policySection\(|\.accessibilityHint\(|\w+ = String\(localized: )"'
-    # A diagnostics line is one message; wrapped, it reads worse in the code and the same in the log.
-    - '^\s*fondlyLog\('
 
 identifier_name:
   min_length: 2
