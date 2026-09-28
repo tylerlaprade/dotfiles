@@ -1,3 +1,4 @@
 enable=all
+external-sources=true
 # Braces around every variable reference are style.
 disable=SC2250
