@@ -5,6 +5,7 @@ fpath+=("/opt/homebrew/share/zsh/site-functions" "$HOME/.local/share/zsh/site-fu
   (( $#completion_dirs_changed_since_dump )) && rm -f ~/.zcompdump
 }
 autoload -Uz compinit && compinit -C
+[[ $_comp_dumpfile.zwc -nt $_comp_dumpfile ]] || zcompile $_comp_dumpfile
 autoload -U promptinit; promptinit
 export VIRTUAL_ENV_DISABLE_PROMPT=1
 if [[ -n "$HIDE_GIT_PROMPT" ]]; then
@@ -14,7 +15,7 @@ else
 fi
 
 export EDITOR="hx"
-export GPG_TTY=$(tty)
+export GPG_TTY=$TTY
 
 alias dot='cd "$HOME/Code/dotfiles"'
 [[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
@@ -180,7 +181,9 @@ claude() {
 
 # cwc — change workspace (condor): create workspace + start Claude
 # Prefer cw.sh from current repo (works from subdirs), fall back to any condor workspace
-_cw_root=$(git rev-parse --show-toplevel 2>/dev/null)
+_cw_root=$PWD
+until [[ -e $_cw_root/.git || $_cw_root == / ]]; do _cw_root=${_cw_root:h}; done
+[[ -e $_cw_root/.git ]] || _cw_root=
 (){ (($#)) && source $1; } ${_cw_root}/scripts/cw.sh(N) ~/Code/condor*/scripts/cw.sh(N)
 unset _cw_root
 if (( $+functions[cw] )); then
@@ -218,10 +221,10 @@ ps() {
 disable log
 
 # zoxide - smart cd
-eval "$(zoxide init zsh)"
+_cached_output zoxide-init $commands[zoxide] zoxide init zsh && eval "$REPLY"
 
 # direnv - auto-load .envrc files
-eval "$(direnv hook zsh)"
+_cached_output direnv-hook $commands[direnv] direnv hook zsh && eval "$REPLY"
 
 # Tab title: used to prefix "#PR …" via git-meta + gh-pr-lookup on every
 # precmd/preexec (~50–60ms each). Disabled — we don't use PRs currently;
