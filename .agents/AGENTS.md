@@ -53,7 +53,7 @@
 - Scale review and parallel-agent fan-out to the change and the laptop's shared
   CPU. Recheck only what changed; do not launch several cold builds for the same
   proof.
-- Never stash or revert another session's work. Preserve foreign edits and stage only your intended hunks.
+- Never stash or revert another session's work. Preserve foreign edits and stage only your intended hunks. Another session may already have staged its own work, so commit only when the staged list is exactly yours.
 - Recheck `HEAD` before amending in a shared repo.
 - Never commit with `--no-verify` unless I ask. If a hook fails, report the exact failure and leave the staged changes intact.
 - Do not propose moving concurrent sessions into worktrees unless I ask for that workflow.
