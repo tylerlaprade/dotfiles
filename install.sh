@@ -1,230 +1,238 @@
 #!/bin/bash
-set -e
+# Install tools and link this repo. Safe to run again: each step stops when it
+# is already done. The daily sync does not run this.
+set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "=== Dotfiles Setup ==="
 
-# Acquire sudo upfront and keep alive (used for removing bloat apps)
 sudo -v
 while true; do sudo -n true; sleep 50; kill -0 "$$" || exit; done 2>/dev/null &
 
-# Share sudo timestamp across all subshells (macOS default is per-tty)
 sudo sh -c 'echo "Defaults !tty_tickets" > /etc/sudoers.d/dotfiles-install'
-trap 'sudo rm -f /etc/sudoers.d/dotfiles-install' EXIT
 
-# 1. Homebrew (needed for Xcode CLT + git, and as fallback)
-if ! command -v brew &>/dev/null; then
+failed=0
+freeze_shell=0
+freeze_shell_configs() {
+  [[ $freeze_shell -eq 1 ]] && return 0
+  local f
+  for f in "$HOME/.zshrc" "$HOME/.zshenv" "$HOME/.zprofile"; do
+    [[ -e "$f" ]] && chmod a-w "$f" 2>/dev/null || true
+  done
+  freeze_shell=1
+}
+thaw_shell_configs() {
+  [[ $freeze_shell -eq 0 ]] && return 0
+  local f
+  for f in "$HOME/.zshrc" "$HOME/.zshenv" "$HOME/.zprofile"; do
+    [[ -e "$f" ]] && chmod u+w "$f" 2>/dev/null || true
+  done
+}
+cleanup() {
+  thaw_shell_configs
+  sudo rm -f /etc/sudoers.d/dotfiles-install
+}
+trap cleanup EXIT
+
+if ! command -v brew >/dev/null 2>&1; then
   echo "Installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
 
-# 2. Rust toolchain
-if ! command -v rustup &>/dev/null; then
-  echo "Installing Rust..."
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal
-  source "$HOME/.cargo/env"
-fi
-rustup set profile minimal >/dev/null
-rustup component add rust-analyzer rustfmt clippy 2>/dev/null || true
-mkdir -p "$HOME/.local/share/zsh/site-functions"
-rustup completions zsh cargo >"$HOME/.local/share/zsh/site-functions/_cargo"
+export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 
-export PATH="$HOME/.local/bin:$PATH"
-
-# 4. Everything else in parallel
-LOGDIR="${TMPDIR:-/tmp}/dotfiles-install-$$"
-mkdir -p "$LOGDIR"
-
-# Protect tracked shell configs from installers that append to them
-shell_configs=("$HOME/.zshrc" "$HOME/.zshenv" "$HOME/.zprofile")
-for f in "${shell_configs[@]}"; do
-  [[ -f "$f" || -L "$f" ]] && chmod a-w "$f" 2>/dev/null || true
-done
-
-echo "Installing in parallel..."
-
-# Brew packages (slowest — runs in background)
-echo "  [brew] starting..."
-(brew bundle --file="$DOTFILES/Brewfile" >"$LOGDIR/brew.log" 2>&1 && echo "  [brew] done" || echo "  [brew] FAILED — see $LOGDIR/brew.log") &
-pid_brew=$!
-
-# Cargo crates
-if command -v cargo &>/dev/null; then
-  echo "  [cargo] starting..."
-  (
-    cargo install cargo-binstall 2>/dev/null
-    cargo binstall -y apple-codesign bacon cargo-insta cargo-update cargo-workspaces codebook-lsp commit-fix genemichaels 2>/dev/null
-    cargo install --git https://github.com/tylerlaprade/session-guard >"$LOGDIR/session-guard.log" 2>&1 \
-      && session-guard install --terminal ghostty >>"$LOGDIR/session-guard.log" 2>&1 \
-      || echo "  [session-guard] FAILED — see $LOGDIR/session-guard.log"
-    cargo install --git https://github.com/tylerlaprade/lint-staged-rs >"$LOGDIR/lint-staged-rs.log" 2>&1 \
-      || echo "  [lint-staged-rs] FAILED — see $LOGDIR/lint-staged-rs.log"
-    echo "  [cargo] done"
-  ) &
-  pid_cargo=$!
-fi
-
-# helix (gj1118 fork release)
-echo "  [helix] starting..."
-(
-  if "$DOTFILES/scripts/sync/update-helix.sh" >"$LOGDIR/helix.log" 2>&1; then
-    echo "  [helix] done"
-  else
-    echo "  [helix] FAILED — see $LOGDIR/helix.log"
-  fi
-) &
-pid_helix=$!
-
-# Quiet Light helix theme (github.com/tylerlaprade/helix-quiet-light-theme)
-echo "  [helix-theme] starting..."
-(
-  THEME_DIR="$HOME/Code/helix-quiet-light-theme"
-  if [[ ! -d "$THEME_DIR" ]]; then
-    mkdir -p "$(dirname "$THEME_DIR")"
-    git clone git@github.com:tylerlaprade/helix-quiet-light-theme.git "$THEME_DIR" >"$LOGDIR/helix-theme.log" 2>&1 \
-      || git clone https://github.com/tylerlaprade/helix-quiet-light-theme.git "$THEME_DIR" >>"$LOGDIR/helix-theme.log" 2>&1
-  fi
-  if [[ -f "$THEME_DIR/quiet_light.toml" ]]; then
-    mkdir -p "$HOME/.config/helix/themes"
-    ln -sf "$THEME_DIR/quiet_light.toml" "$HOME/.config/helix/themes/quiet_light.toml"
-    echo "  [helix-theme] done"
-  else
-    echo "  [helix-theme] FAILED — see $LOGDIR/helix-theme.log"
-  fi
-) &
-pid_helix_theme=$!
-
-# Bun
-if ! command -v bun &>/dev/null; then
-  echo "  [bun] starting..."
-  (curl -fsSL https://bun.sh/install | bash >"$LOGDIR/bun.log" 2>&1 && echo "  [bun] done" || echo "  [bun] FAILED") &
-  pid_bun=$!
-fi
-
-# Sourcery (AI code review — "sourcery" not "sourcery-cli", which is stale/x86-only)
-echo "  [sourcery] starting..."
-(uv tool install --force sourcery >"$LOGDIR/sourcery.log" 2>&1 && echo "  [sourcery] done" || echo "  [sourcery] FAILED") &
-pid_sourcery=$!
-
-# Claude Code CLI (native installer, auto-updates)
-if ! command -v claude &>/dev/null; then
-  echo "  [claude] starting..."
-  (curl -fsSL https://claude.ai/install.sh | bash >"$LOGDIR/claude.log" 2>&1 && echo "  [claude] done" || echo "  [claude] FAILED") &
-  pid_claude=$!
-fi
-
-# Grok CLI (native installer, auto-updates)
-if ! command -v grok &>/dev/null; then
-  echo "  [grok] starting..."
-  (curl -fsSL https://x.ai/cli/install.sh | bash >"$LOGDIR/grok.log" 2>&1 && echo "  [grok] done" || echo "  [grok] FAILED") &
-  pid_grok=$!
-fi
-
-
-# Remove macOS bloat (fast, no network)
+# One-time on a new Mac. A later install of one of these on one machine should stay.
 for app in GarageBand iMovie Keynote Numbers Pages; do
   [[ -d "/Applications/$app.app" ]] && sudo rm -rf "/Applications/$app.app"
 done
 
-# Hand-kept /etc/hosts entries (dev hostnames and self-blocks)
-while IFS= read -r entry; do
-  [[ -z "$entry" ]] && continue
-  grep -qxF "$entry" /etc/hosts || echo "$entry" | sudo tee -a /etc/hosts >/dev/null
-done < "$DOTFILES/scripts/setup/hosts"
-
-# Pin a static HostName so `uname -n` stops tracking the network-assigned name.
 # A hostname that flips breaks GPG's stale-lock reclamation (a dead-process lock
-# is only auto-broken when its recorded hostname matches the current one), which
-# wedges commit signing. Derive from this machine's own LocalHostName; skip if set.
+# is only auto-broken when its recorded hostname matches the current one).
 if ! scutil --get HostName &>/dev/null; then
   sudo scutil --set HostName "$(scutil --get LocalHostName)"
 fi
 
-# Wait for background jobs
-wait $pid_brew 2>/dev/null
+"$DOTFILES/scripts/sync/apply-brewfile.sh" || failed=1
 
-# Kanata runs as a root daemon from a stable path, so the Input Monitoring
-# grant survives brew upgrades of the formula.
-mkdir -p "$HOME/.local/bin"
-cp /opt/homebrew/bin/kanata "$HOME/.local/bin/kanata"
-sudo mkdir -p /usr/local/var/log
-sudo cp "$DOTFILES/LaunchDaemons/com.tylerlaprade.kanata.plist" /Library/LaunchDaemons/
-sudo launchctl bootstrap system /Library/LaunchDaemons/com.tylerlaprade.kanata.plist 2>/dev/null || true
-[[ -n "${pid_cargo:-}" ]] && wait $pid_cargo 2>/dev/null
-[[ -n "${pid_bun:-}" ]] && wait $pid_bun 2>/dev/null
-wait $pid_helix 2>/dev/null
-wait $pid_helix_theme 2>/dev/null
-wait $pid_sourcery 2>/dev/null
-[[ -n "${pid_claude:-}" ]] && wait $pid_claude 2>/dev/null
-[[ -n "${pid_grok:-}" ]] && wait $pid_grok 2>/dev/null
+if ! command -v rustup >/dev/null 2>&1; then
+  echo "Installing Rust..."
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal
+  # shellcheck disable=SC1091
+  source "$HOME/.cargo/env"
+fi
+if command -v rustup >/dev/null 2>&1; then
+  rustup set profile minimal >/dev/null
+  installed_components=$(rustup component list --installed 2>/dev/null || true)
+  missing_components=()
+  for component in rust-analyzer rustfmt clippy; do
+    grep -q "^${component}" <<<"$installed_components" || missing_components+=("$component")
+  done
+  if [[ ${#missing_components[@]} -gt 0 ]]; then
+    echo "Adding Rust components: ${missing_components[*]}"
+    rustup component add "${missing_components[@]}" || failed=1
+  fi
+  mkdir -p "$HOME/.local/share/zsh/site-functions"
+  rustup completions zsh cargo >"$HOME/.local/share/zsh/site-functions/_cargo"
+fi
 
-# Node via fnm (needed for Codex CLI)
-if command -v fnm &>/dev/null; then
-  eval "$(fnm env)" 2>/dev/null
-  if ! fnm list 2>/dev/null | grep -q default; then
-    echo "Installing Node LTS..."
-    fnm install --lts
-    fnm default lts-latest
-    eval "$(fnm env)" 2>/dev/null
+binstall_crates=(
+  apple-codesign
+  bacon
+  cargo-insta
+  cargo-update
+  cargo-workspaces
+  codebook-lsp
+  commit-fix
+  genemichaels
+)
+if command -v cargo >/dev/null 2>&1; then
+  installed_crates=$(cargo install --list 2>/dev/null | awk '{print $1}')
+  have_crate() { grep -qxF "$1" <<<"$installed_crates"; }
+  if ! have_crate cargo-binstall; then
+    echo "Installing cargo-binstall..."
+    cargo install cargo-binstall || failed=1
+    installed_crates+=$'\ncargo-binstall'
+  fi
+  missing_binstall=()
+  for crate in "${binstall_crates[@]}"; do
+    have_crate "$crate" || missing_binstall+=("$crate")
+  done
+  if [[ ${#missing_binstall[@]} -gt 0 ]] && command -v cargo-binstall >/dev/null 2>&1; then
+    echo "Installing cargo crates: ${missing_binstall[*]}"
+    cargo binstall -y "${missing_binstall[@]}" || failed=1
+  fi
+  if ! have_crate session-guard; then
+    echo "Installing session-guard..."
+    if cargo install --git https://github.com/tylerlaprade/session-guard; then
+      session-guard install --terminal ghostty || failed=1
+    else
+      failed=1
+    fi
+  fi
+  if ! have_crate lint-staged-rs; then
+    echo "Installing lint-staged-rs..."
+    cargo install --git https://github.com/tylerlaprade/lint-staged-rs || failed=1
   fi
 fi
 
-# Codex CLI (needs node from fnm)
-if ! command -v codex &>/dev/null && command -v npm &>/dev/null; then
-  echo "Installing Codex CLI..."
-  npm i -g @openai/codex 2>/dev/null || true
+if ! command -v hx >/dev/null 2>&1; then
+  echo "Installing Helix..."
+  "$DOTFILES/scripts/sync/update-helix.sh" || failed=1
 fi
 
-# Restore write permissions on shell configs
-for f in "${shell_configs[@]}"; do
-  [[ -f "$f" || -L "$f" ]] && chmod u+w "$f" 2>/dev/null || true
-done
+theme_link="$HOME/.config/helix/themes/quiet_light.toml"
+if [[ ! -e "$theme_link" ]]; then
+  theme_repo="$HOME/Code/helix-quiet-light-theme"
+  if [[ ! -f "$theme_repo/quiet_light.toml" ]]; then
+    echo "Installing Quiet Light theme..."
+    mkdir -p "$(dirname "$theme_repo")"
+    git clone git@github.com:tylerlaprade/helix-quiet-light-theme.git "$theme_repo" \
+      || git clone https://github.com/tylerlaprade/helix-quiet-light-theme.git "$theme_repo" \
+      || failed=1
+  fi
+  if [[ -f "$theme_repo/quiet_light.toml" ]]; then
+    mkdir -p "$(dirname "$theme_link")"
+    ln -sf "$theme_repo/quiet_light.toml" "$theme_link"
+  fi
+fi
 
-# GitHub CLI auth (needed for release downloads below)
-if ! gh auth status &>/dev/null; then
+if ! command -v bun >/dev/null 2>&1; then
+  echo "Installing Bun..."
+  freeze_shell_configs
+  curl -fsSL https://bun.sh/install | bash || failed=1
+fi
+
+if ! command -v sourcery >/dev/null 2>&1 && command -v uv >/dev/null 2>&1; then
+  echo "Installing Sourcery..."
+  uv tool install sourcery || failed=1
+fi
+
+if ! command -v claude >/dev/null 2>&1; then
+  echo "Installing Claude Code..."
+  freeze_shell_configs
+  curl -fsSL https://claude.ai/install.sh | bash || failed=1
+fi
+
+if ! command -v grok >/dev/null 2>&1; then
+  echo "Installing Grok..."
+  freeze_shell_configs
+  curl -fsSL https://x.ai/cli/install.sh | bash || failed=1
+fi
+
+if command -v fnm >/dev/null 2>&1; then
+  eval "$(fnm env)" 2>/dev/null || true
+  if ! fnm list 2>/dev/null | grep -q default; then
+    echo "Installing Node LTS..."
+    fnm install --lts && fnm default lts-latest || failed=1
+  fi
+fi
+
+if ! command -v codex >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+  echo "Installing Codex CLI..."
+  npm i -g @openai/codex || failed=1
+fi
+
+if ! gh auth status >/dev/null 2>&1; then
   echo "GitHub CLI auth required for app downloads..."
   gh auth login
 fi
 
-# Graphite desktop app (not in Homebrew)
-if [[ ! -d "/Applications/Graphite.app" ]]; then
-  echo "Installing Graphite desktop app..."
-  gh release download --repo withgraphite/graphite-desktop --pattern '*darwin-arm64*' -D /tmp --clobber 2>/dev/null \
-    && unzip -qo /tmp/Graphite-darwin-arm64-*.zip -d /Applications/ 2>/dev/null \
-    && rm /tmp/Graphite-darwin-arm64-*.zip \
-    && echo "  Graphite installed" \
-    || echo "  Graphite install failed"
+if [[ ! -d /Applications/Graphite.app ]] && gh auth status >/dev/null 2>&1; then
+  echo "Installing Graphite..."
+  if gh release download --repo withgraphite/graphite-desktop --pattern '*darwin-arm64*' -D /tmp --clobber; then
+    unzip -qo /tmp/Graphite-darwin-arm64-*.zip -d /Applications/
+    rm -f /tmp/Graphite-darwin-arm64-*.zip
+  else
+    failed=1
+  fi
 fi
 
-# Remove files that block symlink creation (created by tools or restore)
-for f in .gitconfig .npmrc; do
-  [[ -f "$HOME/$f" && ! -L "$HOME/$f" ]] && rm "$HOME/$f"
-done
+while IFS= read -r entry || [[ -n "$entry" ]]; do
+  [[ -z "$entry" ]] && continue
+  grep -qxF "$entry" /etc/hosts || echo "$entry" | sudo tee -a /etc/hosts >/dev/null
+done < "$DOTFILES/scripts/setup/hosts"
+
+kanata_src=/opt/homebrew/bin/kanata
+kanata_dest="$HOME/.local/bin/kanata"
+kanata_plist_dest=/Library/LaunchDaemons/com.tylerlaprade.kanata.plist
+if [[ -x "$kanata_src" ]]; then
+  kanata_changed=0
+  [[ -x "$kanata_dest" ]] && cmp -s "$kanata_src" "$kanata_dest" || kanata_changed=1
+  rendered=$(mktemp)
+  sed "s|__HOME__|$HOME|g" "$DOTFILES/LaunchDaemons/com.tylerlaprade.kanata.plist" > "$rendered"
+  [[ -f "$kanata_plist_dest" ]] && cmp -s "$rendered" "$kanata_plist_dest" || kanata_changed=1
+  if [[ $kanata_changed -eq 1 ]]; then
+    mkdir -p "$HOME/.local/bin"
+    cp "$kanata_src" "$kanata_dest"
+    sudo mkdir -p /usr/local/var/log
+    sudo cp "$rendered" "$kanata_plist_dest"
+    sudo launchctl bootout system "$kanata_plist_dest" 2>/dev/null || true
+    sudo launchctl bootstrap system "$kanata_plist_dest" || failed=1
+  fi
+  rm -f "$rendered"
+fi
+
+if [[ -f "$HOME/.npmrc" && ! -L "$HOME/.npmrc" ]]; then
+  rm "$HOME/.npmrc"
+fi
 for f in gpg.conf gpg-agent.conf dirmngr.conf; do
   [[ -f "$HOME/.gnupg/$f" && ! -L "$HOME/.gnupg/$f" ]] && rm "$HOME/.gnupg/$f"
 done
 
-# Symlink dotfiles (needs uv from brew)
-# Skip macOS defaults capture on install — we want to apply, not overwrite
 echo "Syncing dotfiles..."
 SKIP_DEFAULTS_SYNC=1 "$DOTFILES/scripts/sync/sync-dotfiles.sh"
 
-# Keep logs around for inspection — they're in $TMPDIR and will be cleaned by the OS
-echo "  Install logs: $LOGDIR"
-
-# Restore from backup if archive exists
-BACKUP="$HOME/Desktop/machine-backup.zip"
-if [[ -f "$BACKUP" ]]; then
-  echo ""
-  "$DOTFILES/scripts/setup/restore.sh" "$BACKUP"
-fi
-
-# Apply macOS defaults
 echo ""
 echo "Applying macOS defaults..."
 "$DOTFILES/scripts/setup/apply-macos-defaults.py"
+
+launch_domain="gui/$(id -u)"
+for plist in "$HOME/Library/LaunchAgents"/com.tylerlaprade.*.plist; do
+  [[ -e "$plist" ]] || continue
+  launchctl bootstrap "$launch_domain" "$plist" 2>/dev/null || true
+done
 
 echo ""
 echo "=== Next steps ==="
@@ -232,4 +240,8 @@ echo "  1. Sourcery auth:    sourcery login"
 echo "  2. Kanata:           Grant accessibility permissions in System Preferences"
 echo "  3. Karabiner:        Grant input monitoring permissions in System Preferences"
 echo ""
+if [[ $failed -ne 0 ]]; then
+  echo "Some install steps failed."
+  exit 1
+fi
 echo "Done! Restart your shell."
