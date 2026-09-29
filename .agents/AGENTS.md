@@ -40,6 +40,10 @@
 - Before adding a field, script, service, or workaround, search for the mechanism that already owns the job.
 - Never work around a dependency on your own with a patched, vendored, or forked copy, a git dependency, or a version pin that dodges a bug. Each one quietly cuts off upstream fixes and security updates, and the bug is often in how we call the dependency. Show me the evidence and the options with their costs, then wait for my decision.
 - Before claiming a UI fix, inspect the actual rendered UI or DOM when that behavior depends on it.
+- Treat code that runs on every shell, tab, prompt, hook, or command as a hot path. Before calling its cost small, measure it where it runs, interleaved with the old version under the same load, and report the numbers. Never promise "near free" unmeasured.
+- In a hot path, use a shell builtin, a direct kernel call, or saved output instead of starting a process, making a scripting call, or listing every process. When moving or removing an early exit, recheck the cost of everything it used to skip.
+- Prefer an exact signal to a time window or other timing heuristic.
+- Save a command's output against the file it depends on, and keep machine-specific results in machine-local storage such as `$TMPDIR`, never in a home directory that can be copied to another machine.
 - Before writing a local install, deploy, or device helper, check
   `~/Code/dotfiles/scripts/bin` for an existing personal command.
 - Before removing a gate or check, state the invariant it protects and update any
