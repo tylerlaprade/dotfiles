@@ -2,3 +2,5 @@ enable=all
 external-sources=true
 # Braces around every variable reference are style.
 disable=SC2250
+# A function run only from a trap is reported as never invoked. Re-enable when https://github.com/koalaman/shellcheck/issues/2542 is fixed.
+disable=SC2329
