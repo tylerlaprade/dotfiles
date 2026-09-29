@@ -9,6 +9,7 @@
 		<string>/usr/bin/osascript</string>
 		<string>/Users/tyler/Code/dotfiles/scripts/sync/open-ghostty-tab.applescript</string>
 		<string>/Users/tyler/Code/dotfiles/scripts/sync/prune-messages-attachments.sh</string>
+		<string>/tmp/prune-messages-attachments.log</string>
 	</array>
 	<key>StartCalendarInterval</key>
 	<dict>

@@ -1,16 +1,12 @@
--- Runs a command in a new, unselected tab of the front Ghostty window, then
--- hands focus back to whatever app was in front. Ghostty holds Full Disk
--- Access, so the command can read folders launchd jobs cannot. The tab is a
--- regular shell with the command typed into it, so its output stays and the
--- tab is a usable shell when the command ends.
-on run {commandPath}
+on run {commandPath, logPath}
 	tell application "System Events"
 		set previousApp to name of first application process whose frontmost is true
 	end tell
 
 	tell application "Ghostty"
 		set cfg to new surface configuration
-		set initial input of cfg to (quoted form of commandPath) & linefeed
+		set initial working directory of cfg to POSIX path of (path to home folder)
+		set initial input of cfg to (quoted form of commandPath) & " >> " & (quoted form of logPath) & " 2>&1; exit" & linefeed
 		if (count of windows) is 0 then
 			new window with configuration cfg
 		else
