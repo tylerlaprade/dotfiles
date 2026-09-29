@@ -14,6 +14,14 @@ class MergeTest(unittest.TestCase):
     def test_no_base_keeps_the_live_machine(self):
         self.assertEqual(threeway.merge(None, {'a': 1}, {'a': 2, 'b': 3}), {'a': 1})
 
+    def test_unbased_adopts_a_repo_that_has_content(self):
+        fresh = {'/Applications/Ghostty.app': 'Ghostty', '/Applications/Extra.app': 'Extra'}
+        repo = {'/Applications/Ghostty.app': 'Ghostty'}
+        self.assertEqual(threeway.merge_unbased(fresh, repo), repo)
+
+    def test_unbased_keeps_live_when_the_repo_is_empty(self):
+        self.assertEqual(threeway.merge_unbased({'a': 1}, {}), {'a': 1})
+
     def test_unchanged_sides_stay(self):
         self.assertEqual(threeway.merge({'a': 1}, {'a': 1}, {'a': 1}), {'a': 1})
 

@@ -142,7 +142,10 @@ for browser, config in BROWSERS.items():
 
     if repo_entries is not None and local_entries is not None:
         base = threeway.load_base(base_name)
-        merged = threeway.merge(base, local_entries, repo_entries)
+        if base is None:
+            merged = threeway.merge_unbased(local_entries, repo_entries)
+        else:
+            merged = threeway.merge(base, local_entries, repo_entries)
         updates, _ = threeway.changes(local_entries, merged)
         if updates and not apply_entries(browser, config, updates):
             continue

@@ -6,8 +6,10 @@ wins, because a change made here was made on purpose. Modification times play
 no part, so a git checkout, stash, or rebase cannot make the repo look newer
 than it is.
 
-With no base, the live machine wins everywhere and nothing is written to it.
-A fresh machine adopts instead: the repo wins everywhere and becomes the base.
+merge() with no base returns the live side. That is not a fresh machine:
+callers use merge_unbased(), which adopts a repo that already has content
+and does not export the live machine over it. An empty repo still takes the
+live side, so the first export from the original machine works.
 """
 
 import json
@@ -48,6 +50,13 @@ def merge_value(base, local, repo):
     if local == base:
         return repo
     return local
+
+
+def merge_unbased(local, repo):
+    """No recorded base. Adopt the shared repo when it has content."""
+    if repo:
+        return dict(repo)
+    return dict(local)
 
 
 def merge(base, local, repo, repo_can_delete=True):

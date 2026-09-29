@@ -225,42 +225,13 @@ find "$HOME" "$HOME/Library/LaunchAgents" "$HOME/Library/KeyBindings" -maxdepth 
   \( -path "$HOME/Library" -o -path "$HOME/Code" -o -path "$HOME/.Trash" -o -path "$HOME/.cache" -o -path "$HOME/.rustup" -o -path "$HOME/.cargo/registry" \) -prune \
   -o -type l -lname "$DOTFILES/*" ! -exec test -e {} \; -exec rm -v {} +
 
-# VS Code — bidirectional sync with secrets splitting
-# The live settings file is NOT symlinked (secrets would leak to repo).
-# Instead, on each sync:
-#   1. Extract secret keys from live file → local secrets store
-#   2. Copy live file (sans secrets) back to repo
-#   3. If no live file exists, build one from repo + secrets
-vscode_dir="$HOME/Library/Application Support/Code/User"
-mkdir -p "$vscode_dir"
-
-# Symlink files that don't contain secrets
-for f in keybindings.json extensions.json; do
-  [[ -f "$DOTFILES/.vscode/$f" ]] && link "$DOTFILES/.vscode/$f" "$vscode_dir/$f"
-done
-
-# settings.json — secret-aware bidirectional sync
-local_settings="$vscode_dir/settings.json"
-repo_settings="$DOTFILES/.vscode/settings.json"
-secrets_file="$DOTFILES/.vscode/settings.secrets.json"
-if [[ -L "$local_settings" ]]; then
-  rm "$local_settings"
-fi
-if [[ -f "$repo_settings" ]]; then
-  "$DOTFILES/scripts/sync/sync-vscode-settings.py" "$repo_settings" "$local_settings" "$secrets_file"
-fi
-
-# Graphite — bidirectional preferences sync (authToken stays local)
+# Graphite — bidirectional preferences sync (authToken stays local).
+# A missing base adopts the repo file inside the script.
 gt_prefs="$DOTFILES/.config/graphite/preferences.json"
 gt_config="$HOME/.config/graphite/user_config"
 
-if [[ -f "$gt_prefs" && -f "$gt_config" ]]; then
+if [[ -f "$gt_prefs" ]]; then
   "$DOTFILES/scripts/sync/sync-graphite.py" "$gt_prefs" "$gt_config"
-elif [[ -f "$gt_prefs" && ! -f "$gt_config" ]]; then
-  # Fresh machine, no config yet — just copy preferences (user needs to run gt auth first)
-  mkdir -p "$(dirname "$gt_config")"
-  cp "$gt_prefs" "$gt_config"
-  echo "ℹ️  Copied Graphite preferences. Run 'gt auth' to add your auth token."
 fi
 # Tool upgrades — at most once a week, even when login-triggered runs stack up.
 upgrade_stamp="$HOME/.cache/sync-dotfiles-upgrade-stamp"

@@ -22,14 +22,23 @@ LOCAL_ONLY_GTI_KEYS = {"gti.install-uuid"}
 
 with open(prefs_path) as f:
     prefs = json.load(f)
-with open(config_path) as f:
-    config = json.load(f)
+
+created = not os.path.exists(config_path)
+if created:
+    config = {}
+else:
+    with open(config_path) as f:
+        config = json.load(f)
 
 # Split local config into syncable preferences and machine-local state.
 local_only = {k: v for k, v in config.items() if k in LOCAL_ONLY_KEYS}
 local_prefs = {k: v for k, v in config.items() if k not in LOCAL_ONLY_KEYS}
 
-merged_prefs = threeway.merge(threeway.load_base("graphite"), local_prefs, prefs)
+base = threeway.load_base("graphite")
+if base is None:
+    merged_prefs = threeway.merge_unbased(local_prefs, prefs)
+else:
+    merged_prefs = threeway.merge(base, local_prefs, prefs)
 
 # Strip machine-local gtiConfigs entries before writing to repo.
 repo_prefs = {**merged_prefs}
@@ -47,8 +56,11 @@ merged_config = {**local_only, **merged_prefs}
 
 if config != merged_config:
     threeway.log_applied("graphite", config_path, *threeway.changes(local_prefs, merged_prefs))
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
     with open(config_path, "w") as f:
         json.dump(merged_config, f, indent=2)
         f.write("\n")
+    if created and "authToken" not in local_only:
+        print("ℹ️  Graphite preferences adopted. Run 'gt auth' to add your auth token.")
 
 threeway.save_base("graphite", merged_prefs)

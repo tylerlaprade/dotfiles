@@ -423,7 +423,10 @@ for domain in sorted(domains_to_export):
         continue
 
     base = threeway.load_base(base_name(domain))
-    merged = threeway.merge(base, local_entries, repo_entries, repo_can_delete=False)
+    if base is None:
+        merged = threeway.merge_unbased(local_entries, repo_entries)
+    else:
+        merged = threeway.merge(base, local_entries, repo_entries, repo_can_delete=False)
     updates, _ = threeway.changes(local_entries, merged)
     write_to_system(domain, updates)
     if options.dry_run:
@@ -449,20 +452,15 @@ if applied_domains and not options.dry_run:
         subprocess.run(["killall", proc], stderr=subprocess.DEVNULL)
 
 # ---------------------------------------------------------------------------
-# Login items — mirror the live list. Deletions propagate; git history is the
-# archive for anything removed. (An empty/failed osascript read leaves the
-# file untouched rather than wiping it.)
+# Login items — three-way merge, same rule as the defaults domains.
+# An empty or failed osascript read leaves the repo file untouched.
 # ---------------------------------------------------------------------------
 
-# Apps that register their own login item (via SMAppService) — tracking them
-# here creates a parallel legacy SharedFileList entry that races the app's
-# own launcher.
-LOGIN_ITEMS_SKIP = set()
+# Apps that register their own login item (SMAppService). A SharedFileList
+# entry beside that registration opens the app twice.
+LOGIN_ITEMS_SKIP = {"Monologue"}
 
-# One name/path per line: immune to ", " inside names or paths, and items with
-# no path (SMAppService registrations report AppleScript's `missing value`)
-# come through as empty lines instead of the literal text "missing value".
-LOGIN_ITEMS_SCRIPT = """
+LOGIN_ITEMS_READ = """
 set output to ""
 tell application "System Events"
     repeat with li in login items
@@ -475,18 +473,129 @@ return output
 """
 
 LOGIN_ITEMS_PATH = os.path.join(SETUP_DIR, "login-items.json")
-if options.adopt or options.dry_run:
-    sys.exit(0)
-raw = subprocess.run(["osascript", "-e", LOGIN_ITEMS_SCRIPT], capture_output=True, text=True)
-if raw.returncode == 0 and raw.stdout.strip():
+LOGIN_ITEMS_BASE = "login-items"
+
+
+def applescript_string(value):
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def run_osascript(script):
+    return subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+
+
+def read_login_items_file():
+    if not os.path.exists(LOGIN_ITEMS_PATH):
+        return {}
+    with open(LOGIN_ITEMS_PATH) as f:
+        items = json.load(f)
+    return {
+        item["path"]: item["name"]
+        for item in items
+        if item.get("name") not in LOGIN_ITEMS_SKIP and item.get("path")
+    }
+
+
+def read_live_login_items():
+    """(tracked path→name, skipped names present on this Mac). None if unread."""
+    raw = run_osascript(LOGIN_ITEMS_READ)
+    if raw.returncode != 0:
+        return None
+    if not raw.stdout.strip():
+        return {}, []
     lines = raw.stdout.rstrip("\n").split("\n")
-    home = os.path.expanduser("~")
-    current_items = [
-        {"name": n, "path": p.replace(home, "~", 1) if p.startswith(home) else p}
-        for n, p in zip(lines[0::2], lines[1::2])
-        # Pathless items can't be recreated on a fresh machine — don't record them
-        if n and p and n not in LOGIN_ITEMS_SKIP
+    tracked = {}
+    skipped = []
+    for name, path in zip(lines[0::2], lines[1::2]):
+        if not name or not path:
+            continue
+        if name in LOGIN_ITEMS_SKIP or os.path.basename(path) == "Monologue.app":
+            skipped.append(name)
+            continue
+        tracked[path] = name
+    return tracked, skipped
+
+
+def keep_uninstalled(local_map, repo_map, base):
+    """An app that is not on this Mac is not a local deletion."""
+    local = dict(local_map)
+    candidates = dict(repo_map)
+    if base:
+        candidates.update(base)
+    for path, name in candidates.items():
+        if path not in local and not os.path.exists(os.path.expanduser(path)):
+            local[path] = name
+    return local
+
+
+def write_login_items_file(merged):
+    items = [
+        {"name": name, "path": path}
+        for path, name in sorted(merged.items(), key=lambda item: (item[1].lower(), item[0]))
     ]
     with open(LOGIN_ITEMS_PATH, "w") as f:
-        json.dump(current_items, f, indent=2)
+        json.dump(items, f, indent=2)
         f.write("\n")
+
+
+def add_login_item(path):
+    escaped = applescript_string(path)
+    script = (
+        'tell application "System Events" to make login item at end '
+        f'with properties {{path:"{escaped}", hidden:false}}'
+    )
+    return run_osascript(script)
+
+
+def delete_login_item(name):
+    escaped = applescript_string(name)
+    script = f'''
+tell application "System Events"
+    repeat with li in (every login item whose name is "{escaped}")
+        delete li
+    end repeat
+end tell
+'''
+    return run_osascript(script)
+
+
+def sync_login_items():
+    live = read_live_login_items()
+    if live is None:
+        print("login items: could not read the live list; leaving the repo file alone", file=sys.stderr)
+        return
+    local_map, skipped = live
+    repo_map = read_login_items_file()
+    base = None if options.adopt else threeway.load_base(LOGIN_ITEMS_BASE)
+    comparable = keep_uninstalled(local_map, repo_map, base)
+    if base is None:
+        merged = threeway.merge_unbased(comparable, repo_map)
+    else:
+        merged = threeway.merge(base, comparable, repo_map)
+
+    if options.dry_run:
+        for name in skipped:
+            print(f"would remove login item {name}")
+        for path in sorted(set(local_map) - set(merged)):
+            print(f"would remove login item {local_map[path]}")
+        for path in sorted(set(merged) - set(local_map)):
+            print(f"would add login item {merged[path]}")
+        return
+
+    for name in skipped:
+        delete_login_item(name)
+    for path in sorted(set(local_map) - set(merged)):
+        delete_login_item(local_map[path])
+    for path, name in sorted(merged.items()):
+        if path in local_map or not os.path.exists(os.path.expanduser(path)):
+            continue
+        result = add_login_item(path)
+        if result.returncode != 0:
+            print(f"login item {name}: {result.stderr.strip()}", file=sys.stderr)
+
+    if merged != repo_map:
+        write_login_items_file(merged)
+    threeway.save_base(LOGIN_ITEMS_BASE, merged)
+
+
+sync_login_items()

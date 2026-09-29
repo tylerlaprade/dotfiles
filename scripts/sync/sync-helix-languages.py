@@ -61,7 +61,14 @@ local_content = read(local_path)
 
 local_redacted = redact(local_content, token) if local_content else ""
 base = threeway.load_base("helix-languages")
-merged = threeway.merge(base, {"text": local_redacted}, {"text": repo_content})["text"]
+# The text is wrapped in a dict, and a dict holding "" is still truthy, so
+# merge_unbased() would adopt an empty repo file and wipe the live one.
+if base is None and repo_content:
+    merged = repo_content
+elif base is None:
+    merged = local_redacted
+else:
+    merged = threeway.merge(base, {"text": local_redacted}, {"text": repo_content})["text"]
 
 if merged and merged != repo_content:
     write(repo_path, merged)
