@@ -16,6 +16,7 @@ settings=$(jq -cn --arg process_wrapper "$env_wrapper" '
   {
     processWrapper: $process_wrapper,
     feedbackDrafts: "off",
+    promptCacheTtl: "1h",
     env: {
       CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "",
       ANTHROPIC_MODEL: "gpt-6-astra",
