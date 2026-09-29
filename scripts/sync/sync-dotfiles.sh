@@ -133,10 +133,41 @@ for item in "$DOTFILES"/.agents/skills/*; do
   link "$item" "$HOME/.agents/skills/$(basename "$item")"
 done
 
+# ~/.gitconfig stays a real file so machine-local keys (CodeRabbit's machine
+# id) are not written into the shared repo. Git reads the shared settings
+# through an include.
+ensure_gitconfig() {
+  local shared="$DOTFILES/.gitconfig"
+  local dest="$HOME/.gitconfig"
+  local machine_id=""
+  if [[ -e "$dest" || -L "$dest" ]]; then
+    machine_id=$(git config --file "$dest" --get coderabbit.machineId 2>/dev/null || true)
+  fi
+  if [[ -L "$dest" ]]; then
+    rm "$dest"
+  fi
+  if [[ ! -f "$dest" ]]; then
+    printf '[include]\n\tpath = %s\n' "$shared" > "$dest"
+  elif ! git config --file "$dest" --get-all include.path 2>/dev/null | grep -Fxq "$shared"; then
+    git config --file "$dest" --add include.path "$shared"
+  fi
+  if [[ -n "$machine_id" ]]; then
+    local current=""
+    current=$(git config --file "$dest" --get coderabbit.machineId 2>/dev/null || true)
+    if [[ "$current" != "$machine_id" ]]; then
+      git config --file "$dest" coderabbit.machineId "$machine_id"
+    fi
+  fi
+}
+
 # ~/.*rc, ~/.gitconfig, etc.
 for item in "$DOTFILES"/.[!.]*; do
   local_name="$(basename "$item")"
   [[ "$local_name" == ".git" || "$local_name" == ".config" || "$local_name" == ".claude" || "$local_name" == ".codex" || "$local_name" == ".agents" || "$local_name" == ".vscode" ]] && continue
+  if [[ "$local_name" == ".gitconfig" ]]; then
+    ensure_gitconfig
+    continue
+  fi
   if [[ -d "$item" && ! -L "$item" ]]; then
     link_tree "$item" "$HOME/$local_name"
   else
