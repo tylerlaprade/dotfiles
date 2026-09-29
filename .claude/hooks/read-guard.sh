@@ -11,6 +11,11 @@
 # PostToolUse: cross-project access that succeeded was approved by the user,
 # so record its repo in the session's state file; later access to the same
 # repo in the same session then passes without a prompt.
+# Read-only explore subagents pass without a prompt, and their access is not
+# recorded: Claude's Explore, Codex's explorer, Grok's explore, and Gemini's
+# codebase_investigator. The main agent's own later read of that repo still
+# asks. A session started as one of those agents has no subagent id and stays
+# guarded.
 # Fail-soft: on any parse or lookup problem, exit 0 with no opinion.
 
 # Top-level repos under ~/Code that every session may read (standing rule:
@@ -24,11 +29,13 @@ state_dir="${READ_GUARD_STATE_DIR:-/tmp/claude-read-guard}"
 
 input=$(cat) || exit 0
 # Each field gets an "x" prefix so empty fields survive read's IFS collapsing.
-IFS=$'\t' read -r event sid path cwd command < <(printf '%s' "$input" | jq -r \
+IFS=$'\t' read -r event sid path cwd command agent_type agent_id subagent_type < <(printf '%s' "$input" | jq -r \
   '[.hook_event_name // "", .session_id // "",
     (.tool_input.file_path // .tool_input.path // ""), .cwd // "",
-    .tool_input.command // ""] | map("x" + .) | @tsv' 2>/dev/null)
+    .tool_input.command // "",
+    .agent_type // "", .agent_id // "", .subagentType // ""] | map("x" + .) | @tsv' 2>/dev/null)
 event="${event#x}" sid="${sid#x}" path="${path#x}" cwd="${cwd#x}" command="${command#x}"
+agent_type="${agent_type#x}" agent_id="${agent_id#x}" subagent_type="${subagent_type#x}"
 
 root="${CLAUDE_PROJECT_DIR:-$cwd}"
 [ -n "$root" ] || exit 0
@@ -65,6 +72,22 @@ approved_repo() {
   [ -n "$sid" ] && grep -qxF "$HOME/Code/$1" "$state_file" 2>/dev/null
 }
 
+explore_subagent() {
+  local kind=""
+  if [ -n "$subagent_type" ]; then
+    kind="$subagent_type"
+  elif [ -n "$agent_id" ]; then
+    kind="$agent_type"
+  else
+    return 1
+  fi
+  kind=$(printf '%s' "$kind" | tr '[:upper:]' '[:lower:]')
+  case "$kind" in
+    explore|explorer|codebase_investigator) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 record_repo() {
   [ -n "$sid" ] || return
   mkdir -p "$state_dir" 2>/dev/null || return
@@ -77,6 +100,8 @@ ask() {
     {hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: $reason}}'
   exit 0
 }
+
+explore_subagent && exit 0
 
 if [ -n "$command" ]; then
   # Bash: scan the command for references to top-level repos under ~/Code.

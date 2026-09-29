@@ -52,13 +52,17 @@ expect_ask() {
   [[ "$decision" == "ask" ]] || fail "expected ask decision, got: $last_stdout"
 }
 
-# pre <session> <cwd> <tool_input-json>
+# pre <session> <cwd> <tool_input-json> [extra json fields, no braces]
 pre() {
-  print -r -- '{"hook_event_name":"PreToolUse","session_id":"'"$1"'","cwd":"'"$2"'","tool_input":'"$3"'}'
+  local extra=""
+  [[ -n "${4:-}" ]] && extra=",$4"
+  print -r -- '{"hook_event_name":"PreToolUse","session_id":"'"$1"'","cwd":"'"$2"'","tool_input":'"$3"''"${extra}"'}'
 }
 
 post() {
-  print -r -- '{"hook_event_name":"PostToolUse","session_id":"'"$1"'","cwd":"'"$2"'","tool_input":'"$3"',"tool_response":{"ok":true}}'
+  local extra=""
+  [[ -n "${4:-}" ]] && extra=",$4"
+  print -r -- '{"hook_event_name":"PostToolUse","session_id":"'"$1"'","cwd":"'"$2"'","tool_input":'"$3"',"tool_response":{"ok":true}'"${extra}"'}'
 }
 
 read_input() {
@@ -247,6 +251,81 @@ test_malformed_json() {
   expect_allow
 }
 
+foreign_read() {
+  read_input "$HOME/Code/BrainDump/App.swift"
+}
+
+test_explore_read_does_not_approve_main() {
+  local proj="$HOME/Code/flint" fields='"agent_id":"agent-1","agent_type":"Explore"'
+  run_hook "$proj" "$(pre explore-main "$proj" "$(foreign_read)" "$fields")"
+  expect_allow
+  run_hook "$proj" "$(post explore-main "$proj" "$(foreign_read)" "$fields")"
+  expect_allow
+  [[ ! -e "$state_dir/explore-main" ]] || fail "explore access recorded an approval"
+  run_hook "$proj" "$(pre explore-main "$proj" "$(foreign_read)")"
+  expect_ask
+}
+
+test_explore_bash_does_not_approve_main() {
+  local proj="$HOME/Code/flint" fields='"agent_id":"agent-1","agent_type":"Explore"'
+  local cmd
+  cmd="$(bash_input "git -C ~/Code/BrainDump log")"
+  run_hook "$proj" "$(pre explore-bash "$proj" "$cmd" "$fields")"
+  expect_allow
+  run_hook "$proj" "$(post explore-bash "$proj" "$cmd" "$fields")"
+  expect_allow
+  run_hook "$proj" "$(pre explore-bash "$proj" "$cmd")"
+  expect_ask
+}
+
+test_codex_explorer_does_not_approve_main() {
+  local proj="$HOME/Code/flint" fields='"agent_id":"child-1","agent_type":"explorer"'
+  run_hook "$proj" "$(post codex-explorer "$proj" "$(foreign_read)" "$fields")"
+  expect_allow
+  [[ ! -e "$state_dir/codex-explorer" ]] || fail "explorer access recorded an approval"
+  run_hook "$proj" "$(pre codex-explorer "$proj" "$(foreign_read)")"
+  expect_ask
+}
+
+test_grok_explore_does_not_approve_main() {
+  local proj="$HOME/Code/flint"
+  local fields='"agent_id":"grok-child","agent_type":"general-purpose","subagentType":"explore"'
+  run_hook "$proj" "$(post grok-explore "$proj" "$(foreign_read)" "$fields")"
+  expect_allow
+  [[ ! -e "$state_dir/grok-explore" ]] || fail "grok explore access recorded an approval"
+  run_hook "$proj" "$(pre grok-explore "$proj" "$(foreign_read)")"
+  expect_ask
+}
+
+test_gemini_investigator_does_not_approve_main() {
+  local proj="$HOME/Code/flint" fields='"agent_id":"gem-1","agent_type":"codebase_investigator"'
+  run_hook "$proj" "$(post gemini-inv "$proj" "$(foreign_read)" "$fields")"
+  expect_allow
+  [[ ! -e "$state_dir/gemini-inv" ]] || fail "investigator access recorded an approval"
+  run_hook "$proj" "$(pre gemini-inv "$proj" "$(foreign_read)")"
+  expect_ask
+}
+
+test_main_started_as_explore_still_asks() {
+  local proj="$HOME/Code/flint"
+  run_hook "$proj" "$(pre main-explore "$proj" "$(foreign_read)" '"agent_type":"Explore"')"
+  expect_ask
+}
+
+test_general_purpose_still_asks() {
+  local proj="$HOME/Code/flint"
+  run_hook "$proj" "$(pre gp "$proj" "$(foreign_read)" '"agent_id":"agent-2","agent_type":"general-purpose"')"
+  expect_ask
+}
+
+test_general_purpose_approval_reaches_main() {
+  local proj="$HOME/Code/flint" fields='"agent_id":"agent-2","agent_type":"general-purpose"'
+  run_hook "$proj" "$(post gp-approve "$proj" "$(foreign_read)" "$fields")"
+  expect_allow
+  run_hook "$proj" "$(pre gp-approve "$proj" "$(foreign_read)")"
+  expect_allow
+}
+
 run_case() {
   local before=$failures
   current_test="$1"
@@ -289,6 +368,14 @@ run_case "approval excludes other repos" test_sticky_not_other_repo
 run_case "approval excludes other sessions" test_sticky_not_other_session
 run_case "cwd fallback without env asks" test_cwd_fallback_without_env
 run_case "malformed json fails open" test_malformed_json
+run_case "explore read does not approve the main agent" test_explore_read_does_not_approve_main
+run_case "explore bash does not approve the main agent" test_explore_bash_does_not_approve_main
+run_case "codex explorer does not approve the main agent" test_codex_explorer_does_not_approve_main
+run_case "grok explore does not approve the main agent" test_grok_explore_does_not_approve_main
+run_case "gemini investigator does not approve the main agent" test_gemini_investigator_does_not_approve_main
+run_case "main session started as Explore still asks" test_main_started_as_explore_still_asks
+run_case "general-purpose subagent still asks" test_general_purpose_still_asks
+run_case "general-purpose approval reaches the main agent" test_general_purpose_approval_reaches_main
 
 if (( failures > 0 )); then
   print -u2 -- "$failures failure(s)"
