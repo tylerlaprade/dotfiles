@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # resume — delay-launch a claude, codex, or grok session
 # Source from .zshrc / .bashrc:  source ~/Code/dotfiles/scripts/bin/resume.sh
 # macOS-only: uses BSD `date -j -f`. --wake uses `sudo pmset schedule wake`.
@@ -64,11 +65,11 @@ _RESUME_TOOLS="claude codex grok opencode"
 
 _resume_launch_claude() {
   _resume_cmd=(claude --dangerously-skip-permissions)
-  [ -n "$1" ] && _resume_cmd+=(--resume "$1")
+  [[ -n "$1" ]] && _resume_cmd+=(--resume "$1")
 }
 
 _resume_launch_codex() {
-  if [ -n "$1" ]; then
+  if [[ -n "$1" ]]; then
     _resume_cmd=(codex resume --dangerously-bypass-approvals-and-sandbox "$1")
   else
     _resume_cmd=(codex --dangerously-bypass-approvals-and-sandbox)
@@ -79,23 +80,24 @@ _resume_launch_grok() {
   # Config may already set permission_mode=always-approve; pass it explicitly
   # so delayed launches stay yolo even if config differs on another machine.
   _resume_cmd=(grok --always-approve)
-  [ -n "$1" ] && _resume_cmd+=(--resume "$1")
+  [[ -n "$1" ]] && _resume_cmd+=(--resume "$1")
 }
 
 _resume_launch_opencode() {
   _resume_cmd=(opencode)
-  [ -n "$1" ] && _resume_cmd+=(--session "$1")
+  [[ -n "$1" ]] && _resume_cmd+=(--session "$1")
 }
 
 # Claude publishes 5h, 7d, and Fable windows through claude-usage.
 _resume_wait_claude() {
-  local now seven_day resets_5h resets_7d fable resets_fable
+  local now usage seven_day resets_5h resets_7d fable resets_fable
   now=$(date +%s)
-  IFS=$'\t' read -r seven_day resets_5h resets_7d fable resets_fable < <(_resume_claude_usage) || return 1
+  usage=$(_resume_claude_usage) || return 1
+  IFS=$'\t' read -r seven_day resets_5h resets_7d fable resets_fable <<<"$usage"
 
   local weekly_hit=0 target=0
-  if [ "${fable:-0}" -ge 100 ]; then
-    [ "$resets_fable" -le "$now" ] && { echo "resume: over Fable limit (${fable}%) but resets_fable=$resets_fable is not in the future — snapshot stale" >&2; return 1; }
+  if [[ "${fable:-0}" -ge 100 ]]; then
+    [[ "$resets_fable" -le "$now" ]] && { echo "resume: over Fable limit (${fable}%) but resets_fable=$resets_fable is not in the future — snapshot stale" >&2; return 1; }
     weekly_hit=1
     target=$resets_fable
   fi
@@ -104,23 +106,25 @@ _resume_wait_claude() {
 
 # Codex records rate limits in the newest session rollout.
 _resume_wait_codex() {
-  local now latest seven_day resets_5h resets_7d
+  local now rollouts latest rate_limit_rows seven_day resets_5h resets_7d
   now=$(date +%s)
-  latest=$(command ls ~/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | sort -r | head -1)
-  [ -n "$latest" ] || { echo "resume: no codex session rollouts in ~/.codex/sessions — run codex at least once first" >&2; return 1; }
-  IFS=$'\t' read -r seven_day resets_5h resets_7d <<<"$(jq -rc 'select(.payload.rate_limits != null) | .payload.rate_limits | [(.secondary.used_percent // 0 | floor), (.primary.resets_at // 0), (.secondary.resets_at // 0)] | @tsv' "$latest" 2>/dev/null | tail -1)"
-  [ -n "$resets_5h" ] || { echo "resume: no rate_limits data in latest codex rollout — session too short" >&2; return 1; }
+  rollouts=$(command ls ~/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null)
+  latest=${rollouts##*$'\n'}
+  [[ -n "$latest" ]] || { echo "resume: no codex session rollouts in ~/.codex/sessions — run codex at least once first" >&2; return 1; }
+  rate_limit_rows=$(jq -rc 'select(.payload.rate_limits != null) | .payload.rate_limits | [(.secondary.used_percent // 0 | floor), (.primary.resets_at // 0), (.secondary.resets_at // 0)] | @tsv' "$latest" 2>/dev/null)
+  IFS=$'\t' read -r seven_day resets_5h resets_7d <<<"${rate_limit_rows##*$'\n'}"
+  [[ -n "$resets_5h" ]] || { echo "resume: no rate_limits data in latest codex rollout — session too short" >&2; return 1; }
   _resume_weekly_delay "$now" "$seven_day" "$resets_7d" "$resets_5h" 0 0
 }
 
 # Grok logs billing snapshots (creditUsagePercent + period end) into its
 # unified log whenever a session fetches credits. No separate 5h window.
 _resume_wait_grok() {
-  local now log_file used_pct period_end
+  local now log_file billing_rows used_pct period_end
   now=$(date +%s)
   log_file="${HOME}/.grok/logs/unified.jsonl"
-  [ -f "$log_file" ] || { echo "resume: no grok log at $log_file — run grok at least once first" >&2; return 1; }
-  IFS=$'\t' read -r used_pct period_end < <(jq -rc '
+  [[ -f "$log_file" ]] || { echo "resume: no grok log at $log_file — run grok at least once first" >&2; return 1; }
+  billing_rows=$(jq -rc '
     select(.msg == "billing: fetched credits config")
     | .ctx.config as $c
     | [
@@ -133,10 +137,11 @@ _resume_wait_grok() {
         )
       ]
     | @tsv
-  ' "$log_file" 2>/dev/null | tail -1)
-  [ -n "$period_end" ] || { echo "resume: no billing credits data in $log_file — run grok at least once first" >&2; return 1; }
-  if [ "$used_pct" -ge 100 ]; then
-    [ "$period_end" -le "$now" ] && { echo "resume: over credit limit (${used_pct}%) but period_end=$period_end is not in the future — snapshot stale" >&2; return 1; }
+  ' "$log_file" 2>/dev/null)
+  IFS=$'\t' read -r used_pct period_end <<<"${billing_rows##*$'\n'}"
+  [[ -n "$period_end" ]] || { echo "resume: no billing credits data in $log_file — run grok at least once first" >&2; return 1; }
+  if [[ "$used_pct" -ge 100 ]]; then
+    [[ "$period_end" -le "$now" ]] && { echo "resume: over credit limit (${used_pct}%) but period_end=$period_end is not in the future — snapshot stale" >&2; return 1; }
     _resume_delay=$(( period_end - now ))
   else
     _resume_delay=0
@@ -148,15 +153,15 @@ _resume_wait_grok() {
 # Args: now seven_day resets_7d resets_5h weekly_hit target
 _resume_weekly_delay() {
   local now="$1" seven_day="$2" resets_7d="$3" resets_5h="$4" weekly_hit="$5" target="$6"
-  if [ "$seven_day" -ge 100 ]; then
-    [ "$resets_7d" -le "$now" ] && { echo "resume: over 7d limit (${seven_day}%) but resets_7d=$resets_7d is not in the future — snapshot stale" >&2; return 1; }
+  if [[ "$seven_day" -ge 100 ]]; then
+    [[ "$resets_7d" -le "$now" ]] && { echo "resume: over 7d limit (${seven_day}%) but resets_7d=$resets_7d is not in the future — snapshot stale" >&2; return 1; }
     weekly_hit=1
-    [ "$resets_7d" -gt "$target" ] && target=$resets_7d
+    [[ "$resets_7d" -gt "$target" ]] && target=$resets_7d
   fi
-  if [ "$weekly_hit" -eq 1 ]; then
-    [ "$resets_5h" -gt "$target" ] && target=$resets_5h
+  if [[ "$weekly_hit" -eq 1 ]]; then
+    [[ "$resets_5h" -gt "$target" ]] && target=$resets_5h
     _resume_delay=$(( target - now ))
-  elif [ "$resets_5h" -le "$now" ]; then
+  elif [[ "$resets_5h" -le "$now" ]]; then
     echo "resume: no active 5h window (resets_5h=$resets_5h, now=$now)" >&2
     return 1
   else
@@ -168,24 +173,20 @@ _resume_is_tool() {
   case " $_RESUME_TOOLS " in *" $1 "*) return 0 ;; *) return 1 ;; esac
 }
 
-_resume_tool_choices() {
-  printf '%s' "$_RESUME_TOOLS" | tr ' ' '|'
-}
-
 resume() {
   local session=""
   local new_session=0
   local wake=0
   local -a args=()
-  while [ "$#" -gt 0 ]; do
+  while [[ "$#" -gt 0 ]]; do
     case "$1" in
       -s|--session)
         shift
-        [ -n "$1" ] || { echo "resume: --session requires a session id or name" >&2; return 1; }
+        [[ -n "$1" ]] || { echo "resume: --session requires a session id or name" >&2; return 1; }
         session="$1" ;;
       --session=*)
         session="${1#--session=}"
-        [ -n "$session" ] || { echo "resume: --session requires a session id or name" >&2; return 1; } ;;
+        [[ -n "$session" ]] || { echo "resume: --session requires a session id or name" >&2; return 1; } ;;
       -n|--new)
         new_session=1 ;;
       -w|--wake)
@@ -206,7 +207,7 @@ resume() {
     shift
   done
   set -- "${args[@]}"
-  if [ -n "$session" ] && (( new_session )); then
+  if [[ -n "$session" ]] && (( new_session )); then
     echo "resume: --session and --new cannot be used together" >&2
     return 1
   fi
@@ -217,11 +218,11 @@ resume() {
   if _resume_is_tool "$a1"; then
     tool="$a1"
     if _resume_is_tool "$a2"; then
-      echo "resume: got two tool names; expected <$(_resume_tool_choices)> [time|duration] [--session ID] [--new] [prompt]" >&2
+      echo "resume: got two tool names; expected <${_RESUME_TOOLS// /|}> [time|duration] [--session ID] [--new] [prompt]" >&2
       return 1
     fi
     time_str="$a2"
-    if [ -n "$time_str" ]; then shift 2; else shift 1; fi
+    if [[ -n "$time_str" ]]; then shift 2; else shift 1; fi
   elif _resume_is_tool "$a2"; then
     tool="$a2"; time_str="$a1"
     shift 2
@@ -231,12 +232,12 @@ resume() {
   fi
 
   local selected_session="$session"
-  if (( ! new_session )) && [ -z "$selected_session" ]; then
+  if (( ! new_session )) && [[ -z "$selected_session" ]]; then
     selected_session=$(_resume_last_session "$tool" "$$") || return 1
   fi
 
   local delay
-  if [ -z "$time_str" ]; then
+  if [[ -z "$time_str" ]]; then
     if ! command -v "_resume_wait_$tool" >/dev/null 2>&1; then
       echo "resume: $tool exposes no rate-limit source — pass a time or duration" >&2
       return 1
@@ -248,7 +249,7 @@ resume() {
     local num rest
     num="${time_str%%[!0-9]*}"
     rest="${time_str#"$num"}"
-    if [ -z "$num" ] || [ -z "$rest" ]; then
+    if [[ -z "$num" ]] || [[ -z "$rest" ]]; then
       if [[ $time_str =~ ^[0-9]+$ ]]; then
         echo "resume: bare number '$time_str' is ambiguous — use 3000s, 45m, 2h, 3d, or a clock time like 7p" >&2
       else
@@ -270,7 +271,7 @@ resume() {
 
   local action new=0
   local -a prompt_args=()
-  if [ -n "$1" ]; then
+  if [[ -n "$1" ]]; then
     prompt_args=("$1")
   elif (( ! new_session )); then
     prompt_args=("continue")
@@ -290,14 +291,15 @@ resume() {
   fi
   cmd=("${_resume_cmd[@]}")
 
-  local target_clock
-  target_clock=$(date -r $(($(date +%s) + delay)) '+%I:%M %p')
+  local now target_clock
+  now=$(date +%s)
+  target_clock=$(date -r $(( now + delay )) '+%I:%M %p')
 
   local label="$action $tool"
   local wake_when=""
   _resume_wake_stamp=""
-  if (( wake )) && [ "$delay" -gt 0 ]; then
-    _resume_schedule_wake $(( $(date +%s) + delay )) || true
+  if (( wake )) && [[ "$delay" -gt 0 ]]; then
+    _resume_schedule_wake $(( now + delay )) || true
     wake_when=$_resume_wake_stamp
   fi
   _resume_sleep_until "$label" "$target_clock" "$delay" "$$" "$wake_when" "${cmd[@]}" "${prompt_args[@]}"
@@ -327,7 +329,7 @@ Options:
   -w, --wake                     schedule a Mac wake at the target time
   -h, --help                     show this help
 
-Tools: $(printf '%s' "$_RESUME_TOOLS" | sed 's/ /, /g')
+Tools: ${_RESUME_TOOLS// /, }
 
 Examples:
   resume claude
@@ -347,14 +349,14 @@ EOF
 _resume_claude_usage() {
   local helper
   helper=$(command -v claude-usage.sh 2>/dev/null) || helper=$(command -v claude-usage 2>/dev/null) || true
-  if [ -z "$helper" ]; then
+  if [[ -z "$helper" ]]; then
     echo "resume: claude-usage.sh is not on PATH — install it or pass a time" >&2
     return 1
   fi
   local json ok
   json=$("$helper" --fresh) || true
   ok=$(jq -r '.ok // empty' <<<"$json" 2>/dev/null)
-  if [ "$ok" != true ]; then
+  if [[ "$ok" != true ]]; then
     echo "resume: claude usage fetch failed — not waiting on stale limits" >&2
     return 1
   fi
@@ -425,7 +427,7 @@ _resume_last_session() {
     return 1
   fi
   session_id=$(session-guard last-session --tool "$tool" --shell-pid "$shell_pid" 2>/dev/null)
-  if [ -z "$session_id" ]; then
+  if [[ -z "$session_id" ]]; then
     echo "resume: no $tool session recorded for this terminal tab; use --session ID to choose one" >&2
     return 1
   fi
@@ -434,20 +436,21 @@ _resume_last_session() {
 
 _resume_clock_delay() {
   local time_num="$1" ampm="$2" hour min
-  if [ ${#time_num} -le 2 ]; then
+  if [[ ${#time_num} -le 2 ]]; then
     hour=$time_num min=0
   else
     min=${time_num: -2}
     hour=${time_num%??}
   fi
   case $ampm in
-    p|P) [ "$hour" -ne 12 ] && hour=$((hour + 12)) ;;
-    a|A) [ "$hour" -eq 12 ] && hour=0 ;;
+    p|P) [[ "$hour" -ne 12 ]] && hour=$((hour + 12)) ;;
+    a|A) [[ "$hour" -eq 12 ]] && hour=0 ;;
+    *) echo "resume: unrecognized meridiem '$ampm'" >&2; return 1 ;;
   esac
   local target_ts now_ts delay
   target_ts=$(date -j -f "%H:%M:%S" "$(printf '%02d:%02d:00' "$hour" "$min")" +%s)
   now_ts=$(date +%s)
   delay=$((target_ts - now_ts))
-  [ "$delay" -le 0 ] && delay=$((delay + 86400))
+  [[ "$delay" -le 0 ]] && delay=$((delay + 86400))
   printf '%s\n' "$delay"
 }
