@@ -131,7 +131,8 @@ echo ""
 echo "--- Restoring fonts ---"
 mkdir -p "$HOME/Library/Fonts"
 cp -R "$RESTORE_DIR/Fonts/"* "$HOME/Library/Fonts/"
-echo "  $(ls "$RESTORE_DIR/Fonts/" | wc -l | tr -d ' ') fonts restored"
+fonts=("$RESTORE_DIR/Fonts/"*)
+echo "  ${#fonts[@]} fonts restored"
 
 # Cleanup
 echo ""

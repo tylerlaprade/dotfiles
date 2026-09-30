@@ -8,12 +8,14 @@ REPO="https://github.com/tylerlaprade/dotfiles.git"
 
 # Homebrew (also installs Xcode CLT, which provides git)
 if ! command -v brew &>/dev/null; then
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  eval "$(/opt/homebrew/bin/brew shellenv)"
+  homebrew_installer=$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)
+  /bin/bash -c "$homebrew_installer"
+  homebrew_env=$(/opt/homebrew/bin/brew shellenv)
+  eval "$homebrew_env"
 fi
 
 # Clone dotfiles
-if [ ! -d "$DOTFILES_DIR" ]; then
+if [[ ! -d "$DOTFILES_DIR" ]]; then
   echo "Cloning dotfiles..."
   mkdir -p "$(dirname "$DOTFILES_DIR")"
   git clone "$REPO" "$DOTFILES_DIR"

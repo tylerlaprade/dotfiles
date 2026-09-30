@@ -26,16 +26,22 @@ echo ""
 echo "--- Scanning ~/Code for uncommitted/unpushed work ---"
 dirty=0
 for dir in "$HOME/Code/"*/; do
-  (cd "$dir" 2>/dev/null && if git rev-parse --is-inside-work-tree &>/dev/null; then
-    st=$(git status --porcelain 2>/dev/null)
-    up=$(git log --oneline @{u}..HEAD 2>/dev/null)
-    if [[ -n "$st" || -n "$up" ]]; then
-      echo "  ⚠ $(basename "$dir")"
-      [[ -n "$st" ]] && echo "    Uncommitted: $(echo "$st" | wc -l | tr -d ' ') files"
-      [[ -n "$up" ]] && echo "    Unpushed: $(echo "$up" | wc -l | tr -d ' ') commits"
-      dirty=1
+  git -C "$dir" rev-parse --is-inside-work-tree &>/dev/null || continue
+  st=$(git -C "$dir" status --porcelain 2>/dev/null) || true
+  up=$(git -C "$dir" log --oneline '@{u}..HEAD' 2>/dev/null) || true
+  if [[ -n "$st" || -n "$up" ]]; then
+    repo=$(basename "$dir")
+    echo "  ⚠ $repo"
+    if [[ -n "$st" ]]; then
+      uncommitted_count=$(grep -c '' <<< "$st")
+      echo "    Uncommitted: $uncommitted_count files"
     fi
-  fi) || true
+    if [[ -n "$up" ]]; then
+      unpushed_count=$(grep -c '' <<< "$up")
+      echo "    Unpushed: $unpushed_count commits"
+    fi
+    dirty=1
+  fi
 done
 if [[ "$dirty" -eq 1 ]]; then
   echo ""

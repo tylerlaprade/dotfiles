@@ -37,8 +37,10 @@ trap cleanup EXIT
 
 if ! command -v brew >/dev/null 2>&1; then
   echo "Installing Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  eval "$(/opt/homebrew/bin/brew shellenv)"
+  homebrew_installer=$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)
+  /bin/bash -c "$homebrew_installer"
+  homebrew_env=$(/opt/homebrew/bin/brew shellenv)
+  eval "$homebrew_env"
 fi
 
 export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
@@ -51,7 +53,8 @@ done
 # A hostname that flips breaks GPG's stale-lock reclamation (a dead-process lock
 # is only auto-broken when its recorded hostname matches the current one).
 if ! scutil --get HostName &>/dev/null; then
-  sudo scutil --set HostName "$(scutil --get LocalHostName)"
+  local_host_name=$(scutil --get LocalHostName)
+  sudo scutil --set HostName "$local_host_name"
 fi
 
 "$DOTFILES/scripts/sync/apply-brewfile.sh" || failed=1
@@ -59,8 +62,6 @@ fi
 if ! command -v rustup >/dev/null 2>&1; then
   echo "Installing Rust..."
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal
-  # shellcheck disable=SC1091
-  source "$HOME/.cargo/env"
 fi
 if command -v rustup >/dev/null 2>&1; then
   rustup set profile minimal >/dev/null
@@ -89,21 +90,20 @@ binstall_crates=(
 )
 if command -v cargo >/dev/null 2>&1; then
   installed_crates=$(cargo install --list 2>/dev/null | awk '{print $1}')
-  have_crate() { grep -qxF "$1" <<<"$installed_crates"; }
-  if ! have_crate cargo-binstall; then
+  if ! grep -qxF cargo-binstall <<<"$installed_crates"; then
     echo "Installing cargo-binstall..."
     cargo install cargo-binstall || failed=1
     installed_crates+=$'\ncargo-binstall'
   fi
   missing_binstall=()
   for crate in "${binstall_crates[@]}"; do
-    have_crate "$crate" || missing_binstall+=("$crate")
+    grep -qxF "$crate" <<<"$installed_crates" || missing_binstall+=("$crate")
   done
   if [[ ${#missing_binstall[@]} -gt 0 ]] && command -v cargo-binstall >/dev/null 2>&1; then
     echo "Installing cargo crates: ${missing_binstall[*]}"
     cargo binstall -y "${missing_binstall[@]}" || failed=1
   fi
-  if ! have_crate session-guard; then
+  if ! grep -qxF session-guard <<<"$installed_crates"; then
     echo "Installing session-guard..."
     if cargo install --git https://github.com/tylerlaprade/session-guard; then
       session-guard install --terminal ghostty || failed=1
@@ -111,7 +111,7 @@ if command -v cargo >/dev/null 2>&1; then
       failed=1
     fi
   fi
-  if ! have_crate lint-staged-rs; then
+  if ! grep -qxF lint-staged-rs <<<"$installed_crates"; then
     echo "Installing lint-staged-rs..."
     cargo install --git https://github.com/tylerlaprade/lint-staged-rs || failed=1
   fi
