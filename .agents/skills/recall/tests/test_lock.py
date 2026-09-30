@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import fcntl
 import io
-import os
 import sqlite3
 import sys
 import tempfile

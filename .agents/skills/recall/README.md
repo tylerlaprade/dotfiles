@@ -73,7 +73,7 @@ it stands rather than hanging.
 ## Tests
 
 ```bash
-python3 -m unittest discover tests -v
+PYTHONPATH=scripts python3 -m unittest discover tests -v
 ```
 
 Stdlib `unittest`, no dependencies. Every fixture is synthetic and built in a

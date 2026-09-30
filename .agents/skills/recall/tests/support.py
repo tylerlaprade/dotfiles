@@ -15,16 +15,12 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
-import sys
 from collections import Counter
 from contextlib import contextmanager
 from pathlib import Path
 from urllib.parse import quote
 
-# Make scripts/ importable as a module
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-
-import recall  # noqa: E402
+import recall
 
 BASE_MTIME = 1_800_000_000  # a fixed point in time; tests only care about order
 

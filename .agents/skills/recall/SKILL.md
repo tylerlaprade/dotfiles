@@ -127,7 +127,7 @@ If results are missing `File:` paths, run `--reindex` to backfill.
   (Antigravity), and `~/.local/share/opencode/opencode.db` (OpenCode)
 - First run indexes all sessions; after that only the bytes a session has added are read, except for Grok, which rewrites its whole history file on every save, and OpenCode, whose sessions are database rows re-read whenever one changes
 - Omit the query to list recent sessions instead of searching
-- Run tests with `python3 -m unittest discover tests -v` from the skill root
+- Run tests with `PYTHONPATH=scripts python3 -m unittest discover tests -v` from the skill root
 - Only user and assistant messages are indexed (tool calls, thinking blocks, state snapshots, synthetic harness context skipped)
 - Results show a `[claude]`, `[codex]`, `[grok]`, `[antigravity]`, or `[opencode]` tag to indicate the source
 - An OpenCode session's `File:` is `<opencode.db>#<session id>`; pass it to `read_session.py` as-is

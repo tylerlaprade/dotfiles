@@ -7,16 +7,13 @@ could return an excerpt from a message read_session refused to show.
 from __future__ import annotations
 
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from urllib.parse import quote
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-
-import read_session  # noqa: E402
-from support import recall  # noqa: E402
+import read_session
+from support import recall
 
 
 class SharedWithTheIndexer(unittest.TestCase):
