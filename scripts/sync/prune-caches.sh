@@ -6,7 +6,8 @@ set -euo pipefail
 
 export PATH="$HOME/.cargo/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
-echo "=== $(date) ==="
+run_started=$(date)
+echo "=== $run_started ==="
 
 if command -v brew >/dev/null; then
   brew cleanup -q --prune=14 || true
@@ -28,18 +29,18 @@ fi
 
 # Native Claude Code installer keeps every version. Keep the two newest.
 versions="$HOME/.local/share/claude/versions"
-if [ -d "$versions" ]; then
-  old=$(ls -1 "$versions" | sort -t. -k1,1n -k2,2n -k3,3n | awk -v keep=2 ' { n[++c]=$0 } END { for (i=1;i<=c-keep;i++) print n[i] }')
-  if [ -n "$old" ]; then
+if [[ -d "$versions" ]]; then
+  old=$(cd "$versions" && printf '%s\n' * | sort -t. -k1,1n -k2,2n -k3,3n | awk -v keep=2 ' { n[++c]=$0 } END { for (i=1;i<=c-keep;i++) print n[i] }')
+  if [[ -n "$old" ]]; then
     echo "$old" | while IFS= read -r v; do
-      rm -rf "$versions/$v"
+      rm -rf "${versions:?}/$v"
       echo "Removed claude version $v"
     done
   fi
 fi
 
 # fnm is the Node manager; leftover nvm trees do not come back unless reinstalled.
-if command -v fnm >/dev/null && [ -d "$HOME/.nvm" ]; then
+if command -v fnm >/dev/null && [[ -d "$HOME/.nvm" ]]; then
   rm -rf "$HOME/.nvm"
   echo "Removed leftover ~/.nvm"
 fi

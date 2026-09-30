@@ -16,7 +16,8 @@ set -euo pipefail
 
 export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 
-echo "=== $(date) ==="
+run_started=$(date)
+echo "=== $run_started ==="
 
 if ! pgrep -xq AltTab; then
   echo "AltTab is not running; nothing to refresh"

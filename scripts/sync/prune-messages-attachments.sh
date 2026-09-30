@@ -9,10 +9,11 @@
 # because launchd jobs lack the Full Disk Access that ~/Library/Messages needs.
 set -euo pipefail
 
-echo "=== $(date) ==="
+run_started=$(date)
+echo "=== $run_started ==="
 
 DIR="$HOME/Library/Messages/Attachments"
-if [ -d "$DIR" ]; then
+if [[ -d "$DIR" ]]; then
   before=$(/usr/bin/du -sm "$DIR" | cut -f1)
   find "$DIR" -type f ! -name 'GroupPhotoImage' -mtime +30 -delete
   find "$DIR" -mindepth 1 -type d -empty -delete
@@ -24,7 +25,7 @@ fi
 
 # Preview thumbnails regenerate from attachments.
 CACHE="$HOME/Library/Messages/Caches"
-if [ -d "$CACHE" ]; then
+if [[ -d "$CACHE" ]]; then
   before=$(/usr/bin/du -sm "$CACHE" | cut -f1)
   find "$CACHE" -type f -mtime +30 -delete
   find "$CACHE" -mindepth 1 -type d -empty -delete

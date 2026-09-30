@@ -29,7 +29,8 @@ link() {
   if [[ -L "$dst" ]]; then
     ln -snf "$src" "$dst"
   elif [[ -e "$dst" ]]; then
-    local backup="${dst}.pre-dotfiles-$(date +%Y%m%d%H%M%S)"
+    local backup
+    backup="${dst}.pre-dotfiles-$(date +%Y%m%d%H%M%S)"
     mv "$dst" "$backup"
     echo "ℹ️  Backed up $dst -> $backup"
     ln -s "$src" "$dst"
@@ -50,7 +51,8 @@ link_tree() {
   mkdir -p "$dst_dir"
   for item in "$src_dir"/*; do
     [[ -e "$item" || -L "$item" ]] || continue
-    local name="$(basename "$item")"
+    local name
+    name="$(basename "$item")"
     local dst="$dst_dir/$name"
     local skip=0
     for skip_path in "${DEDICATED_SYNC_PATHS[@]}"; do
@@ -148,8 +150,12 @@ ensure_gitconfig() {
   fi
   if [[ ! -f "$dest" ]]; then
     printf '[include]\n\tpath = %s\n' "$shared" > "$dest"
-  elif ! git config --file "$dest" --get-all include.path 2>/dev/null | grep -Fxq "$shared"; then
-    git config --file "$dest" --add include.path "$shared"
+  else
+    local include_paths
+    include_paths=$(git config --file "$dest" --get-all include.path 2>/dev/null || true)
+    if ! grep -Fxq "$shared" <<< "$include_paths"; then
+      git config --file "$dest" --add include.path "$shared"
+    fi
   fi
   if [[ -n "$machine_id" ]]; then
     local current=""
@@ -235,7 +241,8 @@ if [[ -f "$gt_prefs" ]]; then
 fi
 # Tool upgrades — at most once a week, even when login-triggered runs stack up.
 upgrade_stamp="$HOME/.cache/sync-dotfiles-upgrade-stamp"
-if [[ -z "$(find "$upgrade_stamp" -mtime -7 2>/dev/null)" ]]; then
+recent_upgrade_stamp=$(find "$upgrade_stamp" -mtime -7 2>/dev/null)
+if [[ -z "$recent_upgrade_stamp" ]]; then
   mkdir -p "$HOME/.cache" && touch "$upgrade_stamp"
 
   uv tool upgrade --all >/dev/null 2>&1 || true

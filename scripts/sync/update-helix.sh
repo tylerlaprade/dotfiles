@@ -10,19 +10,22 @@ SHARE="$HOME/.local/share/helix"
 BIN="$HOME/.local/bin"
 ZSH_COMPLETIONS="$HOME/.local/share/zsh/site-functions"
 
-case "$(uname -m)" in
+machine=$(uname -m)
+case "$machine" in
   arm64) ARCH="aarch64" ;;
   x86_64) ARCH="x86_64" ;;
-  *) echo "Unsupported architecture: $(uname -m)"; exit 1 ;;
+  *) echo "Unsupported architecture: $machine"; exit 1 ;;
 esac
 
-echo "=== $(date) ==="
+run_started=$(date)
+echo "=== $run_started ==="
 tag=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" \
   | sed -n 's/^ *"tag_name": *"\([^"]*\)".*/\1/p')
 [[ -n "$tag" ]] || { echo "No release tag found for $REPO"; exit 1; }
 
 name="helix-$tag-$ARCH-macos"
-if [[ -d "$SHARE/$name" && "$(readlink "$SHARE/current")" == "$name" ]]; then
+current_name=$(readlink "$SHARE/current") || true
+if [[ -d "$SHARE/$name" && "$current_name" == "$name" ]]; then
   echo "hx already at $tag"
   exit 0
 fi
@@ -39,4 +42,5 @@ ln -sfn "$SHARE/current/contrib/completion/hx.zsh" "$ZSH_COMPLETIONS/_hx"
 for old in "$SHARE"/helix-*-macos; do
   [[ "$old" == "$SHARE/$name" ]] || rm -rf "$old"
 done
-echo "Installed: $("$BIN/hx" --version)"
+hx_version=$("$BIN/hx" --version)
+echo "Installed: $hx_version"
