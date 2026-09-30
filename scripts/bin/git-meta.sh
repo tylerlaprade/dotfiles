@@ -47,7 +47,20 @@ config_mtime=$(stat -f %m "$gitdir/config" 2>/dev/null || echo)
 new_line="${pwd_real}	${repo}	${repo_full}	${branch}	${gitdir}	${head_mtime}	${config_mtime}	${common_dir}"
 lock="$cache.lock"
 mkdir -p "${cache%/*}"
-if mkdir "$lock" 2>/dev/null; then
+
+# mkdir is atomic. A refresh killed mid-flight leaves its lock behind, so a
+# lock older than max_age is leftover, not in-flight.
+claim_lock() {
+  local lock=$1 max_age=$2 stamp now
+  mkdir "$lock" 2>/dev/null && return 0
+  stamp=$(stat -f %m "$lock" 2>/dev/null) || return 1
+  now=$(date +%s)
+  (( now - stamp > max_age )) || return 1
+  rmdir "$lock" 2>/dev/null
+  mkdir "$lock" 2>/dev/null
+}
+
+if claim_lock "$lock" 30; then
   tmp="$cache.tmp.$$"
   {
     grep -v "^${pwd_real}	" "$cache" 2>/dev/null || true
