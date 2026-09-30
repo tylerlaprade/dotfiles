@@ -3,7 +3,7 @@
 # via GitHub PR base refs and rebase each branch onto its parent. Zero dependency on gt.
 set -e
 
-if [ -z "$1" ]; then
+if [[ -z "$1" ]]; then
   echo "Usage: git get <branch|PR#>" >&2
   exit 1
 fi
@@ -17,7 +17,7 @@ git fetch origin --prune
 # Resolve PR number to branch name
 if [[ "$target" =~ ^[0-9]+$ ]]; then
   branch=$(gh pr view "$target" --json headRefName --jq .headRefName 2>/dev/null)
-  if [ -z "$branch" ]; then
+  if [[ -z "$branch" ]]; then
     echo "PR #$target not found." >&2
     exit 1
   fi
@@ -38,31 +38,31 @@ fi
 all_prs=$(gh pr list --state all --limit 200 --author @me \
   --json number,state,baseRefName,headRefName 2>/dev/null || echo "[]")
 
-pr_base() {
-  echo "$all_prs" | jq -r --arg b "$1" \
-    '[.[] | select(.headRefName == $b)] | sort_by(.number) | last | .baseRefName // empty'
-}
-pr_state() {
-  echo "$all_prs" | jq -r --arg b "$1" \
-    '[.[] | select(.headRefName == $b)] | sort_by(.number) | last | .state // empty'
+# Sets pr_field to one field of the newest PR whose head is the given branch.
+lookup_pr_field() {
+  pr_field=$(echo "$all_prs" | jq -r --arg b "$1" --arg field "$2" \
+    '[.[] | select(.headRefName == $b)] | sort_by(.number) | last | .[$field] // empty')
 }
 
 # Walk stack from target up to trunk
 chain=()
 seen=""
 cursor="$target"
-while [ "$cursor" != "$trunk" ]; do
-  case " $seen " in *" $cursor "*) break ;; esac
+while [[ "$cursor" != "$trunk" ]]; do
+  [[ " $seen " == *" $cursor "* ]] && break
   seen="$seen $cursor"
 
-  parent=$(pr_base "$cursor")
-  [ -z "$parent" ] && parent="$trunk"
+  lookup_pr_field "$cursor" baseRefName
+  parent=$pr_field
+  [[ -z "$parent" ]] && parent="$trunk"
 
-  while [ "$parent" != "$trunk" ]; do
-    pstate=$(pr_state "$parent")
-    if [ "$pstate" = "MERGED" ] || [ "$pstate" = "CLOSED" ]; then
-      grand=$(pr_base "$parent")
-      [ -z "$grand" ] && grand="$trunk"
+  while [[ "$parent" != "$trunk" ]]; do
+    lookup_pr_field "$parent" state
+    pstate=$pr_field
+    if [[ "$pstate" = "MERGED" ]] || [[ "$pstate" = "CLOSED" ]]; then
+      lookup_pr_field "$parent" baseRefName
+      grand=$pr_field
+      [[ -z "$grand" ]] && grand="$trunk"
       parent="$grand"
     else
       break
@@ -70,7 +70,7 @@ while [ "$cursor" != "$trunk" ]; do
   done
 
   chain=("$cursor:$parent" "${chain[@]}")
-  [ "$parent" = "$trunk" ] && break
+  [[ "$parent" = "$trunk" ]] && break
   cursor="$parent"
 done
 
@@ -95,6 +95,7 @@ for entry in "${chain[@]}"; do
 done
 
 # Land on target
-if [ "$(git branch --show-current)" != "$target" ]; then
+current=$(git branch --show-current)
+if [[ "$current" != "$target" ]]; then
   git checkout "$target"
 fi

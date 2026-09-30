@@ -4,7 +4,7 @@
 set -e
 
 force=false
-while [ $# -gt 0 ]; do
+while [[ $# -gt 0 ]]; do
   case "$1" in
     -f|--force) force=true; shift ;;
     *) shift ;;
@@ -21,13 +21,10 @@ git fetch origin --prune
 all_prs=$(gh pr list --state all --limit 200 --author @me \
   --json number,state,baseRefName,headRefName 2>/dev/null || echo "[]")
 
-pr_base() {
-  echo "$all_prs" | jq -r --arg b "$1" \
-    '[.[] | select(.headRefName == $b)] | sort_by(.number) | last | .baseRefName // empty'
-}
-pr_state() {
-  echo "$all_prs" | jq -r --arg b "$1" \
-    '[.[] | select(.headRefName == $b)] | sort_by(.number) | last | .state // empty'
+# Sets pr_field to one field of the newest PR whose head is the given branch.
+lookup_pr_field() {
+  pr_field=$(echo "$all_prs" | jq -r --arg b "$1" --arg field "$2" \
+    '[.[] | select(.headRefName == $b)] | sort_by(.number) | last | .[$field] // empty')
 }
 
 # Walk from orig up to trunk. For each branch, record its "effective parent"
@@ -35,19 +32,22 @@ pr_state() {
 chain=()
 seen=""
 cursor="$orig"
-while [ "$cursor" != "$trunk" ]; do
-  case " $seen " in *" $cursor "*) break ;; esac
+while [[ "$cursor" != "$trunk" ]]; do
+  [[ " $seen " == *" $cursor "* ]] && break
   seen="$seen $cursor"
 
-  parent=$(pr_base "$cursor")
-  [ -z "$parent" ] && parent="$trunk"
+  lookup_pr_field "$cursor" baseRefName
+  parent=$pr_field
+  [[ -z "$parent" ]] && parent="$trunk"
 
   # Resolve parent through any merged/closed PRs
-  while [ "$parent" != "$trunk" ]; do
-    pstate=$(pr_state "$parent")
-    if [ "$pstate" = "MERGED" ] || [ "$pstate" = "CLOSED" ]; then
-      grand=$(pr_base "$parent")
-      [ -z "$grand" ] && grand="$trunk"
+  while [[ "$parent" != "$trunk" ]]; do
+    lookup_pr_field "$parent" state
+    pstate=$pr_field
+    if [[ "$pstate" = "MERGED" ]] || [[ "$pstate" = "CLOSED" ]]; then
+      lookup_pr_field "$parent" baseRefName
+      grand=$pr_field
+      [[ -z "$grand" ]] && grand="$trunk"
       parent="$grand"
     else
       break
@@ -55,13 +55,13 @@ while [ "$cursor" != "$trunk" ]; do
   done
 
   chain=("$cursor:$parent" "${chain[@]}")  # prepend → bottom-up order
-  [ "$parent" = "$trunk" ] && break
+  [[ "$parent" = "$trunk" ]] && break
   cursor="$parent"
 done
 
 # Update trunk
 echo "Updating $trunk..."
-if [ "$orig" = "$trunk" ]; then
+if [[ "$orig" = "$trunk" ]]; then
   git reset --hard "origin/$trunk"
 else
   git fetch origin "$trunk:$trunk" 2>/dev/null || git branch -f "$trunk" "origin/$trunk"
@@ -85,24 +85,25 @@ for entry in "${chain[@]}"; do
 done
 
 # Return to original branch
-if [ "$(git branch --show-current)" != "$orig" ]; then
+current=$(git branch --show-current)
+if [[ "$current" != "$orig" ]]; then
   git checkout "$orig"
 fi
 
 # Cleanup: branches with only merged/closed PRs (no open PR)
 echo ""
 echo "Checking for merged branches..."
-open_prs=$(echo "$all_prs" | jq -r '.[] | select(.state == "OPEN") | .headRefName' | sort -u)
-closed_prs=$(echo "$all_prs" | jq -r '.[] | select(.state == "MERGED" or .state == "CLOSED") | .headRefName' | sort -u)
+open_prs=$(echo "$all_prs" | jq -r '[.[] | select(.state == "OPEN") | .headRefName] | unique[]')
+closed_prs=$(echo "$all_prs" | jq -r '[.[] | select(.state == "MERGED" or .state == "CLOSED") | .headRefName] | unique[]')
 
 merged=()
 for branch in $(git for-each-ref --format='%(refname:short)' refs/heads/); do
-  [ "$branch" = "$trunk" ] && continue
+  [[ "$branch" = "$trunk" ]] && continue
   if echo "$open_prs" | grep -qx "$branch"; then continue; fi
   if echo "$closed_prs" | grep -qx "$branch"; then merged+=("$branch"); fi
 done
 
-if [ ${#merged[@]} -eq 0 ]; then
+if [[ ${#merged[@]} -eq 0 ]]; then
   echo "No merged/closed branches."
   exit 0
 fi
@@ -110,7 +111,7 @@ fi
 echo "Merged/closed branches:"
 printf '  %s\n' "${merged[@]}"
 
-if [ "$force" = true ]; then
+if [[ "$force" = true ]]; then
   for branch in "${merged[@]}"; do
     echo "Deleting $branch..."
     git branch -D "$branch"
@@ -118,7 +119,7 @@ if [ "$force" = true ]; then
 else
   printf '\nDelete all? [y/N] '
   read -r answer
-  if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
+  if [[ "$answer" = "y" ]] || [[ "$answer" = "Y" ]]; then
     for branch in "${merged[@]}"; do
       git branch -D "$branch"
     done
