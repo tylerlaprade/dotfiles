@@ -1,16 +1,17 @@
 #!/bin/bash
 input=$(cat)
-IFS=$'\037' read -r current_dir project_dir < <(printf '%s' "$input" | jq -r '[.workspace.current_dir, .workspace.project_dir // .workspace.current_dir] | join("\u001f")')
+workspace_dirs=$(jq -r '[.workspace.current_dir, .workspace.project_dir // .workspace.current_dir] | join("\u001f")' <<< "$input")
+IFS=$'\037' read -r current_dir project_dir <<< "$workspace_dirs"
 cd "$current_dir" 2>/dev/null || exit 0
 settings_layers=()
 for layer in "$HOME/.claude/settings.json" "$project_dir/.claude/settings.json" "$project_dir/.claude/settings.local.json"; do
-  [ -f "$layer" ] && settings_layers+=("$layer")
+  [[ -f "$layer" ]] && settings_layers+=("$layer")
 done
 settings=$(jq -n 'reduce inputs as $layer ({}; . + $layer)' "${settings_layers[@]}" </dev/null)
 
 # Mirror Claude Code's auto-compact trigger from the raw input count so a routing mismatch can exceed 100%.
-read -r used_tokens limit_tokens auto_compacts < <(
-  echo "$input" | jq -r --argjson settings "$settings" '
+compaction_fields=$(
+  jq -r --argjson settings "$settings" '
     def positive_env($name): $ENV[$name] // "" | tonumber? // null | select(. != null and . > 0);
     def truthy_env($name): $ENV[$name] // "" | ascii_downcase | IN("1", "true", "yes", "on");
     20000 as $output_reserve_cap
@@ -32,11 +33,12 @@ read -r used_tokens limit_tokens auto_compacts < <(
             else $reserved_limit end,
           true
         end
-      ] | @tsv'
+      ] | @tsv' <<< "$input"
 )
+read -r used_tokens limit_tokens auto_compacts <<< "$compaction_fields"
 pct=$(( used_tokens * 100 / limit_tokens ))
-IFS=$'\037' read -r rate_5h rate_7d resets_5h resets_7d model_name effort_level session_id raw_cost cost_cents < <(
-  printf '%s' "$input" | jq -r '[
+input_fields=$(
+  jq -r '[
     (.rate_limits.five_hour.used_percentage | if type == "number" then floor else "" end),
     (.rate_limits.seven_day.used_percentage | if type == "number" then floor else "" end),
     .rate_limits.five_hour.resets_at // "",
@@ -46,17 +48,18 @@ IFS=$'\037' read -r rate_5h rate_7d resets_5h resets_7d model_name effort_level 
     .session_id // "",
     .cost.total_cost_usd // "",
     ((.cost.total_cost_usd // 0) * 100 | round)
-  ] | join("\u001f")'
+  ] | join("\u001f")' <<< "$input"
 )
-read -r now today clock_weekday clock_hour clock_minute clock_second current_time < <(
-  TZ="America/New_York" date '+%s %Y%j %u %H %M %S %-I:%M %p')
+IFS=$'\037' read -r rate_5h rate_7d resets_5h resets_7d model_name effort_level session_id raw_cost cost_cents <<< "$input_fields"
+clock_fields=$(TZ="America/New_York" date '+%s %Y%j %u %H %M %S %-I:%M %p')
+read -r now today clock_weekday clock_hour clock_minute clock_second current_time <<< "$clock_fields"
 tomorrow=$(TZ="America/New_York" date -v+1d +"%Y%j")
 
 format_tokens() {
   local tokens=$1
-  if [ "$tokens" -ge 1000000 ]; then
+  if [[ "$tokens" -ge 1000000 ]]; then
     local tenths=$(( tokens / 100000 ))
-    if [ $((tenths % 10)) -eq 0 ]; then
+    if [[ $((tenths % 10)) -eq 0 ]]; then
       printf '%dm' $((tenths / 10))
     else
       printf '%d.%dm' $((tenths / 10)) $((tenths % 10))
@@ -71,7 +74,7 @@ limit_display=$(format_tokens "$limit_tokens")
 
 # Claude Code decides compaction before each request, so a context past the limit compacts on the next one.
 compaction_due=false
-[ "$auto_compacts" = true ] && [ "$used_tokens" -ge "$limit_tokens" ] && compaction_due=true
+[[ "$auto_compacts" = true ]] && [[ "$used_tokens" -ge "$limit_tokens" ]] && compaction_due=true
 
 RESET='\033[0m'
 WHITE='\033[97m'
@@ -83,8 +86,8 @@ YELLOW='\033[33m'
 # When blue_floor is set, val ≤ blue_floor is pure blue and blue_floor→green_end blends blue→green.
 tn_gradient() {
   local val=$1 green_end=$2 yellow_pt=$3 red_pt=$4 k=${5:-80} blue_floor=${6:-}
-  if [ -n "$blue_floor" ] && [ "$val" -lt "$green_end" ]; then
-    if [ "$val" -le "$blue_floor" ]; then
+  if [[ -n "$blue_floor" ]] && [[ "$val" -lt "$green_end" ]]; then
+    if [[ "$val" -le "$blue_floor" ]]; then
       r=129 g=162 b=190
     else
       local t=$(( (val - blue_floor) * 100 / (green_end - blue_floor) ))
@@ -92,14 +95,14 @@ tn_gradient() {
       g=$(( 162 + (189 - 162) * t / 100 ))
       b=$(( 190 + (104 - 190) * t / 100 ))
     fi
-  elif [ "$val" -le "$green_end" ]; then
+  elif [[ "$val" -le "$green_end" ]]; then
     r=181 g=189 b=104
-  elif [ "$val" -le "$yellow_pt" ]; then
+  elif [[ "$val" -le "$yellow_pt" ]]; then
     local t=$(( (val - green_end) * 100 / (yellow_pt - green_end) ))
     r=$(( 181 + (240 - 181) * t / 100 ))
     g=$(( 189 + (198 - 189) * t / 100 ))
     b=$(( 104 + (116 - 104) * t / 100 ))
-  elif [ "$val" -le "$red_pt" ]; then
+  elif [[ "$val" -le "$red_pt" ]]; then
     local t=$(( (val - yellow_pt) * 100 / (red_pt - yellow_pt) ))
     r=$(( 240 + (204 - 240) * t / 100 ))
     g=$(( 198 + (102 - 198) * t / 100 ))
@@ -114,14 +117,14 @@ tn_gradient() {
 
 rate_usage_gradient() {
   local val=$1
-  if [ "$val" -le 55 ]; then
+  if [[ "$val" -le 55 ]]; then
     r=181 g=189 b=104
-  elif [ "$val" -le 75 ]; then
+  elif [[ "$val" -le 75 ]]; then
     local t=$(( (val - 55) * 100 / 20 ))
     r=$(( 181 + (240 - 181) * t / 100 ))
     g=$(( 189 + (198 - 189) * t / 100 ))
     b=$(( 104 + (116 - 104) * t / 100 ))
-  elif [ "$val" -le 95 ]; then
+  elif [[ "$val" -le 95 ]]; then
     local t=$(( (val - 75) * 100 / 20 ))
     r=$(( 240 + (255 - 240) * t / 100 ))
     g=$(( 198 - 198 * t / 100 ))
@@ -142,21 +145,21 @@ format_time_color() {
   local night=0 start_r=255 start_g=255 start_b=255
   # 10# prefix prevents octal parsing on 08:xx / 09:xx
   secs=$((10#$h * 3600 + 10#$m * 60 + 10#$s))
-  local P0 P1 P2 P3 P4 P_blue
-  if [ "$dow" -le 5 ] && [ "$secs" -ge 59400 ] && [ "$secs" -lt 67500 ]; then
+  local P0 P1 P2 P3 P_blue
+  if [[ "$dow" -le 5 ]] && [[ "$secs" -ge 59400 ]] && [[ "$secs" -lt 67500 ]]; then
     # 4:30-6:45pm weekdays only: 15+15+15+90 min phases
-    P0=59400 P1=60300 P2=61200 P3=62100 P4=67500
-  elif [ "$secs" -ge 77400 ] || [ "$secs" -lt 3600 ]; then
+    P0=59400 P1=60300 P2=61200 P3=62100
+  elif [[ "$secs" -ge 77400 ]] || [[ "$secs" -lt 3600 ]]; then
     # 9:30pm-1am every day: 30+30+30+30+90 min phases (extra white→blue pre-phase)
     # Post-midnight: shift secs into the prior day's range so phase math keeps working.
-    P0=77400 P_blue=79200 P1=81000 P2=82800 P3=84600 P4=90000
+    P0=77400 P_blue=79200 P1=81000 P2=82800 P3=84600
     night=1
-    [ "$secs" -lt 3600 ] && secs=$(( secs + 86400 ))
+    [[ "$secs" -lt 3600 ]] && secs=$(( secs + 86400 ))
   else
     printf '%b%s%b' "$WHITE" "$t_str" "$RESET"
     return
   fi
-  if [ "$night" -eq 1 ] && [ "$secs" -lt "$P_blue" ]; then  # white -> blue (night pre-phase)
+  if [[ "$night" -eq 1 ]] && [[ "$secs" -lt "$P_blue" ]]; then  # white -> blue (night pre-phase)
     phase_start=$P0
     t=$(( (secs - phase_start) * 100 / (P_blue - P0) ))
     r=$(( 255 + (50 - 255) * t / 100 ))
@@ -166,23 +169,23 @@ format_time_color() {
     return
   fi
   # After the pre-phase, the green-fade starts from blue instead of white on night windows.
-  if [ "$night" -eq 1 ]; then
+  if [[ "$night" -eq 1 ]]; then
     start_r=50 start_g=130 start_b=255
     P0=$P_blue
   fi
-  if [ "$secs" -lt "$P1" ]; then           # start_color -> green
+  if [[ "$secs" -lt "$P1" ]]; then           # start_color -> green
     phase_start=$P0
     t=$(( (secs - phase_start) * 100 / (P1 - P0) ))
     r=$(( start_r + (0 - start_r) * t / 100 ))
     g=$(( start_g + (200 - start_g) * t / 100 ))
     b=$(( start_b + (0 - start_b) * t / 100 ))
-  elif [ "$secs" -lt "$P2" ]; then         # green -> yellow
+  elif [[ "$secs" -lt "$P2" ]]; then         # green -> yellow
     phase_start=$P1
     t=$(( (secs - phase_start) * 100 / (P2 - P1) ))
     r=$(( 255 * t / 100 ))
     g=200
     b=0
-  elif [ "$secs" -lt "$P3" ]; then         # yellow -> bright red + BOLD
+  elif [[ "$secs" -lt "$P3" ]]; then         # yellow -> bright red + BOLD
     phase_start=$P2
     t=$(( (secs - phase_start) * 100 / (P3 - P2) ))
     r=255
@@ -192,7 +195,7 @@ format_time_color() {
   else                                     # bright red + BOLD + reverse toggle
     r=255; g=0; b=0
     bold='\033[1m'
-    [ $((10#$s)) -lt 30 ] && reverse='\033[7m'
+    [[ $((10#$s)) -lt 30 ]] && reverse='\033[7m'
   fi
   printf '%b\033[38;2;%d;%d;%dm%b%s\033[0m' "$bold" "$r" "$g" "$b" "$reverse" "$t_str"
 }
@@ -205,21 +208,21 @@ bar_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
 
 # Build 10-char progress bar with smooth transition square
 filled=$((pct * 10 / 100))
-[ "$filled" -gt 10 ] && filled=10
+[[ "$filled" -gt 10 ]] && filled=10
 frac=$((pct * 10 % 100))
 
 bar=""
-[ "$filled" -gt 0 ] && printf -v fill "%${filled}s" && bar="${bar_color}${fill// /▓}"
+[[ "$filled" -gt 0 ]] && printf -v fill "%${filled}s" && bar="${bar_color}${fill// /▓}"
 
-if [ "$filled" -lt 10 ]; then
-  if [ "$frac" -lt 50 ]; then
+if [[ "$filled" -lt 10 ]]; then
+  if [[ "$frac" -lt 50 ]]; then
     bar="${bar}${bar_color}░"
   else
     bar="${bar}${bar_color}▒"
   fi
 
   empty=$((9 - filled))
-  [ "$empty" -gt 0 ] && printf -v pad "%${empty}s" && bar="${bar}${pad// /░}"
+  [[ "$empty" -gt 0 ]] && printf -v pad "%${empty}s" && bar="${bar}${pad// /░}"
 fi
 ctx_info="${bar}${bar_color} ${pct}% · ${used_display}/${limit_display}${RESET}"
 
@@ -229,18 +232,18 @@ ctx_info="${bar}${bar_color} ${pct}% · ${used_display}/${limit_display}${RESET}
 # is at least as new as the existing snapshot's — older reset = older data.
 # Fable is not in this stdin payload; claude-usage.sh fetches that separately.
 _snap_resets_5h=0
-[ -f /tmp/claude-rate-limits.json ] && \
+[[ -f /tmp/claude-rate-limits.json ]] && \
   _snap_resets_5h=$(jq -r '.resets_5h // 0' /tmp/claude-rate-limits.json 2>/dev/null)
-if [ "${resets_5h:-0}" -ge "${_snap_resets_5h:-0}" ]; then
+if [[ "${resets_5h:-0}" -ge "${_snap_resets_5h:-0}" ]]; then
   printf '{"five_hour":%s,"seven_day":%s,"resets_5h":%s,"resets_7d":%s,"updated_at":%s}\n' \
     "${rate_5h:-0}" "${rate_7d:-0}" "${resets_5h:-0}" "${resets_7d:-0}" "$now" \
     > /tmp/claude-rate-limits.json
 fi
 
 # Overage gate: kill all sessions if over threshold
-if [ -f ~/.claude/overage-gate ] && [ ! -f /tmp/claude-overage-override ]; then
+if [[ -f ~/.claude/overage-gate ]] && [[ ! -f /tmp/claude-overage-override ]]; then
   _threshold=${CLAUDE_OVERAGE_THRESHOLD:-95}
-  if [ "${rate_5h:-0}" -ge "$_threshold" ] || [ "${rate_7d:-0}" -ge "$_threshold" ]; then
+  if [[ "${rate_5h:-0}" -ge "$_threshold" ]] || [[ "${rate_7d:-0}" -ge "$_threshold" ]]; then
     printf '%s 5h=%s%% 7d=%s%%\n' "$now" "${rate_5h}" "${rate_7d}" >> /tmp/claude-overage-kills.log
     touch /tmp/claude-overage-killed
     pkill claude
@@ -254,10 +257,10 @@ fi
 pace_gradient() {
   local pct=$1 resets=$2 window_secs=$3
   local time_remaining=$(( resets - now ))
-  [ "$time_remaining" -lt 0 ] && time_remaining=0
-  [ "$time_remaining" -gt "$window_secs" ] && time_remaining=$window_secs
+  [[ "$time_remaining" -lt 0 ]] && time_remaining=0
+  [[ "$time_remaining" -gt "$window_secs" ]] && time_remaining=$window_secs
 
-  if [ "$pct" -ge 100 ]; then
+  if [[ "$pct" -ge 100 ]]; then
     r=255 g=0 b=0
     return
   fi
@@ -267,47 +270,48 @@ pace_gradient() {
   # → yellow (on pace); >125% → red (over pace). Clamp elapsed to 60s so a
   # fresh window with any usage projects large instead of undefined.
   local time_elapsed=$(( window_secs - time_remaining ))
-  [ "$time_elapsed" -lt 60 ] && time_elapsed=60
+  [[ "$time_elapsed" -lt 60 ]] && time_elapsed=60
   local projected=$(( pct * window_secs / time_elapsed ))
-  [ "$projected" -gt 300 ] && projected=300
+  [[ "$projected" -gt 300 ]] && projected=300
 
   tn_gradient "$projected" 75 100 125 80 50
 }
 
 format_rate() {
   local pct=$1 resets=$2 window_secs=$3 display_override=$4 display_color=$5
-  [ -z "$pct" ] && return
+  [[ -z "$pct" ]] && return
 
   local time_remaining=$(( resets - now ))
-  [ "$time_remaining" -lt 0 ] && time_remaining=0
+  [[ "$time_remaining" -lt 0 ]] && time_remaining=0
   local time_elapsed=$(( window_secs - time_remaining ))
-  [ "$time_elapsed" -lt 60 ] && time_elapsed=60
+  [[ "$time_elapsed" -lt 60 ]] && time_elapsed=60
 
   local info
-  if [ -n "$display_override" ]; then
+  if [[ -n "$display_override" ]]; then
     info="${display_color}${display_override}${RESET}"
   else
     # Absolute hard-limit usage: 0-55% green, 55-75% green→yellow,
     # 75-95% yellow→bright red, 95%+ bright red. Print the number as
     # reported — no "+" for "maybe over."
     rate_usage_gradient "$pct"
-    local pct_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
+    local pct_color
+    printf -v pct_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
     local suffix="%"
     # Stdin 5h/7d bars stop at 100, so "+" means "at or over." Fable from
     # /usage is an exact percent and does not pass this flag.
-    [ -n "${6:-}" ] && [ "$pct" -ge 100 ] && suffix="%+"
+    [[ -n "${6:-}" ]] && [[ "$pct" -ge 100 ]] && suffix="%+"
     info="${pct_color}${pct}${suffix}${RESET}"
   fi
 
-  if [ "$time_remaining" -gt 0 ]; then
+  if [[ "$time_remaining" -gt 0 ]]; then
     pace_gradient "$pct" "$resets" "$window_secs"
-    local time_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
-    local reset_str reset_day reset_time reset_weekday_time
-    IFS='|' read -r reset_day reset_time reset_weekday_time < <(
-      TZ="America/New_York" date -r "$resets" +"%Y%j|%-I:%M %p|%a %-I:%M %p" 2>/dev/null)
-    if [ "$reset_day" = "$today" ]; then
+    local time_color reset_fields reset_str reset_day reset_time reset_weekday_time
+    printf -v time_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
+    reset_fields=$(TZ="America/New_York" date -r "$resets" +"%Y%j|%-I:%M %p|%a %-I:%M %p" 2>/dev/null)
+    IFS='|' read -r reset_day reset_time reset_weekday_time <<< "$reset_fields"
+    if [[ "$reset_day" = "$today" ]]; then
       reset_str=$reset_time
-    elif [ "$reset_day" = "$tomorrow" ]; then
+    elif [[ "$reset_day" = "$tomorrow" ]]; then
       reset_str="${reset_time}${RESET} tomorrow"
     else
       reset_str=$reset_weekday_time
@@ -316,17 +320,18 @@ format_rate() {
     local hrs=$(( (time_remaining % 86400) / 3600 ))
     local mins=$(( (time_remaining % 3600) / 60 ))
     local remaining=""
-    if [ "$days" -gt 0 ]; then
+    if [[ "$days" -gt 0 ]]; then
       remaining="${days}d ${hrs}h"
-    elif [ "$hrs" -gt 0 ]; then
+    elif [[ "$hrs" -gt 0 ]]; then
       remaining="${hrs}h ${mins}m"
     else
       remaining="${mins}m"
     fi
     # Reset-time proximity: blue just after reset → green → yellow → red as it nears.
     tn_gradient $(( time_elapsed * 100 / window_secs )) 55 80 95 80 20
-    local reset_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
-    [ -n "$reset_str" ] && info="${info} (resets in ${time_color}${remaining}${RESET} at ${reset_color}${reset_str}${RESET})"
+    local reset_color
+    printf -v reset_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
+    [[ -n "$reset_str" ]] && info="${info} (resets in ${time_color}${remaining}${RESET} at ${reset_color}${reset_str}${RESET})"
   fi
 
   echo "$info"
@@ -350,16 +355,17 @@ join_parts() {
 
 # Line 1: model · context bar · compaction due · session · time
 parts=()
-if [ -n "$model_name" ]; then
+if [[ -n "$model_name" ]]; then
   model_part="${DIM}${model_name}"
-  [ -n "$effort_level" ] && model_part="${model_part} ${effort_level}"
+  [[ -n "$effort_level" ]] && model_part="${model_part} ${effort_level}"
   parts+=("${model_part}${RESET}")
 fi
 parts+=("$ctx_info")
-[ "$compaction_due" = true ] && parts+=("${YELLOW}compaction due${RESET}")
-[ -n "$session_id" ] && parts+=("${DIM}${session_id}${RESET}")
+[[ "$compaction_due" = true ]] && parts+=("${YELLOW}compaction due${RESET}")
+[[ -n "$session_id" ]] && parts+=("${DIM}${session_id}${RESET}")
 parts+=("$(format_time_color "$current_time")")
-echo -e "$(join_parts "${parts[@]}")"
+status_line=$(join_parts "${parts[@]}")
+echo -e "$status_line"
 
 # Line 2: 5h · 7d · Fable
 # claude-usage --async matches gh-pr-lookup: print cache, detach refresh.
@@ -367,15 +373,15 @@ rate_parts=()
 _usage_cmd=$(command -v claude-usage 2>/dev/null || command -v claude-usage.sh 2>/dev/null || true)
 _usage=""
 fable_part=""
-if [ -n "$_usage_cmd" ]; then
+if [[ -n "$_usage_cmd" ]]; then
   # Pass stdin's 5h/7d percentages so claude-usage can skip refresh when
   # nothing has burned on this account since the last successful fetch.
   _usage=$(STATUSLINE_5H="${rate_5h:-0}" STATUSLINE_7D="${rate_7d:-0}" \
     "$_usage_cmd" --async 2>/dev/null) || true
 fi
-if [ -n "$_usage" ]; then
-  IFS=$'\037' read -r _usage_ok rate_fable resets_fable usage_resets_7d _usage_error usage_5h usage_resets_5h usage_7d < <(
-    printf '%s' "$_usage" | jq -r '[
+if [[ -n "$_usage" ]]; then
+  usage_fields=$(
+    jq -r '[
       .ok != false,
       .fable // "",
       .resets_fable // "",
@@ -384,36 +390,37 @@ if [ -n "$_usage" ]; then
       .five_hour // "",
       .resets_5h // "",
       .seven_day // ""
-    ] | join("\u001f")'
+    ] | join("\u001f")' <<< "$_usage"
   )
-  if [ "$_usage_ok" != true ]; then
-    if [ "$_usage_error" = "keychain unavailable" ]; then
-      if [ -n "$rate_fable" ]; then
+  IFS=$'\037' read -r _usage_ok rate_fable resets_fable usage_resets_7d _usage_error usage_5h usage_resets_5h usage_7d <<< "$usage_fields"
+  if [[ "$_usage_ok" != true ]]; then
+    if [[ "$_usage_error" = "keychain unavailable" ]]; then
+      if [[ -n "$rate_fable" ]]; then
         fable_part="${DIM}Fable ${rate_fable}% · stale${RESET}"
       else
         fable_part="${DIM}Fable unavailable${RESET}"
       fi
-    elif [ "$_usage_error" = "token expired" ] || [ "$_usage_error" = "no login" ] || [ "$_usage_error" = "no token" ] || [ "$_usage_error" = "HTTP 401" ]; then
+    elif [[ "$_usage_error" = "token expired" ]] || [[ "$_usage_error" = "no login" ]] || [[ "$_usage_error" = "no token" ]] || [[ "$_usage_error" = "HTTP 401" ]]; then
       fable_part="${YELLOW}Fable: login required${RESET}"
-    elif [ "$_usage_error" = "HTTP 429" ]; then
-      if [ -n "$rate_fable" ]; then
+    elif [[ "$_usage_error" = "HTTP 429" ]]; then
+      if [[ -n "$rate_fable" ]]; then
         fable_part="${DIM}Fable ${rate_fable}% · rate limited${RESET}"
       else
         fable_part="${DIM}Fable: rate limited${RESET}"
       fi
-    elif [ -n "$rate_fable" ]; then
+    elif [[ -n "$rate_fable" ]]; then
       fable_part="${DIM}Fable ${rate_fable}% · fetch failed${RESET}"
     else
       fable_part="${DIM}Fable unavailable${RESET}"
     fi
-  elif [ -n "$rate_fable" ]; then
+  elif [[ -n "$rate_fable" ]]; then
     # Same weekly reset as 7d: omit the duplicate countdown, and pace-color the
     # percent so the pace still shows somewhere. Compare within the usage
     # payload, and allow a minute of slack: the API rounds the two windows
     # independently, so the same reset arrives as 14:59:59 and 15:00:00. A real
     # divergence would be hours, never seconds.
-    if [ -n "$resets_fable" ] && [ -n "$usage_resets_7d" ] \
-       && [ "$(( resets_fable > usage_resets_7d ? resets_fable - usage_resets_7d : usage_resets_7d - resets_fable ))" -le 60 ]; then
+    if [[ -n "$resets_fable" ]] && [[ -n "$usage_resets_7d" ]] \
+       && [[ "$(( resets_fable > usage_resets_7d ? resets_fable - usage_resets_7d : usage_resets_7d - resets_fable ))" -le 60 ]]; then
       pace_gradient "$rate_fable" "$resets_fable" 604800
       fable_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
       fable_part="Fable ${fable_color}${rate_fable}%${RESET}"
@@ -421,28 +428,28 @@ if [ -n "$_usage" ]; then
       # Resets diverged: the countdown carries the pace, so the percent goes
       # back to the absolute gradient, same as 5h and 7d.
       rate=$(format_rate "$rate_fable" "$resets_fable" 604800)
-      [ -n "$rate" ] && fable_part="Fable $rate"
+      [[ -n "$rate" ]] && fable_part="Fable $rate"
     fi
   fi
-elif [ -n "$_usage_cmd" ]; then
+elif [[ -n "$_usage_cmd" ]]; then
   fable_part="${DIM}Fable unavailable${RESET}"
 fi
 # Stdin rate_limits is empty until the first API response. The usage
 # fetch already ran for Fable and includes 5h/7d; use those only while
 # stdin has nothing.
-if [ "${_usage_ok:-}" = true ]; then
-  if [ -z "$rate_5h" ]; then
+if [[ "${_usage_ok:-}" = true ]]; then
+  if [[ -z "$rate_5h" ]]; then
     rate_5h=$usage_5h
     resets_5h=$usage_resets_5h
   fi
-  if [ -z "$rate_7d" ]; then
+  if [[ -z "$rate_7d" ]]; then
     rate_7d=$usage_7d
     resets_7d=$usage_resets_7d
   fi
 fi
 cost_display="" cost_color=""
-if [ "${rate_5h:-0}" -ge 100 ]; then
-  if [ -n "$raw_cost" ]; then
+if [[ "${rate_5h:-0}" -ge 100 ]]; then
+  if [[ -n "$raw_cost" ]]; then
     session_cost=$(printf "%.2f" "$raw_cost")
     # Asymptotic red from 100%-red base: (204,102,102) → (255,0,0)
     t=$(( cost_cents * 100 / (cost_cents + 2000) ))
@@ -454,15 +461,16 @@ if [ "${rate_5h:-0}" -ge 100 ]; then
   fi
 fi
 rate=$(format_rate "$rate_5h" "$resets_5h" 18000 "$cost_display" "$cost_color" plus)
-[ -n "$rate" ] && rate_parts+=("5h $rate")
+[[ -n "$rate" ]] && rate_parts+=("5h $rate")
 rate=$(format_rate "$rate_7d" "$resets_7d" 604800 "" "" plus)
-[ -n "$rate" ] && rate_parts+=("7d $rate")
-[ -n "$fable_part" ] && rate_parts+=("$fable_part")
+[[ -n "$rate" ]] && rate_parts+=("7d $rate")
+[[ -n "$fable_part" ]] && rate_parts+=("$fable_part")
 if (( ${#rate_parts[@]} )); then
-  echo -e "${DIM}Usage${RESET} · $(join_parts "${rate_parts[@]}")"
+  usage_line=$(join_parts "${rate_parts[@]}")
+  echo -e "${DIM}Usage${RESET} · $usage_line"
 fi
 
 # Git info
-if [ -n "$git_status" ]; then
+if [[ -n "$git_status" ]]; then
   echo -e "$git_status"
 fi

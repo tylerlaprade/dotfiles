@@ -27,18 +27,21 @@ ASSOCIATED=("Fondly scrollfondly.com")
 # One file per session id, holding approved repo roots one per line.
 state_dir="${READ_GUARD_STATE_DIR:-/tmp/claude-read-guard}"
 
+set -o pipefail
+
 input=$(cat) || exit 0
 # Each field gets an "x" prefix so empty fields survive read's IFS collapsing.
-IFS=$'\t' read -r event sid path cwd command agent_type agent_id subagent_type < <(printf '%s' "$input" | jq -r \
+fields=$(jq -r \
   '[.hook_event_name // "", .session_id // "",
     (.tool_input.file_path // .tool_input.path // ""), .cwd // "",
     .tool_input.command // "",
-    .agent_type // "", .agent_id // "", .subagentType // ""] | map("x" + .) | @tsv' 2>/dev/null)
+    .agent_type // "", .agent_id // "", .subagentType // ""] | map("x" + .) | @tsv' <<< "$input" 2>/dev/null)
+IFS=$'\t' read -r event sid path cwd command agent_type agent_id subagent_type <<< "$fields"
 event="${event#x}" sid="${sid#x}" path="${path#x}" cwd="${cwd#x}" command="${command#x}"
 agent_type="${agent_type#x}" agent_id="${agent_id#x}" subagent_type="${subagent_type#x}"
 
 root="${CLAUDE_PROJECT_DIR:-$cwd}"
-[ -n "$root" ] || exit 0
+[[ -n "$root" ]] || exit 0
 case "$root" in
   "$HOME/Code") exit 0 ;;
   "$HOME/Code"/*) project_rest="${root#"$HOME"/Code/}"; project_top="${project_rest%%/*}" ;;
@@ -50,17 +53,17 @@ state_file="$state_dir/$sid"
 in_group() {
   local member
   for member in $2; do
-    [ "$1" = "$member" ] && return 0
+    [[ "$1" = "$member" ]] && return 0
   done
   return 1
 }
 
 allowed_repo() {
-  [ "$project_top" = "dotfiles" ] && return 0
-  [ "$1" = "$project_top" ] && return 0
+  [[ "$project_top" = "dotfiles" ]] && return 0
+  [[ "$1" = "$project_top" ]] && return 0
   local s group
   for s in "${SHARED[@]}"; do
-    [ "$1" = "$s" ] && return 0
+    [[ "$1" = "$s" ]] && return 0
   done
   for group in "${ASSOCIATED[@]}"; do
     in_group "$project_top" "$group" && in_group "$1" "$group" && return 0
@@ -69,14 +72,14 @@ allowed_repo() {
 }
 
 approved_repo() {
-  [ -n "$sid" ] && grep -qxF "$HOME/Code/$1" "$state_file" 2>/dev/null
+  [[ -n "$sid" ]] && grep -qxF "$HOME/Code/$1" "$state_file" 2>/dev/null
 }
 
 explore_subagent() {
   local kind=""
-  if [ -n "$subagent_type" ]; then
+  if [[ -n "$subagent_type" ]]; then
     kind="$subagent_type"
-  elif [ -n "$agent_id" ]; then
+  elif [[ -n "$agent_id" ]]; then
     kind="$agent_type"
   else
     return 1
@@ -89,7 +92,7 @@ explore_subagent() {
 }
 
 record_repo() {
-  [ -n "$sid" ] || return
+  [[ -n "$sid" ]] || return
   mkdir -p "$state_dir" 2>/dev/null || return
   find "$state_dir" -type f -mtime +7 -delete 2>/dev/null
   grep -qxF "$HOME/Code/$1" "$state_file" 2>/dev/null || printf '%s\n' "$HOME/Code/$1" >> "$state_file"
@@ -103,44 +106,43 @@ ask() {
 
 explore_subagent && exit 0
 
-if [ -n "$command" ]; then
+if [[ -n "$command" ]]; then
   # Bash: scan the command for references to top-level repos under ~/Code.
   repos=$(printf '%s' "$command" \
     | grep -oE "(~|\\\$HOME|$HOME)/Code/[A-Za-z0-9._+-]*[A-Za-z0-9_+-]" \
     | sed 's|.*/||' | sort -u)
-  [ -n "$repos" ] || exit 0
+  [[ -n "$repos" ]] || exit 0
   need=()
   while IFS= read -r repo; do
     allowed_repo "$repo" && continue
-    if [ "$event" = "PostToolUse" ]; then
+    if [[ "$event" = "PostToolUse" ]]; then
       record_repo "$repo"
       continue
     fi
     approved_repo "$repo" && continue
     need+=("$repo")
   done <<< "$repos"
-  [ "$event" = "PostToolUse" ] && exit 0
-  [ ${#need[@]} -eq 0 ] && exit 0
+  [[ "$event" = "PostToolUse" ]] && exit 0
+  [[ ${#need[@]} -eq 0 ]] && exit 0
   ask "this command touches ${need[*]}, which is" "that repo"
 fi
 
 # File tools. No path: Grep/Glob default to the session cwd, always allowed.
-[ -n "$path" ] || exit 0
-case "$path" in
-  "~/"*) path="$HOME${path#\~}" ;;
-esac
+[[ -n "$path" ]] || exit 0
+path="${path/#\~\//$HOME/}"
 case "$path" in
   /*) ;;
   *)
-    [ -n "$cwd" ] || exit 0
+    [[ -n "$cwd" ]] || exit 0
     path="$cwd/$path"
     ;;
 esac
 case "$path" in
   */../*|*/..|*/./*|*/.)
     path=$(python3 -c 'import os,sys; print(os.path.normpath(sys.argv[1]))' "$path" 2>/dev/null)
-    [ -n "$path" ] || exit 0
+    [[ -n "$path" ]] || exit 0
     ;;
+  *) ;;
 esac
 
 # Only paths under ~/Code are guarded; the rest of the disk is not project
@@ -153,7 +155,7 @@ path_rest="${path#"$HOME"/Code/}"
 path_top="${path_rest%%/*}"
 
 allowed_repo "$path_top" && exit 0
-if [ "$event" = "PostToolUse" ]; then
+if [[ "$event" = "PostToolUse" ]]; then
   record_repo "$path_top"
   exit 0
 fi
