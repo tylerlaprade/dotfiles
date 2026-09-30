@@ -26,8 +26,9 @@ fetch_with_etag() {
   response=$(gh-background api -i "$endpoint" "${etag_header[@]}")
   status=$?
 
+  local status_line=${response%%$'\n'*}
   # gh exits 1 on 304 Not Modified, so check the status line before the exit code.
-  if echo "$response" | head -1 | grep -q "304"; then
+  if [[ "$status_line" == *304* ]]; then
     cat "$cache_file" 2>/dev/null
     return
   fi
@@ -37,12 +38,12 @@ fetch_with_etag() {
     *) printf '!\tfetch failed\n'; return 1 ;;
   esac
 
-  if echo "$response" | head -1 | grep -q "200"; then
+  if [[ "$status_line" == *200* ]]; then
     # Save ETag
-    echo "$response" | grep -i '^Etag:' | awk '{print $2}' | tr -d '\r\n' > "$etag_file"
+    echo "$response" | awk 'tolower(substr($0, 1, 5)) == "etag:" { gsub(/\r/, ""); printf "%s", $2 }' > "$etag_file"
     # Extract JSON body (after blank line)
     local json
-    json=$(echo "$response" | sed -n '/^\r*$/,$p' | tail -n +2)
+    json=$(echo "$response" | sed '1,/^\r*$/d')
     echo "$json" > "$cache_file"
     echo "$json"
   fi
@@ -103,16 +104,19 @@ is_draft=$(echo "$pr_json" | jq -r '.draft')
 
 if [[ "$state" == "closed" ]]; then
   # Check if merged
-  if [[ $(echo "$pr_json" | jq -r '.merged') == "true" ]]; then
+  merged=$(echo "$pr_json" | jq -r '.merged')
+  if [[ "$merged" == "true" ]]; then
     echo "merged:pass:ok"
   else
     echo "closed:pass:ok"
   fi
 elif [[ "$is_draft" == "true" ]]; then
   ci=$(get_ci_state) || { printf '%s\n' "$ci"; exit 0; }
-  echo "draft:$ci:$(get_mergeable_state)"
+  mergeable=$(get_mergeable_state)
+  echo "draft:$ci:$mergeable"
 else
   review=$(get_review_state) || { printf '%s\n' "$review"; exit 0; }
   ci=$(get_ci_state) || { printf '%s\n' "$ci"; exit 0; }
-  echo "$review:$ci:$(get_mergeable_state)"
+  mergeable=$(get_mergeable_state)
+  echo "$review:$ci:$mergeable"
 fi

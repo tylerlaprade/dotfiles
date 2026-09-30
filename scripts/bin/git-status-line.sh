@@ -10,13 +10,14 @@ IFS=$'\t' read -r repo_name repo_full full_branch common_dir <<<"$meta"
 # Tracked changes and ahead/behind upstream from one git call. Optional locks
 # stay off so a render never contends with another session's git command.
 dirty="" ahead=0 behind=0
+git_status=$(git --no-optional-locks status --porcelain=v2 --branch --untracked-files=no 2>/dev/null)
 while read -r kind field head_only upstream_only; do
-  if [[ "$kind" == "#" ]]; then
-    [[ "$field" == branch.ab ]] && ahead=${head_only#+} behind=${upstream_only#-}
-  else
-    dirty="*"
-  fi
-done < <(git --no-optional-locks status --porcelain=v2 --branch --untracked-files=no 2>/dev/null)
+  case "$kind" in
+    "#") [[ "$field" == branch.ab ]] && ahead=${head_only#+} behind=${upstream_only#-} ;;
+    "") ;;
+    *) dirty="*" ;;
+  esac
+done <<< "$git_status"
 
 # PR number + title, skipped on the default branch, where no PR comes from.
 default_branch=""
@@ -77,7 +78,7 @@ gt_info=""
 [[ -f "$common_dir/.graphite_repo_config" ]] && gt_info=$(gt-status "$repo_name" "$full_branch" --async)
 gt_display=""
 if [[ -n "$gt_info" ]]; then
-  IFS=: read gt_total gt_depth gt_unsub <<< "$gt_info"
+  IFS=: read -r gt_total gt_depth gt_unsub <<< "$gt_info"
   gt_display="⎇$gt_total"
   [[ $gt_depth -gt 0 ]] && gt_display+="↕$gt_depth"
   [[ $gt_unsub -gt 0 ]] && gt_display+="◌$gt_unsub"
@@ -97,10 +98,10 @@ fi
 # Output with ANSI colors
 printf "\e[37m%s\e[0m " "$repo_name"
 if [[ -n "$pr_num" ]]; then
-  printf '\e]8;;%s\e\\' "$gt_url"
+  printf "\e]8;;%s\e\\\\" "$gt_url"
   printf "\e[${pr_color}m#%s\e[0m" "$pr_num"
   [[ -n "$display_title" ]] && printf " \e[37m%s\e[0m" "$display_title"
-  printf '\e]8;;\e\\'
+  printf "\e]8;;\e\\\\"
 else
   printf "\e[${branch_color}m%s\e[0m" "$branch"
   [[ -n "$dirty" ]] && printf "\e[38;5;218m%s\e[0m" "$dirty"

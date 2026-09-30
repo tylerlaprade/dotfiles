@@ -24,23 +24,29 @@ async=0
 case "${1:-}" in
   --fresh) fresh=1 ;;
   --async) async=1 ;;
+  "") ;;
+  *) echo "claude-usage: unknown option $1" >&2; exit 2 ;;
 esac
 
 now=$(date +%s)
 
 lock=/tmp/claude-usage.fetch
 
+# Sets global fetch_lock_claimed.
 _claim_fetch_lock() {
+  fetch_lock_claimed=false
   if mkdir "$lock" 2>/dev/null; then
-    return 0
+    fetch_lock_claimed=true
+    return
   fi
   # A killed fetch leaves the dir behind. Curl's timeout is 8s; a lock
   # older than a minute is leftover, not in-flight.
   local stamp
-  stamp=$(stat -f %m "$lock" 2>/dev/null) || return 1
-  [ $(( now - stamp )) -gt 60 ] || return 1
+  stamp=$(stat -f %m "$lock" 2>/dev/null) || return 0
+  [[ $(( now - stamp )) -gt 60 ]] || return 0
   rmdir "$lock" 2>/dev/null || true
-  mkdir "$lock" 2>/dev/null || return 1
+  mkdir "$lock" 2>/dev/null || return 0
+  fetch_lock_claimed=true
 }
 
 _spawn_refresh() {
@@ -57,11 +63,12 @@ emit_stale() {
   local err=$1
   local failed_cache
   failed_cache=$(mktemp "${cache}.XXXXXX")
-  if [ -f "$cache" ]; then
+  if [[ -f "$cache" ]]; then
     jq -c --arg err "$err" --argjson now "$now" \
       '. + {ok: false, error: $err, fetched_at: $now}' "$cache" > "$failed_cache"
   else
-    printf '%s\n' "{\"ok\":false,\"error\":$(printf '%s' "$err" | jq -Rs .),\"fetched_at\":${now}}" > "$failed_cache"
+    jq -cn --arg err "$err" --argjson now "$now" \
+      '{ok: false, error: $err, fetched_at: $now}' > "$failed_cache"
   fi
   mv "$failed_cache" "$cache"
   cat "$cache"
@@ -75,46 +82,52 @@ emit_stale() {
 CACHE_FLOOR=300
 CACHE_HEARTBEAT=1800
 
-# Activity: stdin 5h or 7d passed by the statusline exceeds what the cache
-# last recorded, so the account has burned budget since the last successful
-# fetch and Fable may have moved.
-detect_activity() {
-  [ ! -f "$cache" ] && return 0
-  local cache_5h cache_7d
-  cache_5h=$(jq -r '.five_hour // -1' "$cache" 2>/dev/null || echo -1)
-  cache_7d=$(jq -r '.seven_day // -1' "$cache" 2>/dev/null || echo -1)
-  [ -n "${STATUSLINE_5H:-}" ] && [ "$STATUSLINE_5H" -gt "$cache_5h" ] && return 0
-  [ -n "${STATUSLINE_7D:-}" ] && [ "$STATUSLINE_7D" -gt "$cache_7d" ] && return 0
-  return 1
-}
-
 # Serve cache when it is younger than the floor, or when it is younger than
 # the heartbeat AND nothing has happened since it was written. A cached 429
 # stays until the floor expires so we do not hammer during a throttle.
-should_serve_cache() {
-  [ ! -f "$cache" ] && return 1
-  local age err
+# Activity: stdin 5h or 7d passed by the statusline exceeds what the cache
+# last recorded, so the account has burned budget since the last successful
+# fetch and Fable may have moved.
+# Sets global cache_servable.
+check_cache() {
+  cache_servable=false
+  [[ -f "$cache" ]] || return 0
+  local age err cache_5h cache_7d
   age=$(( now - $(jq -r '.fetched_at // .updated_at // 0' "$cache" 2>/dev/null || echo 0) ))
-  [ "$age" -lt "$CACHE_FLOOR" ] && return 0
+  if [[ "$age" -lt "$CACHE_FLOOR" ]]; then
+    cache_servable=true
+    return
+  fi
   err=$(jq -r '.error // ""' "$cache" 2>/dev/null || echo "")
-  [ -n "$err" ] && return 1
-  [ "$age" -ge "$CACHE_HEARTBEAT" ] && return 1
-  detect_activity && return 1
-  return 0
+  [[ -z "$err" ]] || return 0
+  [[ "$age" -lt "$CACHE_HEARTBEAT" ]] || return 0
+  cache_5h=$(jq -r '.five_hour // -1' "$cache" 2>/dev/null || echo -1)
+  cache_7d=$(jq -r '.seven_day // -1' "$cache" 2>/dev/null || echo -1)
+  [[ -n "${STATUSLINE_5H:-}" ]] && [[ "$STATUSLINE_5H" -gt "$cache_5h" ]] && return 0
+  [[ -n "${STATUSLINE_7D:-}" ]] && [[ "$STATUSLINE_7D" -gt "$cache_7d" ]] && return 0
+  cache_servable=true
 }
 
-if [ "$async" -eq 1 ]; then
-  [ -f "$cache" ] && cat "$cache"
-  if ! should_serve_cache && _claim_fetch_lock; then
-    _spawn_refresh
+if [[ "$async" -eq 1 ]]; then
+  [[ -f "$cache" ]] && cat "$cache"
+  check_cache
+  if [[ "$cache_servable" = false ]]; then
+    _claim_fetch_lock
+    if [[ "$fetch_lock_claimed" = true ]]; then
+      _spawn_refresh
+    fi
   fi
   exit 0
 fi
 
-if [ "$fresh" -eq 0 ] && should_serve_cache; then
-  cat "$cache"
-  [ "$(jq -r '.ok != false' "$cache" 2>/dev/null)" = true ]
-  exit $?
+if [[ "$fresh" -eq 0 ]]; then
+  check_cache
+  if [[ "$cache_servable" = true ]]; then
+    cat "$cache"
+    cache_ok=$(jq -r '.ok != false' "$cache" 2>/dev/null) || cache_ok=false
+    [[ "$cache_ok" = true ]]
+    exit $?
+  fi
 fi
 
 script_path=$(realpath "${BASH_SOURCE[0]}")
@@ -123,11 +136,12 @@ timeout 2 python3 "$keychain_check" 2>/dev/null || emit_stale "keychain unavaila
 
 credential_status=0
 blob=$(timeout 5 security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null) || credential_status=$?
-if [ -z "$blob" ]; then
-  if [ "$credential_status" -ne 44 ] && [ "$credential_status" -ne 0 ]; then
+if [[ -z "$blob" ]]; then
+  if [[ "$credential_status" -ne 44 ]] && [[ "$credential_status" -ne 0 ]]; then
     mkdir -p "${HOME}/.claude" 2>/dev/null
     log="${HOME}/.claude/acl-events.log"
-    printf '%s security exit=%d\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$credential_status" >> "$log"
+    failed_at=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+    printf '%s security exit=%d\n' "$failed_at" "$credential_status" >> "$log"
 
     emit_stale "keychain unavailable"
   fi
@@ -137,18 +151,19 @@ fi
 
 # expiresAt is milliseconds. A missing/zero expiry is treated as usable;
 # the request will 401 if the token is dead.
-eval "$(printf '%s' "$blob" | jq -r '
+credential_assignments=$(printf '%s' "$blob" | jq -r '
   .claudeAiOauth // empty
   | "token=\(.accessToken | @sh)",
     "exp_ms=\(.expiresAt // 0)"
-')"
-if [ -z "${token:-}" ] || [ "$token" = "null" ]; then
+') || credential_assignments=""
+eval "$credential_assignments"
+if [[ -z "${token:-}" ]] || [[ "$token" = "null" ]]; then
   echo "claude-usage: Claude Code login has no access token" >&2
   emit_stale "no token"
 fi
-if [ "${exp_ms:-0}" -gt 1000000000000 ]; then
+if [[ "${exp_ms:-0}" -gt 1000000000000 ]]; then
   exp_s=$(( exp_ms / 1000 ))
-  if [ "$exp_s" -le "$now" ]; then
+  if [[ "$exp_s" -le "$now" ]]; then
       echo "claude-usage: Claude Code access token is expired — open claude once to refresh" >&2
     emit_stale "token expired"
   fi
@@ -164,7 +179,7 @@ code=$(curl -sS -o "$tmp" -w '%{http_code}' \
 # Drop the token from this shell as soon as the request is done.
 token=
 
-if [ "$code" != "200" ] || [ ! -s "$tmp" ]; then
+if [[ "$code" != "200" ]] || [[ ! -s "$tmp" ]]; then
   rm -f "$tmp"
   echo "claude-usage: GET /api/oauth/usage failed (HTTP ${code:-000})" >&2
   emit_stale "HTTP ${code:-000}"

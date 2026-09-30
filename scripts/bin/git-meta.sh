@@ -23,8 +23,8 @@ if [[ -f "$cache" ]]; then
   line=$(grep -m1 "^${pwd_real}	" "$cache" 2>/dev/null) || true
   if [[ -n "$line" ]]; then
     IFS=$'\t' read -r _ repo repo_full branch gitdir head_mtime config_mtime common_dir <<<"$line"
-    { read -r cur_head; read -r cur_cfg; } < <(stat -f %m "$gitdir/HEAD" "$gitdir/config" 2>/dev/null)
-    if [[ -n "$common_dir" && -n "$cur_head" && "$cur_head" == "$head_mtime" && "$cur_cfg" == "$config_mtime" ]]; then
+    mtimes=$(stat -f %m "$gitdir/HEAD" "$gitdir/config" 2>/dev/null) || true
+    if [[ -n "$common_dir" && "$mtimes" == "$head_mtime"$'\n'"$config_mtime" ]]; then
       _emit "$repo" "$repo_full" "$branch" "$common_dir"
       exit 0
     fi
@@ -37,7 +37,8 @@ out=$(git rev-parse --show-toplevel --abbrev-ref HEAD --git-dir --git-common-dir
 [[ "$gitdir" != /* ]] && gitdir="$pwd_real/$gitdir"
 [[ "$common_dir" != /* ]] && common_dir="$pwd_real/$common_dir"
 repo=$(basename "$toplevel")
-repo_full=$(git remote get-url origin 2>/dev/null | sed -E 's#(git@|https://)github\.com[:/]##; s#\.git$##')
+origin_url=$(git remote get-url origin 2>/dev/null) || true
+repo_full=$(sed -E 's#(git@|https://)github\.com[:/]##; s#\.git$##' <<<"$origin_url")
 head_mtime=$(stat -f %m "$gitdir/HEAD" 2>/dev/null || echo)
 config_mtime=$(stat -f %m "$gitdir/config" 2>/dev/null || echo)
 

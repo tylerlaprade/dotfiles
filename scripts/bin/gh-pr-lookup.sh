@@ -48,7 +48,8 @@ refresh() {
   if claim_lock "$write_lock" 30; then
     tmp=$(mktemp "${pr_map}.XXXXXX")
     awk -F '\t' -v key="$key" '$1 != key' "$pr_map" 2>/dev/null > "$tmp"
-    printf '%s\t%s\t%s\n' "$key" "$result" "$(date +%s)" >> "$tmp"
+    fetched_at=$(date +%s)
+    printf '%s\t%s\t%s\n' "$key" "$result" "$fetched_at" >> "$tmp"
     mv "$tmp" "$pr_map"
     rmdir "$write_lock"
   fi
@@ -65,10 +66,10 @@ if [[ -n "$entry" ]]; then
   age=$(( now - ts ))
 fi
 
-ttl=300
 case "$cached" in
   __NONE__) ttl=30 ;;
   __LOGIN__|__ERROR__) ttl=60 ;;
+  *) ttl=300 ;;
 esac
 
 if [[ -n "$cached" && $age -lt $ttl ]]; then

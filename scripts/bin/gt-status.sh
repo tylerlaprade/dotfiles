@@ -82,7 +82,8 @@ fi
 if [[ "${3:-}" == "--async" ]]; then
   (
     exec >/dev/null 2>&1 </dev/null
-    store "$(compute)"
+    result=$(compute)
+    store "$result"
   ) &
   disown 2>/dev/null
   [[ -n "${cached:-}" ]] && echo "$cached"
