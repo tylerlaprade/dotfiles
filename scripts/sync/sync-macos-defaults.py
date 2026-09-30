@@ -27,6 +27,8 @@ import tempfile
 from datetime import date, datetime
 from math import isclose
 
+import threeway
+
 UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 SUFFIXED_UUID_RE = re.compile(r"^[A-Z]+-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(-\d+)?$")
 ISO_DATETIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}")
@@ -41,8 +43,6 @@ SECRET_KEY_RE = re.compile(r"token|secret|passw|credential|api[_-]?key", re.IGNO
 ACCOUNT_RECORD_KEYS = {"AccountID", "AccountAlternateDSID", "AccountDescription", "AccountAuthenticationType"}
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, SCRIPT_DIR)
-import threeway  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--adopt", action="store_true")

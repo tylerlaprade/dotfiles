@@ -20,3 +20,7 @@
   machine is not exported over it. VS Code is not installed or synced. Every
   write to the live machine is logged in `~/Library/Logs/dotfiles-sync.log`.
   `sync-macos-defaults.py --dry-run` previews; `--adopt` is for a fresh Mac.
+- Run the Python tests in `tests/` from the repo root as
+  `python3 -m unittest tests/<name>.py`; `tests/threeway.py` imports the sync
+  module as `scripts.sync.threeway`, which resolves only from there. The recall
+  skill's tests run from its root with `PYTHONPATH=scripts`.

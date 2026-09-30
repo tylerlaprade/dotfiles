@@ -1,13 +1,10 @@
 import json
 import os
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-REPOSITORY = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPOSITORY / 'scripts' / 'sync'))
-import threeway  # noqa: E402
+from scripts.sync import threeway
 
 
 class MergeTest(unittest.TestCase):

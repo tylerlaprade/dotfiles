@@ -10,8 +10,7 @@ threeway.py), while the token never touches the repo.
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import threeway  # noqa: E402
+import threeway
 
 repo_path, local_path = sys.argv[1], sys.argv[2]
 

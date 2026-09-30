@@ -22,12 +22,11 @@ Called by sync-dotfiles.sh (LaunchAgent: at login and daily).
 import json
 import os
 import subprocess
-import sys
 import tempfile
 
+import threeway
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, SCRIPT_DIR)
-import threeway  # noqa: E402
 
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 STATE_DIR = os.path.join(REPO_ROOT, "scripts", "setup", "browser-local-state")
