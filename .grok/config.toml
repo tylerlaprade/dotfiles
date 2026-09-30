@@ -28,7 +28,7 @@ agents = false
 privacy_banner_acked = "2026-08-05T16:27:08Z"
 
 [models]
-default = "grok-4.6"
+default = "grok-4.7-build-fast"
 default_reasoning_effort = "high"
 
 [plugins]

@@ -1,0 +1,26 @@
+[lint]
+select = ["ALL"]
+ignore = [
+    # Line length is the formatter's job.
+    "E501",
+    # Quote style is pure style.
+    "Q000",
+    # Trailing commas conflict with the formatter.
+    "COM812",
+    # Docstrings are comments, and code should document itself.
+    "D",
+    # Tests run under unittest, not pytest.
+    "PT009",
+    "PT027",
+    # Script folders are not packages.
+    "INP001",
+    # These are command-line tools, so print is their output.
+    "T201",
+    # Automation scripts run trusted commands found on PATH.
+    "S603",
+    "S607",
+    # How an exception message is built is style.
+    "TRY003",
+    "EM101",
+    "EM102",
+]
