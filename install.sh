@@ -5,6 +5,10 @@ set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+if [[ ${1:-} == --kid-trackpad-prototype ]]; then
+  exec python3 "$DOTFILES/scripts/kid-trackpad/build.py"
+fi
+
 echo "=== Dotfiles Setup ==="
 
 sudo -v
