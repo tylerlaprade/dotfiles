@@ -16,9 +16,12 @@ ignore = [
     "INP001",
     # These are command-line tools, so print is their output.
     "T201",
-    # Automation scripts run trusted commands found on PATH.
+    # Automation scripts run trusted commands found on PATH, and wrappers hand control to them.
     "S603",
+    "S606",
     "S607",
+    # The LICENSE file and git history carry the copyright.
+    "CPY001",
     # How an exception message is built is style.
     "TRY003",
     "EM101",
