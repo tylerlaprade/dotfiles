@@ -12,80 +12,109 @@ and does not export the live machine over it. An empty repo still takes the
 live side, so the first export from the original machine works.
 """
 
+from __future__ import annotations
+
 import json
-import os
 from datetime import datetime
+from pathlib import Path
+from typing import TYPE_CHECKING, TypeVar, Union
 
-BASE_DIR = os.path.expanduser("~/.local/state/dotfiles-sync")
-LOG_PATH = os.path.expanduser("~/Library/Logs/dotfiles-sync.log")
-MISSING = object()
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Mapping
+    from typing import TextIO
+
+JSONValue = Union[None, bool, int, float, str, list["JSONValue"], dict[str, "JSONValue"]]
+JSONObject = dict[str, JSONValue]
+Value = TypeVar("Value")
+
+load_json: Callable[[TextIO], JSONValue] = json.load
+parse_json: Callable[[str], JSONValue] = json.loads
+
+BASE_DIR = Path("~/.local/state/dotfiles-sync").expanduser()
+LOG_PATH = Path("~/Library/Logs/dotfiles-sync.log").expanduser()
 
 
-def base_path(name):
-    return os.path.join(BASE_DIR, f"{name}.json")
-
-
-def load_base(name):
-    path = base_path(name)
-    if not os.path.exists(path):
+def read_json_object(path: Path) -> JSONObject | None:
+    if not path.exists():
         return None
+    with path.open() as f:
+        loaded = load_json(f)
+    return loaded if isinstance(loaded, dict) else None
+
+
+def write_json(path: Path, value: object, *, sort_keys: bool = False) -> None:
+    with path.open("w") as f:
+        json.dump(value, f, indent=2, sort_keys=sort_keys)
+        f.write("\n")
+
+
+def strings(values: Mapping[str, JSONValue]) -> dict[str, str]:
+    return {key: value for key, value in values.items() if isinstance(value, str)}
+
+
+def base_path(name: str) -> Path:
+    return BASE_DIR / f"{name}.json"
+
+
+def load_base(name: str) -> JSONObject | None:
     try:
-        with open(path) as f:
-            return json.load(f)
+        return read_json_object(base_path(name))
     except ValueError:
         return None
 
 
-def save_base(name, value):
+def save_base(name: str, value: Mapping[str, object]) -> None:
     path = base_path(name)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(value, f, indent=2, sort_keys=True)
-        f.write("\n")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_json(path, value, sort_keys=True)
 
 
-def merge_value(base, local, repo):
-    if local == repo:
-        return local
-    if local == base:
-        return repo
-    return local
+def same(first: Mapping[str, Value], second: Mapping[str, Value], key: str) -> bool:
+    if key not in first or key not in second:
+        return (key in first) == (key in second)
+    return first[key] == second[key]
 
 
-def merge_unbased(local, repo):
+def merge_unbased(local: Mapping[str, Value], repo: Mapping[str, Value]) -> dict[str, Value]:
     """No recorded base. Adopt the shared repo when it has content."""
     if repo:
         return dict(repo)
     return dict(local)
 
 
-def merge(base, local, repo, repo_can_delete=True):
+def merge(
+    base: Mapping[str, Value] | None,
+    local: Mapping[str, Value],
+    repo: Mapping[str, Value],
+    *,
+    repo_can_delete: bool = True,
+) -> dict[str, Value]:
     if base is None:
         return dict(local)
-    merged = {}
+    merged: dict[str, Value] = {}
     for key in sorted(set(base) | set(local) | set(repo)):
-        value = merge_value(base.get(key, MISSING), local.get(key, MISSING), repo.get(key, MISSING))
-        if value is MISSING and not repo_can_delete and key in local:
-            value = local[key]
-        if value is not MISSING:
-            merged[key] = value
+        repo_moved = not same(local, repo, key) and same(local, base, key)
+        source = repo if repo_moved and (key in repo or repo_can_delete) else local
+        if key in source:
+            merged[key] = source[key]
     return merged
 
 
-def changes(local, merged):
+def changes(local: Mapping[str, Value], merged: Mapping[str, Value]) -> tuple[dict[str, Value], list[str]]:
     """What the live side must take from the merge: (updates, removals)."""
-    updates = {key: value for key, value in merged.items() if local.get(key, MISSING) != value}
+    updates = {key: value for key, value in merged.items() if key not in local or local[key] != value}
     removals = [key for key in local if key not in merged]
     return updates, removals
 
 
-def log_applied(sync, target, updates, removals=()):
-    if not updates and not removals:
+def log_applied(sync: str, target: str, updates: Mapping[str, object], removals: Iterable[str] = ()) -> None:
+    removed = list(removals)
+    if not updates and not removed:
         return
-    os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+    LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().astimezone().isoformat(timespec="seconds")
-    with open(LOG_PATH, "a") as f:
+    with LOG_PATH.open("a") as f:
         for key, value in updates.items():
             f.write(f"{stamp} {sync} {target} {key} = {json.dumps(value, sort_keys=True)}\n")
-        for key in removals:
+        for key in removed:
             f.write(f"{stamp} {sync} {target} {key} removed\n")

@@ -9,25 +9,30 @@ preserving ``authToken`` and ``alternativeProfiles`` locally.
 Usage: sync-graphite.py <repo_prefs> <local_config>
 """
 
-import json
-import os
+from __future__ import annotations
+
 import sys
+from pathlib import Path
 
 import threeway
 
-prefs_path, config_path = sys.argv[1], sys.argv[2]
+prefs_path, config_path = Path(sys.argv[1]), Path(sys.argv[2])
 LOCAL_ONLY_KEYS = {"authToken", "alternativeProfiles"}
 LOCAL_ONLY_GTI_KEYS = {"gti.install-uuid"}
 
-with open(prefs_path) as f:
-    prefs = json.load(f)
 
-created = not os.path.exists(config_path)
-if created:
-    config = {}
-else:
-    with open(config_path) as f:
-        config = json.load(f)
+def is_local_only_gti_config(entry: threeway.JSONValue) -> bool:
+    return isinstance(entry, dict) and entry.get("key") in LOCAL_ONLY_GTI_KEYS
+
+
+prefs = threeway.read_json_object(prefs_path)
+if prefs is None:
+    sys.exit(f"{prefs_path}: expected a JSON object")
+
+created = not config_path.exists()
+config = {} if created else threeway.read_json_object(config_path)
+if config is None:
+    sys.exit(f"{config_path}: expected a JSON object")
 
 # Split local config into syncable preferences and machine-local state.
 local_only = {k: v for k, v in config.items() if k in LOCAL_ONLY_KEYS}
@@ -41,25 +46,20 @@ else:
 
 # Strip machine-local gtiConfigs entries before writing to repo.
 repo_prefs = {**merged_prefs}
-if "gtiConfigs" in repo_prefs:
-    repo_prefs["gtiConfigs"] = [
-        c for c in repo_prefs["gtiConfigs"] if c.get("key") not in LOCAL_ONLY_GTI_KEYS
-    ]
+gti_configs = repo_prefs.get("gtiConfigs")
+if isinstance(gti_configs, list):
+    repo_prefs["gtiConfigs"] = [c for c in gti_configs if not is_local_only_gti_config(c)]
 
 if prefs != repo_prefs:
-    with open(prefs_path, "w") as f:
-        json.dump(repo_prefs, f, indent=2)
-        f.write("\n")
+    threeway.write_json(prefs_path, repo_prefs)
 
 merged_config = {**local_only, **merged_prefs}
 
 if config != merged_config:
-    threeway.log_applied("graphite", config_path, *threeway.changes(local_prefs, merged_prefs))
-    os.makedirs(os.path.dirname(config_path), exist_ok=True)
-    with open(config_path, "w") as f:
-        json.dump(merged_config, f, indent=2)
-        f.write("\n")
+    threeway.log_applied("graphite", str(config_path), *threeway.changes(local_prefs, merged_prefs))
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    threeway.write_json(config_path, merged_config)
     if created and "authToken" not in local_only:
-        print("ℹ️  Graphite preferences adopted. Run 'gt auth' to add your auth token.")
+        print("\N{INFORMATION SOURCE}\N{VARIATION SELECTOR-16}  Graphite preferences adopted. Run 'gt auth' to add your auth token.")
 
 threeway.save_base("graphite", merged_prefs)

@@ -19,28 +19,39 @@ browser, run `sync-dotfiles`, and reopen it.
 Called by sync-dotfiles.sh (LaunchAgent: at login and daily).
 """
 
+from __future__ import annotations
+
 import json
-import os
 import subprocess
 import tempfile
+from dataclasses import dataclass
+from pathlib import Path
 
 import threeway
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SCRIPT_DIR = Path(__file__).absolute().parent
 
-REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
-STATE_DIR = os.path.join(REPO_ROOT, "scripts", "setup", "browser-local-state")
+REPO_ROOT = SCRIPT_DIR.parent.parent
+STATE_DIR = REPO_ROOT / "scripts" / "setup" / "browser-local-state"
 
-APP_SUPPORT = os.path.expanduser("~/Library/Application Support")
+APP_SUPPORT = Path("~/Library/Application Support").expanduser()
+
+
+@dataclass(frozen=True)
+class Browser:
+    local_state: Path
+    process: str
+
+
 BROWSERS = {
-    "brave": {
-        "local_state": os.path.join(APP_SUPPORT, "BraveSoftware", "Brave-Browser", "Local State"),
-        "process": "Brave Browser",
-    },
-    "chrome": {
-        "local_state": os.path.join(APP_SUPPORT, "Google", "Chrome", "Local State"),
-        "process": "Google Chrome",
-    },
+    "brave": Browser(
+        local_state=APP_SUPPORT / "BraveSoftware" / "Brave-Browser" / "Local State",
+        process="Brave Browser",
+    ),
+    "chrome": Browser(
+        local_state=APP_SUPPORT / "Google" / "Chrome" / "Local State",
+        process="Google Chrome",
+    ),
 }
 
 TRACKED_PATHS = [
@@ -49,8 +60,9 @@ TRACKED_PATHS = [
     "hardware_acceleration_mode.enabled",
 ]
 
-def get_path(tree, dotted):
-    node = tree
+
+def get_path(tree: threeway.JSONObject, dotted: str) -> threeway.JSONValue:
+    node: threeway.JSONValue = tree
     for part in dotted.split("."):
         if not isinstance(node, dict) or part not in node:
             return None
@@ -58,35 +70,27 @@ def get_path(tree, dotted):
     return node
 
 
-def set_path(tree, dotted, value):
-    parts = dotted.split(".")
+def set_path(tree: threeway.JSONObject, dotted: str, value: threeway.JSONValue) -> None:
+    *parents, leaf = dotted.split(".")
     node = tree
-    for part in parts[:-1]:
+    for part in parents:
         child = node.get(part)
         if not isinstance(child, dict):
             child = {}
             node[part] = child
         node = child
-    node[parts[-1]] = value
+    node[leaf] = value
 
 
-def read_local_state(path):
-    if not os.path.exists(path):
-        return None
-    with open(path) as f:
-        return json.load(f)
-
-
-def write_local_state(path, tree):
-    directory = os.path.dirname(path)
-    with tempfile.NamedTemporaryFile("w", dir=directory, delete=False) as tmp:
+def write_local_state(path: Path, tree: threeway.JSONObject) -> None:
+    with tempfile.NamedTemporaryFile("w", dir=path.parent, delete=False) as tmp:
         json.dump(tree, tmp, separators=(",", ":"))
-        tmp_path = tmp.name
-    os.replace(tmp_path, path)
+        tmp_path = Path(tmp.name)
+    tmp_path.replace(path)
 
 
-def export_entries(tree):
-    entries = {}
+def export_entries(tree: threeway.JSONObject) -> threeway.JSONObject:
+    entries: threeway.JSONObject = {}
     for dotted in TRACKED_PATHS:
         value = get_path(tree, dotted)
         if value is not None:
@@ -94,50 +98,43 @@ def export_entries(tree):
     return entries
 
 
-def repo_path(browser):
-    return os.path.join(STATE_DIR, f"{browser}.json")
+def repo_path(browser: str) -> Path:
+    return STATE_DIR / f"{browser}.json"
 
 
-def read_repo(browser):
-    path = repo_path(browser)
-    if not os.path.exists(path):
-        return None
-    with open(path) as f:
-        return json.load(f)
+def write_repo(browser: str, entries: threeway.JSONObject) -> None:
+    threeway.write_json(repo_path(browser), entries, sort_keys=True)
 
 
-def write_repo(browser, entries):
-    with open(repo_path(browser), "w") as f:
-        json.dump(entries, f, indent=2, sort_keys=True)
-        f.write("\n")
+def browser_running(process_name: str) -> bool:
+    return subprocess.run(["pgrep", "-xq", process_name], check=False).returncode == 0
 
 
-def browser_running(process_name):
-    return subprocess.run(["pgrep", "-xq", process_name]).returncode == 0
-
-
-def apply_entries(browser, config, updates):
-    if browser_running(config["process"]):
-        print(f"ℹ️  {browser}: repo settings differ but {config['process']} is running; "
+def apply_entries(browser: str, config: Browser, updates: threeway.JSONObject) -> bool:
+    if browser_running(config.process):
+        print(f"\N{INFORMATION SOURCE}\N{VARIATION SELECTOR-16}  {browser}: repo settings differ but {config.process} is running; "
               "quit it and run sync-dotfiles to apply")
         return False
-    tree = read_local_state(config["local_state"])
+    tree = threeway.read_json_object(config.local_state)
+    if tree is None:
+        print(f"{browser}: {config.local_state} is not a JSON object; leaving it alone")
+        return False
     for dotted, value in updates.items():
         set_path(tree, dotted, value)
-    write_local_state(config["local_state"], tree)
+    write_local_state(config.local_state, tree)
     threeway.log_applied("browser-local-state", browser, updates)
     print(f"✅ {browser}: applied {', '.join(sorted(updates))}")
     return True
 
 
 for browser, config in BROWSERS.items():
-    tree = read_local_state(config["local_state"])
-    repo_entries = read_repo(browser)
+    tree = threeway.read_json_object(config.local_state)
+    repo_entries = threeway.read_json_object(repo_path(browser))
     if tree is None and repo_entries is None:
         continue
 
     local_entries = export_entries(tree) if tree is not None else None
-    base_name = os.path.join("browser-local-state", browser)
+    base_name = f"browser-local-state/{browser}"
 
     if repo_entries is not None and local_entries is not None:
         base = threeway.load_base(base_name)

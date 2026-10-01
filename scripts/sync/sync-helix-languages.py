@@ -7,31 +7,31 @@ flow both ways by a three-way comparison against the last synced text (see
 threeway.py), while the token never touches the repo.
 """
 
-import os
+from __future__ import annotations
+
 import sys
+from pathlib import Path
 
 import threeway
 
-repo_path, local_path = sys.argv[1], sys.argv[2]
+repo_path, local_path = Path(sys.argv[1]), Path(sys.argv[2])
 
 PLACEHOLDER = "SOURCERY_TOKEN"
-AUTH_YAML = os.path.expanduser("~/.config/sourcery/auth.yaml")
+AUTH_YAML = Path("~/.config/sourcery/auth.yaml").expanduser()
 
 
-def read(path):
-    if not os.path.exists(path):
+def read(path: Path) -> str:
+    if not path.exists():
         return ""
-    with open(path) as f:
-        return f.read()
+    return path.read_text()
 
 
-def write(path, content):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
-        f.write(content)
+def write(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content)
 
 
-def get_token():
+def get_token() -> str:
     """Read the Sourcery token from auth.yaml."""
     text = read(AUTH_YAML)
     for line in text.splitlines():
@@ -40,14 +40,14 @@ def get_token():
     return ""
 
 
-def redact(content, token):
+def redact(content: str, token: str) -> str:
     """Replace real token with placeholder."""
     if token:
         return content.replace(token, PLACEHOLDER)
     return content
 
 
-def inject(content, token):
+def inject(content: str, token: str) -> str:
     """Replace placeholder with real token."""
     if token:
         return content.replace(PLACEHOLDER, token)
@@ -67,7 +67,7 @@ if base is None and repo_content:
 elif base is None:
     merged = local_redacted
 else:
-    merged = threeway.merge(base, {"text": local_redacted}, {"text": repo_content})["text"]
+    merged = threeway.merge(threeway.strings(base), {"text": local_redacted}, {"text": repo_content})["text"]
 
 if merged and merged != repo_content:
     write(repo_path, merged)
@@ -75,7 +75,7 @@ if merged and merged != repo_content:
 # Always write live file with real token
 live_content = inject(merged, token)
 if live_content != local_content:
-    threeway.log_applied("helix-languages", local_path, {"text": "updated from repo"})
+    threeway.log_applied("helix-languages", str(local_path), {"text": "updated from repo"})
     write(local_path, live_content)
 
 threeway.save_base("helix-languages", {"text": merged})
