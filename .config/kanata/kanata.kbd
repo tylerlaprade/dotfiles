@@ -93,6 +93,15 @@
   vk-kid  (multi
             (release-key lsft)
             (release-key rsft)
+            (release-key lctl)
+            (release-key rctl)
+            (release-key lalt)
+            (release-key ralt)
+            (release-key lmet)
+            (release-key rmet)
+            (release-key fn)
+            (release-layer fnkeys)
+            (release-layer extend)
             (layer-switch kid)
             (macro 120 lalt 70 lalt 70 lalt 70 lalt 70 lalt))
   vk-base (multi
@@ -225,17 +234,26 @@
 )
 
 ;; ---------------------------------------------------------------------------
-;; Kid lock — letters/numbers OK, modifiers dead, full media row OK
-;; Unlock: same both-shifts+K toggle. @kk uses (input real …) so physical
+;; Kid lock — whitelist train controls, brightness, and volume; everything else dead.
+;; Unlock: same both-shifts+K toggle. @kid-k uses (input real …) so physical
 ;; shifts still count even though this layer maps lsft/rsft to XX.
 ;; ---------------------------------------------------------------------------
-(deflayer kid
-  _    brdn brup mctl lpad bldn blup prev pp   next mute vold volu
-  _    1    2    3    4    5    6    7    8    9    0    -    =    bspc
-  tab  q    w    e    r    t    y    u    i    o    p    [    ]    \
-  XX   a    s    d    f    g    h    j    @kk  l    ;    '    ret
-  XX   z    x    c    v    b    n    m    ,    .    /    XX
-  XX   XX   XX   XX              spc          XX   XX
+(deflayermap (kid)
+  f1 brdn
+  f2 brup
+  f10 mute
+  f11 vold
+  f12 volu
+  brdn brdn
+  brup brup
+  mute mute
+  vold vold
+  volu volu
+  left left
+  rght rght
+  spc spc
+  k @kid-k
+  ___ XX
 )
 
 (defalias
@@ -295,5 +313,9 @@
     ((and (input real lsft) (input real rsft) (layer kid))) (on-press tap-vkey vk-base) break
     ((and (input real lsft) (input real rsft))) (on-press tap-vkey vk-kid) break
     () k break
+  )
+  kid-k (switch
+    ((and (input real lsft) (input real rsft))) (on-press tap-vkey vk-base) break
+    () XX break
   )
 )
