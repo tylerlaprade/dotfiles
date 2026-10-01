@@ -5,6 +5,21 @@ Forked from [arjunkmrm/recall](https://github.com/arjunkmrm/recall) at 0.2.2 on
 third source is `pi` where ours is Grok, so the two cannot simply be merged.
 Versions below 0.2.3 are upstream's; from 0.2.3 on they are local.
 
+## 0.7.1 — 2026-09-30
+
+- A transcript field holding the wrong kind of JSON no longer ends the run.
+  A Codex `payload` or Grok `info` that was not an object, or a `text` that
+  was not a string, raised past the parser, and since nothing is committed
+  until every file is read, the whole pass was lost. Such a field now reads
+  as empty, the way a corrupt line already cost only that line.
+- `read_session.py` skips a line that is valid JSON but not an object, as the
+  indexer does, instead of dying on it.
+- Running `tests/test_incremental.py` directly ran 35 of its 54 tests: a
+  `unittest.main()` in the middle of the file stopped the rest being defined.
+- Typed throughout, so Ruff and basedpyright check it clean. Search and list
+  queries are now fixed SQL with optional filters rather than strings built
+  per call; results are unchanged.
+
 ## 0.7.0 — 2026-09-24
 
 - A run that skips session files now says so: exit `4` means the results (or

@@ -11,11 +11,20 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from typing import NamedTuple
 
-from support import Corpus, claude_entry, index, recall
+import recall
+from recall import SqlValue, fetch_all, fetch_one, sql_text
+from support import Corpus, claude_entry, index
+
+
+class Schema(NamedTuple):
+    create: str
+    insert: str
+
 
 # The schema as it stood before incremental indexing.
-SCHEMA_0_2_2 = """
+SCHEMA_0_2_2 = Schema("""
     CREATE TABLE sessions (
         session_id TEXT PRIMARY KEY,
         source TEXT,
@@ -28,11 +37,11 @@ SCHEMA_0_2_2 = """
     CREATE VIRTUAL TABLE messages USING fts5(
         session_id UNINDEXED, role, text, tokenize='porter unicode61'
     );
-"""
+""", "INSERT INTO sessions VALUES (?, ?, ?, ?, ?, ?, ?)")
 
 # The schema before `source` and `file_path` were added, which the script has
 # always migrated from and still must.
-SCHEMA_0_1_0 = """
+SCHEMA_0_1_0 = Schema("""
     CREATE TABLE sessions (
         session_id TEXT PRIMARY KEY,
         project TEXT,
@@ -43,65 +52,71 @@ SCHEMA_0_1_0 = """
     CREATE VIRTUAL TABLE messages USING fts5(
         session_id UNINDEXED, role, text, tokenize='porter unicode61'
     );
-"""
+""", "INSERT INTO sessions VALUES (?, ?, ?, ?, ?)")
 
 
-def columns(conn):
-    return {row[1] for row in conn.execute("PRAGMA table_info(sessions)")}
+def columns(conn: sqlite3.Connection) -> set[str]:
+    return {sql_text(row[1]) for row in fetch_all(conn, "PRAGMA table_info(sessions)")}
+
+
+def count_sessions(conn: sqlite3.Connection) -> int:
+    return recall.sql_count(conn, "SELECT COUNT(*) FROM sessions")
+
+
+def first_text(conn: sqlite3.Connection) -> str:
+    row = fetch_one(conn, "SELECT text FROM messages")
+    return sql_text(row[0]) if row else ""
 
 
 class Migration(unittest.TestCase):
-    def setUp(self):
-        self._tmp = tempfile.TemporaryDirectory()
-        self.tmp = Path(self._tmp.name)
+    def setUp(self) -> None:
+        self._tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
+        self.tmp: Path = Path(self._tmp.name)
         self.addCleanup(self._tmp.cleanup)
-        self.db = str(self.tmp / "old.db")
+        self.db: str = str(self.tmp / "old.db")
 
-    def build(self, schema, rows=()):
+    def build(self, schema: Schema, rows: tuple[tuple[SqlValue, ...], ...] = ()) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db)
-        conn.executescript(schema)
-        for row in rows:
-            conn.execute(
-                f"INSERT INTO sessions VALUES ({','.join('?' * len(row))})", row)
+        conn.executescript(schema.create)
+        conn.executemany(schema.insert, rows)
         conn.commit()
         return conn
 
-    def test_adds_the_incremental_columns_in_place(self):
-        conn = self.build(SCHEMA_0_2_2, [
+    def test_adds_the_incremental_columns_in_place(self) -> None:
+        conn = self.build(SCHEMA_0_2_2, (
             ("sess-a", "claude", "/gone/a.jsonl", "/work", "slug-a", 1700, 1.0),
             ("sess-b", "codex", "/gone/b.jsonl", "/work", "slug-b", 1800, 2.0),
-        ])
+        ))
         conn.execute("INSERT INTO messages VALUES ('sess-a', 'user', 'kept text')")
         conn.commit()
 
         recall.migrate_schema(conn)
 
         self.assertLessEqual({"byte_offset", "tail_hash", "parser_version"}, columns(conn))
-        self.assertEqual(conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0], 2)
-        self.assertEqual(
-            conn.execute("SELECT text FROM messages").fetchone()[0], "kept text")
+        self.assertEqual(count_sessions(conn), 2)
+        self.assertEqual(first_text(conn), "kept text")
         conn.close()
 
-    def test_existing_rows_start_without_a_resume_point(self):
+    def test_existing_rows_start_without_a_resume_point(self) -> None:
         """They must be read in full once more rather than resumed from an
         offset nobody recorded."""
-        conn = self.build(SCHEMA_0_2_2, [
-            ("sess-a", "claude", "/gone/a.jsonl", "/work", "slug-a", 1700, 1.0)])
+        conn = self.build(SCHEMA_0_2_2, (
+            ("sess-a", "claude", "/gone/a.jsonl", "/work", "slug-a", 1700, 1.0),))
         recall.migrate_schema(conn)
-        offset, tail_hash, version = conn.execute(
-            "SELECT byte_offset, tail_hash, parser_version FROM sessions").fetchone()
-        self.assertEqual(recall.resume_offset("/gone/a.jsonl", offset, tail_hash, version), 0)
+        stored = recall.load_indexed_state(conn)["/gone/a.jsonl"]
+        self.assertEqual(recall.resume_offset("/gone/a.jsonl", stored.byte_offset,
+                                              stored.tail_hash, stored.parser_version), 0)
         conn.close()
 
-    def test_migrating_from_the_oldest_schema_adds_every_column(self):
-        conn = self.build(SCHEMA_0_1_0, [("sess-a", "/work", "slug-a", 1700, 1.0)])
+    def test_migrating_from_the_oldest_schema_adds_every_column(self) -> None:
+        conn = self.build(SCHEMA_0_1_0, (("sess-a", "/work", "slug-a", 1700, 1.0),))
         recall.migrate_schema(conn)
         self.assertLessEqual(
             {"source", "file_path", "byte_offset", "tail_hash", "parser_version"},
             columns(conn))
         conn.close()
 
-    def test_migrating_twice_changes_nothing(self):
+    def test_migrating_twice_changes_nothing(self) -> None:
         conn = self.build(SCHEMA_0_2_2)
         recall.migrate_schema(conn)
         first = columns(conn)
@@ -109,7 +124,7 @@ class Migration(unittest.TestCase):
         self.assertEqual(columns(conn), first)
         conn.close()
 
-    def test_a_half_migrated_database_finishes_upgrading(self):
+    def test_a_half_migrated_database_finishes_upgrading(self) -> None:
         """Each column is probed on its own, so a database left part way
         through an earlier upgrade still comes out whole."""
         conn = self.build(SCHEMA_0_2_2)
@@ -119,7 +134,7 @@ class Migration(unittest.TestCase):
         self.assertLessEqual({"byte_offset", "tail_hash", "parser_version"}, columns(conn))
         conn.close()
 
-    def test_an_upgraded_database_indexes_incrementally_from_then_on(self):
+    def test_an_upgraded_database_indexes_incrementally_from_then_on(self) -> None:
         conn = self.build(SCHEMA_0_2_2)
         conn.close()
         corpus = Corpus(self.tmp / "corpus")
@@ -131,8 +146,8 @@ class Migration(unittest.TestCase):
 
         conn = sqlite3.connect(self.db)
         try:
-            texts = [row[0] for row in conn.execute("SELECT text FROM messages")]
-            offset = conn.execute("SELECT byte_offset FROM sessions").fetchone()[0]
+            texts = [sql_text(row[0]) for row in fetch_all(conn, "SELECT text FROM messages")]
+            offset = recall.load_indexed_state(conn)[str(path)].byte_offset
         finally:
             conn.close()
         self.assertEqual(sorted(texts), ["first", "second"])

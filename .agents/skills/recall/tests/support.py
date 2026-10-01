@@ -15,19 +15,28 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import threading
 from collections import Counter
 from contextlib import contextmanager
 from pathlib import Path
+from typing import TYPE_CHECKING
+from unittest import mock
 from urllib.parse import quote
 
 import recall
+from recall import JSONObject, Message, fetch_all, sql_int, sql_text
+
+if TYPE_CHECKING:
+    import unittest
+    from collections.abc import Generator, Iterable
 
 BASE_MTIME = 1_800_000_000  # a fixed point in time; tests only care about order
 
 
-def claude_entry(text, role="user", cwd="/work/project", slug=None, ts=None):
+def claude_entry(text: str, role: str = "user", cwd: str = "/work/project",
+                 slug: str | None = None, ts: str | None = None) -> JSONObject:
     """One line of a Claude Code transcript."""
-    entry = {"type": role, "cwd": cwd, "message": {"content": text}}
+    entry: JSONObject = {"type": role, "cwd": cwd, "message": {"content": text}}
     if slug:
         entry["slug"] = slug
     if ts:
@@ -35,24 +44,25 @@ def claude_entry(text, role="user", cwd="/work/project", slug=None, ts=None):
     return entry
 
 
-def codex_meta(session_uuid, cwd="/work/project", ts="2026-01-01T00:00:00.000Z"):
+def codex_meta(session_uuid: str, cwd: str = "/work/project",
+               ts: str = "2026-01-01T00:00:00.000Z") -> JSONObject:
     """The session_meta line Codex writes first, carrying the real session id."""
     return {"timestamp": ts, "type": "session_meta",
             "payload": {"id": session_uuid, "cwd": cwd}}
 
 
-def codex_entry(text, role="user", ts=None):
+def codex_entry(text: str, role: str = "user", ts: str | None = None) -> JSONObject:
     """One conversational line of a Codex rollout."""
     return {"timestamp": ts or "2026-01-01T00:01:00.000Z", "type": "response_item",
             "payload": {"role": role, "content": [{"type": "input_text", "text": text}]}}
 
 
-def grok_entry(text, role="user"):
+def grok_entry(text: str, role: str = "user") -> JSONObject:
     """One line of a Grok chat_history.jsonl."""
     return {"type": role, "content": text}
 
 
-def antigravity_entry(text, role="user", ts="2026-01-01T00:00:00Z"):
+def antigravity_entry(text: str, role: str = "user", ts: str = "2026-01-01T00:00:00Z") -> JSONObject:
     """One step of an Antigravity transcript.
 
     A user step arrives wrapped in <USER_REQUEST> with harness blocks after
@@ -76,7 +86,7 @@ ANTIGRAVITY_NON_MESSAGE_STEPS = (
 )
 
 
-def antigravity_noise(ts="2026-01-01T00:00:00Z"):
+def antigravity_noise(ts: str = "2026-01-01T00:00:00Z") -> list[JSONObject]:
     """Real text in steps that are dropped for their source and type alone."""
     return [{"source": source, "type": kind, "created_at": ts,
              "content": f"{kind} payload text"}
@@ -94,7 +104,7 @@ CLAUDE_NON_MESSAGE_TYPES = (
 GROK_NON_MESSAGE_TYPES = ("reasoning", "tool_result", "tool_call", "system")
 
 
-def claude_noise(cwd="/work/project"):
+def claude_noise(cwd: str = "/work/project") -> list[JSONObject]:
     """The non-conversational entries a real Claude transcript is full of.
 
     They carry text where the parser looks for it, so only the entry type
@@ -105,7 +115,7 @@ def claude_noise(cwd="/work/project"):
             for kind in CLAUDE_NON_MESSAGE_TYPES]
 
 
-def grok_noise():
+def grok_noise() -> list[JSONObject]:
     """The same, for Grok: real text, dropped only because of the type."""
     return [{"type": kind, "content": f"{kind} payload text"}
             for kind in GROK_NON_MESSAGE_TYPES]
@@ -114,26 +124,26 @@ def grok_noise():
 class Corpus:
     """A synthetic home for every source, laid out under one root."""
 
-    def __init__(self, root):
-        self.root = Path(root)
-        self.claude = self.root / "claude" / "projects"
-        self.codex = self.root / "codex" / "sessions"
-        self.grok = self.root / "grok" / "sessions"
-        self.antigravity = self.root / "antigravity" / "brain"
-        self.opencode_db = self.root / "opencode" / "opencode.db"
+    def __init__(self, root: Path | str) -> None:
+        self.root: Path = Path(root)
+        self.claude: Path = self.root / "claude" / "projects"
+        self.codex: Path = self.root / "codex" / "sessions"
+        self.grok: Path = self.root / "grok" / "sessions"
+        self.antigravity: Path = self.root / "antigravity" / "brain"
+        self.opencode_db: Path = self.root / "opencode" / "opencode.db"
         for directory in (self.claude, self.codex, self.grok, self.antigravity):
             directory.mkdir(parents=True, exist_ok=True)
         self.opencode_db.parent.mkdir(parents=True, exist_ok=True)
-        self._tick = 0
+        self._tick: int = 0
 
     # — writing —————————————————————————————————————————————————————————————
 
-    def _stamp(self, path):
+    def _stamp(self, path: Path) -> None:
         """Move a file's mtime forward so the next scan notices it."""
         self._tick += 1
         os.utime(path, (BASE_MTIME + self._tick, BASE_MTIME + self._tick))
 
-    def write(self, path, entries, mode="a"):
+    def write(self, path: Path | str, entries: Iterable[JSONObject], mode: str = "a") -> Path:
         """Write JSONL entries to `path`, creating parents as needed."""
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -143,7 +153,7 @@ class Corpus:
         self._stamp(path)
         return path
 
-    def write_raw(self, path, text, mode="a"):
+    def write_raw(self, path: Path | str, text: str, mode: str = "a") -> Path:
         """Write text verbatim — for partial lines and hand-built corruption."""
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -152,37 +162,41 @@ class Corpus:
         self._stamp(path)
         return path
 
-    def stamp(self, path):
+    def stamp(self, path: Path | str) -> None:
         """Bump mtime without changing content."""
         self._stamp(Path(path))
 
     # — one call per source ——————————————————————————————————————————————————
 
-    def claude_session(self, session_id, entries, project="proj"):
+    def claude_session(self, session_id: str, entries: Iterable[JSONObject],
+                       project: str = "proj") -> Path:
         return self.write(self.claude / project / f"{session_id}.jsonl", entries)
 
-    def codex_session(self, session_uuid, entries, day="2026/01/01"):
+    def codex_session(self, session_uuid: str, entries: Iterable[JSONObject],
+                      day: str = "2026/01/01") -> Path:
         name = f"rollout-2026-01-01T00-00-00-{session_uuid}.jsonl"
         return self.write(self.codex / day / name, entries)
 
-    def grok_session(self, session_uuid, entries, cwd="/work/project", summary=None):
+    def grok_session(self, session_uuid: str, entries: Iterable[JSONObject],
+                     cwd: str = "/work/project", summary: JSONObject | None = None) -> Path:
         directory = self.grok / quote(cwd, safe="") / session_uuid
         directory.mkdir(parents=True, exist_ok=True)
         if summary is not None:
             (directory / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
         return self.write(directory / "chat_history.jsonl", entries)
 
-    def antigravity_session(self, session_uuid, entries):
+    def antigravity_session(self, session_uuid: str, entries: Iterable[JSONObject]) -> Path:
         directory = self.antigravity / session_uuid / ".system_generated" / "logs"
         return self.write(directory / "transcript.jsonl", entries)
 
-    def opencode_session(self, session_id, messages, cwd="/work/project",
-                         title="a session", created=1_800_000_000_000):
+    def opencode_session(self, session_id: str, messages: list[tuple[str, list[str]]],
+                         *, cwd: str = "/work/project", title: str = "a session") -> str:
         """Write one OpenCode session, its messages, and their text parts.
 
         `messages` is a list of (role, [text, ...]) — a message's text arrives
         as several parts, and reasoning parts sit beside them.
         """
+        created = OPENCODE_CREATED_MS
         conn = sqlite3.connect(str(self.opencode_db))
         try:
             conn.executescript("""
@@ -227,11 +241,13 @@ class Corpus:
         return f"{self.opencode_db}{recall.OPENCODE_PATH_SEP}{session_id}"
 
 
-_pointed_at_something = False
+OPENCODE_CREATED_MS = 1_800_000_000_000
+
+_pointed_at_lock = threading.Lock()
 
 
 @contextmanager
-def pointed_at(corpus, db_path):
+def pointed_at(corpus: Corpus, db_path: Path | str) -> Generator[None, None, None]:
     """Point the recall module at a throwaway corpus and database.
 
     Not reentrant, and not safe to enter from more than one thread: it swaps
@@ -240,35 +256,29 @@ def pointed_at(corpus, db_path):
     suite simply starts indexing whatever is in the real home — so it raises
     here instead.
     """
-    global _pointed_at_something
-    if _pointed_at_something:
+    if not _pointed_at_lock.acquire(blocking=False):
         raise RuntimeError(
             "pointed_at is already active; it swaps module globals, so enter it "
             "once around the work rather than inside each thread or helper"
         )
-
-    names = ("DB_PATH", "DB_LOCK_PATH", "CLAUDE_DIR",
-             "CLAUDE_PROJECTS_DIR", "CODEX_SESSIONS_DIR", "GROK_SESSIONS_DIR",
-             "ANTIGRAVITY_BRAIN_DIR", "OPENCODE_DB")
-    saved = {name: getattr(recall, name) for name in names}
-    _pointed_at_something = True
-    recall.DB_PATH = Path(db_path)
-    recall.DB_LOCK_PATH = Path(str(db_path) + ".lock")
-    recall.CLAUDE_DIR = corpus.root / "claude"
-    recall.CLAUDE_PROJECTS_DIR = corpus.claude
-    recall.CODEX_SESSIONS_DIR = corpus.codex
-    recall.GROK_SESSIONS_DIR = corpus.grok
-    recall.ANTIGRAVITY_BRAIN_DIR = corpus.antigravity
-    recall.OPENCODE_DB = corpus.opencode_db
     try:
-        yield
+        with mock.patch.multiple(
+            recall,
+            DB_PATH=Path(db_path),
+            DB_LOCK_PATH=Path(str(db_path) + ".lock"),
+            CLAUDE_DIR=corpus.root / "claude",
+            CLAUDE_PROJECTS_DIR=corpus.claude,
+            CODEX_SESSIONS_DIR=corpus.codex,
+            GROK_SESSIONS_DIR=corpus.grok,
+            ANTIGRAVITY_BRAIN_DIR=corpus.antigravity,
+            OPENCODE_DB=corpus.opencode_db,
+        ):
+            yield
     finally:
-        _pointed_at_something = False
-        for name, value in saved.items():
-            setattr(recall, name, value)
+        _pointed_at_lock.release()
 
 
-def connect(db_path):
+def connect(db_path: Path | str) -> sqlite3.Connection:
     """Open a database with the schema in place, as main() would."""
     conn = sqlite3.connect(str(db_path))
     conn.execute("PRAGMA journal_mode=WAL")
@@ -277,7 +287,7 @@ def connect(db_path):
     return conn
 
 
-def index(corpus, db_path, force=False):
+def index(corpus: Corpus, db_path: Path | str, *, force: bool = False) -> int:
     """Run one indexing pass and return how many files it touched."""
     with pointed_at(corpus, db_path):
         conn = connect(db_path)
@@ -287,7 +297,10 @@ def index(corpus, db_path, force=False):
             conn.close()
 
 
-def contents(db_path):
+SessionRow = tuple[str, str, str, str, int]
+
+
+def contents(db_path: Path | str) -> tuple[dict[str, SessionRow], dict[str, Counter[Message]]]:
     """Everything the index holds, in a form two databases can be compared by.
 
     Messages come back as a multiset per session, because FTS5 rowid order is
@@ -296,22 +309,23 @@ def contents(db_path):
     conn = sqlite3.connect(str(db_path))
     try:
         sessions = {
-            row[0]: row[1:]
-            for row in conn.execute(
-                "SELECT file_path, session_id, source, project, slug, timestamp FROM sessions"
+            sql_text(file_path): (sql_text(session_id), sql_text(source), sql_text(project),
+                                  sql_text(slug), sql_int(timestamp))
+            for file_path, session_id, source, project, slug, timestamp in fetch_all(
+                conn,
+                "SELECT file_path, session_id, source, project, slug, timestamp FROM sessions",
             )
         }
-        messages = {}
-        for session_id, role, text in conn.execute(
-            "SELECT session_id, role, text FROM messages"
-        ):
-            messages.setdefault(session_id, Counter())[(role, text)] += 1
+        messages: dict[str, Counter[Message]] = {}
+        for session_id, role, text in fetch_all(conn, "SELECT session_id, role, text FROM messages"):
+            messages.setdefault(sql_text(session_id), Counter())[(sql_text(role), sql_text(text))] += 1
         return sessions, messages
     finally:
         conn.close()
 
 
-def assert_matches_full_rebuild(test, corpus, incremental_db, rebuild_db):
+def assert_matches_full_rebuild(test: unittest.TestCase, corpus: Corpus,
+                                incremental_db: Path | str, rebuild_db: Path | str) -> None:
     """The whole point: an index built up in pieces holds what one built at
     once holds. Any difference here is silent data loss or duplication."""
     index(corpus, rebuild_db, force=True)

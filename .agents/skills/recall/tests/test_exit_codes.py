@@ -7,25 +7,25 @@ so "no results" and "cannot read the index" are different exits.
 from __future__ import annotations
 
 import io
-import os
 import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
-from support import Corpus, claude_entry, pointed_at, recall
+import recall
+from support import Corpus, claude_entry, pointed_at
 
 
 class ExitCodes(unittest.TestCase):
-    def setUp(self):
-        self._tmp = tempfile.TemporaryDirectory()
+    def setUp(self) -> None:
+        self._tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
-        self.tmp = Path(self._tmp.name)
-        self.corpus = Corpus(self.tmp / "corpus")
-        self.db = str(self.tmp / "index.db")
+        self.tmp: Path = Path(self._tmp.name)
+        self.corpus: Corpus = Corpus(self.tmp / "corpus")
+        self.db: str = str(self.tmp / "index.db")
 
-    def run_main(self, *argv):
+    def run_main(self, *argv: str) -> tuple[str, str, int | str | None]:
         """Run main() the way a shell would: stdout, stderr, and the exit code."""
         saved = sys.argv
         sys.argv = ["recall.py", *argv]
@@ -42,26 +42,26 @@ class ExitCodes(unittest.TestCase):
         finally:
             sys.argv = saved
 
-    def test_a_query_that_matches_exits_zero(self):
+    def test_a_query_that_matches_exits_zero(self) -> None:
         self.corpus.claude_session("11111111-1111-1111-1111-111111111111",
                                    [claude_entry("a distinctive turn")])
         out, _, code = self.run_main("distinctive")
         self.assertEqual(code, 0)
         self.assertIn("Found 1 sessions", out)
 
-    def test_a_query_that_matches_nothing_exits_one(self):
+    def test_a_query_that_matches_nothing_exits_one(self) -> None:
         self.corpus.claude_session("22222222-2222-2222-2222-222222222222",
                                    [claude_entry("a distinctive turn")])
         out, _, code = self.run_main("nothingmatchesxyz")
         self.assertEqual(code, 1)
         self.assertIn("No matching sessions found.", out)
 
-    def test_an_empty_index_exits_one(self):
+    def test_an_empty_index_exits_one(self) -> None:
         out, _, code = self.run_main()
         self.assertEqual(code, 1)
         self.assertIn("No sessions in the time window.", out)
 
-    def test_a_corrupt_index_exits_three(self):
+    def test_a_corrupt_index_exits_three(self) -> None:
         Path(self.db).write_bytes(b"this is not a sqlite database")
         _, err, code = self.run_main("anything")
         self.assertEqual(code, 3)
@@ -75,14 +75,14 @@ class DegradedIndex(unittest.TestCase):
     conclusion — "nothing exists" — is exactly what neither may produce.
     """
 
-    def setUp(self):
-        self._tmp = tempfile.TemporaryDirectory()
+    def setUp(self) -> None:
+        self._tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
-        self.tmp = Path(self._tmp.name)
-        self.corpus = Corpus(self.tmp / "corpus")
-        self.db = str(self.tmp / "index.db")
+        self.tmp: Path = Path(self._tmp.name)
+        self.corpus: Corpus = Corpus(self.tmp / "corpus")
+        self.db: str = str(self.tmp / "index.db")
 
-    def run_main(self, *argv):
+    def run_main(self, *argv: str) -> tuple[str, str, int | str | None]:
         """Run main() the way a shell would: stdout, stderr, and the exit code."""
         saved = sys.argv
         sys.argv = ["recall.py", *argv]
@@ -99,7 +99,7 @@ class DegradedIndex(unittest.TestCase):
         finally:
             sys.argv = saved
 
-    def break_symlink(self, name):
+    def break_symlink(self, name: str) -> str:
         """A session file that cannot even be stat'd: glob finds the name,
         getmtime fails, and the run records the skip."""
         path = self.corpus.claude / "proj" / name
@@ -107,7 +107,7 @@ class DegradedIndex(unittest.TestCase):
         path.symlink_to("/nonexistent-recall-target")
         return str(path)
 
-    def test_results_from_a_partial_index_exit_four(self):
+    def test_results_from_a_partial_index_exit_four(self) -> None:
         self.corpus.claude_session("11111111-1111-1111-1111-111111111111",
                                    [claude_entry("a distinctive turn")])
         broken = self.break_symlink("broken.jsonl")
@@ -117,7 +117,7 @@ class DegradedIndex(unittest.TestCase):
         self.assertIn("Skipped 1 session file during indexing:", err)
         self.assertIn(broken, err)
 
-    def test_no_match_from_a_partial_index_exits_four_not_one(self):
+    def test_no_match_from_a_partial_index_exits_four_not_one(self) -> None:
         """The missing file might have held the match. Exiting 1 would let
         the caller conclude nothing exists, which a partial index cannot say."""
         self.corpus.claude_session("22222222-2222-2222-2222-222222222222",
@@ -127,13 +127,13 @@ class DegradedIndex(unittest.TestCase):
         self.assertEqual(code, 4)
         self.assertIn("No matching sessions found.", out)
 
-    def test_a_listing_from_a_partial_index_exits_four_not_one(self):
+    def test_a_listing_from_a_partial_index_exits_four_not_one(self) -> None:
         self.break_symlink("broken.jsonl")
         out, _, code = self.run_main()
         self.assertEqual(code, 4)
         self.assertIn("No sessions in the time window.", out)
 
-    def test_skipped_files_are_named_up_to_ten_then_counted(self):
+    def test_skipped_files_are_named_up_to_ten_then_counted(self) -> None:
         self.corpus.claude_session("33333333-3333-3333-3333-333333333333",
                                    [claude_entry("a distinctive turn")])
         for n in range(12):
@@ -146,13 +146,13 @@ class DegradedIndex(unittest.TestCase):
         self.assertEqual(len(named), 10)
         self.assertIn("  ... and 2 more", err)
 
-    def test_an_unreadable_file_keeps_its_rows_and_the_run_reports_degraded(self):
+    def test_an_unreadable_file_keeps_its_rows_and_the_run_reports_degraded(self) -> None:
         """The never-prune rule still holds — the session stays searchable —
         and the run still says the index is partial."""
         path = self.corpus.claude_session("44444444-4444-4444-4444-444444444444",
                                           [claude_entry("indexed before the error")])
         self.run_main("indexed")
-        os.remove(path)
+        path.unlink()
         path.mkdir()
         self.corpus.stamp(path)
         out, err, code = self.run_main("indexed")

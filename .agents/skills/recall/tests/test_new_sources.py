@@ -10,30 +10,32 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from collections import Counter
 from pathlib import Path
 
+import recall
+from recall import Message
 from support import (
     Corpus,
     antigravity_entry,
     antigravity_noise,
     contents,
     index,
-    recall,
 )
 
 
 class AntigravityIndexing(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.corpus = Corpus(self.tmp.name)
-        self.db = Path(self.tmp.name) / "index.db"
+    def setUp(self) -> None:
+        self.tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
+        self.corpus: Corpus = Corpus(self.tmp.name)
+        self.db: Path = Path(self.tmp.name) / "index.db"
         self.addCleanup(self.tmp.cleanup)
 
-    def indexed_messages(self, session_id):
+    def indexed_messages(self, session_id: str) -> Counter[Message]:
         _, messages = contents(self.db)
-        return messages.get(session_id, {})
+        return messages.get(session_id, Counter())
 
-    def test_keeps_the_request_and_drops_the_harness_blocks(self):
+    def test_keeps_the_request_and_drops_the_harness_blocks(self) -> None:
         self.corpus.antigravity_session("traj-1", [
             antigravity_entry("rewrite this tagline"),
             antigravity_entry("Rewritten.", role="assistant"),
@@ -45,16 +47,15 @@ class AntigravityIndexing(unittest.TestCase):
             {("user", "rewrite this tagline"), ("assistant", "Rewritten.")},
         )
 
-    def test_tool_steps_and_system_bookkeeping_are_not_messages(self):
+    def test_tool_steps_and_system_bookkeeping_are_not_messages(self) -> None:
         self.corpus.antigravity_session("traj-2",
-                                        [antigravity_entry("only turn")]
-                                        + antigravity_noise())
+                                        [antigravity_entry("only turn"), *antigravity_noise()])
         index(self.corpus, self.db)
 
         self.assertEqual(set(self.indexed_messages("traj-2")),
                          {("user", "only turn")})
 
-    def test_a_session_carries_its_source_and_first_timestamp(self):
+    def test_a_session_carries_its_source_and_first_timestamp(self) -> None:
         self.corpus.antigravity_session("traj-3", [
             antigravity_entry("later", ts="2026-01-02T00:00:00Z"),
             antigravity_entry("earlier", ts="2026-01-01T00:00:00Z"),
@@ -63,13 +64,13 @@ class AntigravityIndexing(unittest.TestCase):
 
         sessions, _ = contents(self.db)
         (_, source, _, _, timestamp), = [
-            row for path, row in sessions.items() if row[0] == "traj-3"
+            row for row in sessions.values() if row[0] == "traj-3"
         ]
         self.assertEqual(source, "antigravity")
         self.assertEqual(timestamp,
                          recall.parse_iso_timestamp("2026-01-01T00:00:00Z"))
 
-    def test_appended_steps_are_picked_up_without_duplicating_the_old_ones(self):
+    def test_appended_steps_are_picked_up_without_duplicating_the_old_ones(self) -> None:
         path = self.corpus.antigravity_session("traj-4",
                                                [antigravity_entry("first")])
         index(self.corpus, self.db)
@@ -83,17 +84,17 @@ class AntigravityIndexing(unittest.TestCase):
 
 
 class OpenCodeIndexing(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.corpus = Corpus(self.tmp.name)
-        self.db = Path(self.tmp.name) / "index.db"
+    def setUp(self) -> None:
+        self.tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
+        self.corpus: Corpus = Corpus(self.tmp.name)
+        self.db: Path = Path(self.tmp.name) / "index.db"
         self.addCleanup(self.tmp.cleanup)
 
-    def indexed_messages(self, session_id):
+    def indexed_messages(self, session_id: str) -> Counter[Message]:
         _, messages = contents(self.db)
-        return messages.get(session_id, {})
+        return messages.get(session_id, Counter())
 
-    def test_joins_a_message_from_its_parts_and_drops_reasoning(self):
+    def test_joins_a_message_from_its_parts_and_drops_reasoning(self) -> None:
         self.corpus.opencode_session("ses_one", [
             ("user", ["fix the tagline"]),
             ("assistant", ["Done.", "Anything else?"]),
@@ -105,19 +106,19 @@ class OpenCodeIndexing(unittest.TestCase):
             {("user", "fix the tagline"), ("assistant", "Done.\nAnything else?")},
         )
 
-    def test_a_session_carries_its_directory_title_and_source(self):
+    def test_a_session_carries_its_directory_title_and_source(self) -> None:
         self.corpus.opencode_session("ses_two", [("user", ["hello"])],
                                      cwd="/work/queenspawn", title="tagline work")
         index(self.corpus, self.db)
 
         sessions, _ = contents(self.db)
         (_, source, project, slug, _), = [
-            row for path, row in sessions.items() if row[0] == "ses_two"
+            row for row in sessions.values() if row[0] == "ses_two"
         ]
         self.assertEqual((source, project, slug),
                          ("opencode", "/work/queenspawn", "tagline work"))
 
-    def test_sessions_in_one_database_are_indexed_separately(self):
+    def test_sessions_in_one_database_are_indexed_separately(self) -> None:
         self.corpus.opencode_session("ses_a", [("user", ["first session"])])
         self.corpus.opencode_session("ses_b", [("user", ["second session"])])
         index(self.corpus, self.db)
@@ -127,7 +128,7 @@ class OpenCodeIndexing(unittest.TestCase):
         self.assertEqual(set(self.indexed_messages("ses_b")),
                          {("user", "second session")})
 
-    def test_a_changed_session_is_re_read_without_duplicating_its_messages(self):
+    def test_a_changed_session_is_re_read_without_duplicating_its_messages(self) -> None:
         self.corpus.opencode_session("ses_grow", [("user", ["first"])])
         index(self.corpus, self.db)
         self.corpus.opencode_session("ses_grow", [("user", ["first"]),
@@ -139,7 +140,7 @@ class OpenCodeIndexing(unittest.TestCase):
             {("user", "first"): 1, ("assistant", "second"): 1},
         )
 
-    def test_an_untouched_session_is_not_read_again(self):
+    def test_an_untouched_session_is_not_read_again(self) -> None:
         self.corpus.opencode_session("ses_still", [("user", ["once"])])
         self.assertEqual(index(self.corpus, self.db), 1)
         self.assertEqual(index(self.corpus, self.db), 0)
