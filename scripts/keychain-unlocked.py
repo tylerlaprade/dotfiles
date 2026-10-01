@@ -17,8 +17,9 @@ def keychain_unlocked() -> bool:
     if security.SecKeychainSetUserInteractionAllowed(user_interaction_allowed) != 0:
         return False
     status = ctypes.c_uint32()
-    result = security.SecKeychainGetStatus(None, ctypes.byref(status))
-    return result == 0 and bool(status.value & KEYCHAIN_UNLOCKED)
+    if security.SecKeychainGetStatus(None, ctypes.byref(status)) != 0:
+        return False
+    return bool(status.value & KEYCHAIN_UNLOCKED)
 
 
 if __name__ == '__main__':

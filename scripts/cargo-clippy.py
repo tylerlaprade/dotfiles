@@ -6,7 +6,6 @@ import re
 import subprocess
 import sys
 
-
 PEDANTIC_WHITELIST = {
     "cast-possible-truncation",
     "cast-possible-wrap",
@@ -35,12 +34,15 @@ EXTRA_DENY = {
 # stable rustc receives it on the command line.
 HELP_ONLY_RUSTC_LINTS = {"tail-call-track-caller"}
 
+MIN_DEFAULT_RUSTC_WARNINGS = 20
+
 
 def rustup_binary(name: str) -> str:
     result = subprocess.run(
         ["rustup", "which", name],
         capture_output=True,
         text=True,
+        check=False,
     )
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or f"rustup could not find {name}")
@@ -52,11 +54,12 @@ def rustc_default_warnings(clippy_driver: str) -> list[str]:
         [clippy_driver, "-W", "help"],
         capture_output=True,
         text=True,
+        check=False,
     )
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or "clippy-driver -W help failed")
 
-    warnings = []
+    warnings: list[str] = []
     in_rustc_lints = False
     for line in result.stdout.splitlines():
         if line == "Lint checks provided by rustc:":
@@ -74,7 +77,7 @@ def rustc_default_warnings(clippy_driver: str) -> list[str]:
         ):
             warnings.append(match.group(1))
 
-    if len(warnings) < 20:
+    if len(warnings) < MIN_DEFAULT_RUSTC_WARNINGS:
         raise RuntimeError(
             f"found only {len(warnings)} default rustc warnings; refusing to weaken policy"
         )
