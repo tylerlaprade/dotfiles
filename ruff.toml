@@ -1,0 +1,2 @@
+extend = "../../.config/ruff/ruff.toml"
+target-version = "py39"

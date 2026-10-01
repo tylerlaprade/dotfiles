@@ -1,0 +1,6 @@
+{
+  "extends": "../../.config/basedpyright/pyrightconfig.json",
+  "include": ["scripts", "tests"],
+  "pythonVersion": "3.9",
+  "executionEnvironments": [{ "root": "scripts/sync" }]
+}
