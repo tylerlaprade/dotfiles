@@ -7,7 +7,7 @@ DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [[ ${1:-} == --kid-trackpad-prototype ]]; then
   prototype_python=/opt/homebrew/bin/python3
-  if ! "$prototype_python" -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>/dev/null; then
+  if ! "$prototype_python" -c 'import sys; sys.exit(sys.version_info < (3, 14))' 2>/dev/null; then
     brew install python
   fi
   exec "$prototype_python" "$DOTFILES/scripts/kid-trackpad/build.py"

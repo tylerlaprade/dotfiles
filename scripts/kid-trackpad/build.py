@@ -8,17 +8,52 @@ import re
 import subprocess
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 DAEMON = Path(
     "/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/Applications/Karabiner-VirtualHIDDevice-Daemon.app/Contents/Info.plist"
 )
 REPOSITORY = "https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice.git"
 
+type JSONValue = (
+    bool | int | float | str | list[JSONValue] | dict[str, JSONValue] | None
+)
+type PlistValue = (
+    bool
+    | int
+    | float
+    | str
+    | bytes
+    | datetime
+    | plistlib.UID
+    | list[PlistValue]
+    | dict[str, PlistValue]
+)
+parse_json: Callable[[str], JSONValue] = json.loads
+parse_plist: Callable[[bytes], PlistValue] = plistlib.loads
+
+
+def json_object(value: JSONValue) -> dict[str, JSONValue]:
+    if isinstance(value, dict):
+        return value
+    raise TypeError(f"Expected a JSON object, got {value!r}")
+
+
+def plist_dictionary(value: PlistValue) -> dict[str, PlistValue]:
+    if isinstance(value, dict):
+        return value
+    raise TypeError(f"Expected a property list dictionary, got {value!r}")
+
 
 def installed_version() -> str:
-    with DAEMON.open("rb") as file:
-        version = plistlib.load(file)["CFBundleShortVersionString"]
+    version = plist_dictionary(parse_plist(DAEMON.read_bytes()))[
+        "CFBundleShortVersionString"
+    ]
     if not isinstance(version, str) or re.fullmatch(r"\d+\.\d+\.\d+", version) is None:
         raise ValueError(f"Unrecognized virtual HID daemon version: {version!r}")
     return version
@@ -70,7 +105,7 @@ def build(destination: Path, source: Path | None = None) -> None:
                 ],
                 check=True,
             )
-        metadata = json.loads((source / "version.json").read_text())
+        metadata = json_object(parse_json((source / "version.json").read_text()))
         output = root / "kid-trackpad-mouse"
         compile_client(source, output)
         destination.write_bytes(output.read_bytes())
@@ -79,13 +114,18 @@ def build(destination: Path, source: Path | None = None) -> None:
     print(f"Built {destination} for driver {metadata['package_version']}.")
 
 
+class Arguments(argparse.Namespace):
+    driver_source: Path | None
+    output: Path
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--driver-source", type=Path)
     parser.add_argument(
         "--output", type=Path, default=Path.home() / ".local/bin/kid-trackpad-mouse"
     )
-    arguments = parser.parse_args()
+    arguments = parser.parse_args(namespace=Arguments())
     build(arguments.output, arguments.driver_source)
 
 

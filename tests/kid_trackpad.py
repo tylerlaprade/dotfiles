@@ -8,7 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from typing import TYPE_CHECKING, final
+from typing import TYPE_CHECKING, final, override
 from unittest.mock import patch
 
 if TYPE_CHECKING:
@@ -85,10 +85,12 @@ class ObservedMouse(VirtualMouse):
         self.locked = asyncio.Event()
         self.unlocked = asyncio.Event()
 
+    @override
     async def lock(self) -> None:
         await super().lock()
         self.locked.set()
 
+    @override
     async def unlock(self) -> None:
         await super().unlock()
         self.unlocked.set()
@@ -96,6 +98,7 @@ class ObservedMouse(VirtualMouse):
 
 @final
 class LifecycleTest(unittest.IsolatedAsyncioTestCase):
+    @override
     async def asyncSetUp(self) -> None:
         self.mouse = ObservedMouse(
             [
@@ -107,6 +110,7 @@ class LifecycleTest(unittest.IsolatedAsyncioTestCase):
         )
         self.reader = asyncio.StreamReader()
 
+    @override
     async def asyncTearDown(self) -> None:
         await self.mouse.unlock()
 

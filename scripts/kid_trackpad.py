@@ -14,11 +14,12 @@ import socket
 import subprocess
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 DAEMON_INFO = Path(
@@ -77,6 +78,36 @@ TEXT_KEYS = [
 MOUSE_KEYS_MACRO = "(macro 120 lalt 70 lalt 70 lalt 70 lalt 70 lalt)"
 MOUSE_KEYS_TOGGLE_COUNT = 2
 
+type JSONValue = (
+    bool | int | float | str | list[JSONValue] | dict[str, JSONValue] | None
+)
+type PlistValue = (
+    bool
+    | int
+    | float
+    | str
+    | bytes
+    | datetime
+    | plistlib.UID
+    | list[PlistValue]
+    | dict[str, PlistValue]
+)
+parse_json: Callable[[str | bytes], JSONValue] = json.loads
+parse_plist: Callable[[bytes], PlistValue] = plistlib.loads
+ipv4_address: Callable[[socket.socket], tuple[str, int]] = socket.socket.getsockname
+
+
+def json_object(value: JSONValue) -> dict[str, JSONValue]:
+    if isinstance(value, dict):
+        return value
+    raise TypeError(f"Expected a JSON object, got {value!r}")
+
+
+def plist_dictionary(value: PlistValue) -> dict[str, PlistValue]:
+    if isinstance(value, dict):
+        return value
+    raise TypeError(f"Expected a property list dictionary, got {value!r}")
+
 
 def prototype_config(source: str) -> str:
     if source.count(MOUSE_KEYS_MACRO) != MOUSE_KEYS_TOGGLE_COUNT:
@@ -111,7 +142,7 @@ async def stop_process(process: asyncio.subprocess.Process) -> None:
 
 class VirtualMouse:
     def __init__(self, command: Sequence[str]) -> None:
-        self.command = command
+        self.command: Sequence[str] = command
         self.process: asyncio.subprocess.Process | None = None
         self.failure: asyncio.Task[bytes] | None = None
 
@@ -159,7 +190,7 @@ class VirtualMouse:
 
 
 def layer_name(message: bytes) -> str | None:
-    data = json.loads(message)
+    data = parse_json(message)
     if not isinstance(data, dict) or len(data) != 1:
         raise ValueError(f"Unexpected Kanata message: {data!r}")
     if set(data) in ({"TapActivated"}, {"HoldActivated"}):
@@ -167,9 +198,10 @@ def layer_name(message: bytes) -> str | None:
     if set(data) != {"LayerChange"}:
         raise ValueError(f"Unexpected Kanata message: {data!r}")
     event = data["LayerChange"]
-    if not isinstance(event, dict) or not isinstance(event.get("new"), str):
+    layer = event.get("new") if isinstance(event, dict) else None
+    if not isinstance(layer, str):
         raise TypeError(f"Invalid Kanata layer: {event!r}")
-    return event["new"]
+    return layer
 
 
 async def follow_layers(reader: asyncio.StreamReader, mouse: VirtualMouse) -> None:
@@ -228,7 +260,7 @@ async def connect_kanata(
 async def run_prototype(kanata: Path, client: Path, config: Path) -> None:
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
-        port = reservation.getsockname()[1]
+        _, port = ipv4_address(reservation)
     process = await asyncio.create_subprocess_exec(
         str(kanata),
         "--no-wait",
@@ -259,9 +291,10 @@ def preflight(home: Path, kanata: Path, client: Path, config: Path) -> None:
         raise ValueError(
             "Run install.sh --kid-trackpad-prototype before starting the prototype."
         )
-    with DAEMON_INFO.open("rb") as file:
-        driver_version = plistlib.load(file)["CFBundleShortVersionString"]
-    built_version = json.loads(client.with_suffix(".json").read_text())[
+    driver_version = plist_dictionary(parse_plist(DAEMON_INFO.read_bytes()))[
+        "CFBundleShortVersionString"
+    ]
+    built_version = json_object(parse_json(client.with_suffix(".json").read_text()))[
         "package_version"
     ]
     if driver_version != built_version:
@@ -296,6 +329,10 @@ def preflight(home: Path, kanata: Path, client: Path, config: Path) -> None:
         raise ValueError("Turn Mouse Keys off before starting the prototype.")
 
 
+class Arguments(argparse.Namespace):
+    home: Path
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run the temporary virtual-mouse kid-mode prototype."
@@ -309,7 +346,7 @@ def main() -> None:
             ).pw_dir
         ),
     )
-    arguments = parser.parse_args()
+    arguments = parser.parse_args(namespace=Arguments())
     home = arguments.home.resolve()
     kanata = home / ".local/bin/kanata"
     client = home / ".local/bin/kid-trackpad-mouse"
@@ -335,8 +372,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    if sys.version_info < (3, 11):
-        raise SystemExit("Use Homebrew Python 3.11 or newer to run the prototype.")
     if sys.platform != "darwin" or os.geteuid() != 0:
         raise SystemExit("Run this prototype on macOS with sudo.")
     signal.signal(signal.SIGTERM, signal.default_int_handler)
