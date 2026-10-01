@@ -27,12 +27,12 @@ model.
 
 ## Train game keyboard lock
 
-Hold both Shift keys, then press K to toggle kid mode. It also toggles Mouse
+Hold both Shift keys, then press K to enter kid mode. It also toggles Mouse
 Keys, which disables the built-in trackpad with the existing Pointer Control
 settings. In kid mode, only Left/Right arrows, Space, screen brightness, and
 volume (including mute) work. All other keys are disabled, including the Mouse
 Keys movement/click keys, Mission Control, Launchpad, media playback, Escape,
-Tab, modifiers, and Fn/Globe. Hold both Shifts and press K again to unlock
+Tab, modifiers, and Fn/Globe. Hold either Shift and press K to unlock
 before typing `quit` or `exit` in the game.
 
 Kanata's built-in Left Control + Space + Escape emergency exit still works.
