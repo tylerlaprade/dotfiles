@@ -1,0 +1,14 @@
+Checks: >-
+  *,
+  -llvmlibc-callee-namespace,
+  -llvmlibc-implementation-in-namespace,
+  -llvmlibc-restrict-system-libc-headers,
+  -misc-include-cleaner,
+  -modernize-use-trailing-return-type
+# LLVM libc's callee namespace is a library-specific naming convention.
+# LLVM libc's implementation namespace is a library-specific naming convention.
+# LLVM libc's internal-header convention does not apply to applications using system libraries.
+# Direct-use-only includes conflict with prerequisite headers required by library APIs.
+# Leading versus trailing return types is pure style.
+WarningsAsErrors: '*'
+SystemHeaders: false

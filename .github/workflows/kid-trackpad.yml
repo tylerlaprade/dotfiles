@@ -1,0 +1,39 @@
+name: Kid trackpad prototype
+
+on:
+  push:
+    paths:
+      - 'scripts/kid_trackpad.py'
+      - 'scripts/kid-trackpad/**'
+      - 'tests/kid_trackpad.py'
+      - '.config/clang-tidy/**'
+      - '.config/ruff/**'
+      - '.github/workflows/kid-trackpad.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos-build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install linters
+        run: brew install llvm ruff
+      - name: Test controller and lint Python
+        run: |
+          python3 -m unittest tests/kid_trackpad.py
+          ruff check --config .config/ruff/ruff.toml scripts/kid_trackpad.py scripts/kid-trackpad/build.py tests/kid_trackpad.py
+          ruff format --check --config .config/ruff/ruff.toml scripts/kid_trackpad.py scripts/kid-trackpad/build.py tests/kid_trackpad.py
+      - name: Compile with the official driver client
+        run: |
+          git clone --depth 1 https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice.git "$RUNNER_TEMP/driver"
+          python3 scripts/kid-trackpad/build.py --driver-source "$RUNNER_TEMP/driver" --output "$RUNNER_TEMP/kid-trackpad-mouse"
+          git -C "$RUNNER_TEMP/driver" fetch --depth 1 origin tag v6.2.0
+          git -C "$RUNNER_TEMP/driver" checkout v6.2.0
+          python3 scripts/kid-trackpad/build.py --driver-source "$RUNNER_TEMP/driver" --output "$RUNNER_TEMP/kid-trackpad-mouse"
+      - name: Lint native client
+        run: |
+          sdk=$(xcrun --show-sdk-path)
+          "$(brew --prefix llvm)/bin/clang-tidy" --config-file=.config/clang-tidy/.clang-tidy scripts/kid-trackpad/virtual-mouse.cpp -- -std=c++23 -isysroot "$sdk" -nostdinc++ -isystem "$sdk/usr/include/c++/v1" -isystem "$RUNNER_TEMP/driver/include" -isystem "$RUNNER_TEMP/driver/vendor/vendor/include"

@@ -25,6 +25,46 @@ Comments do not hide anything. Claude Code strips `<!-- ... -->` out of these
 files, but Codex, Grok, Antigravity, and opencode all pass it straight to the
 model.
 
+## Train game keyboard lock
+
+Hold both Shift keys, then press K to enter kid mode. It also toggles Mouse
+Keys, which disables the built-in trackpad with the existing Pointer Control
+settings. In kid mode, only Left/Right arrows, Space, screen brightness, and
+volume (including mute) work. All other keys are disabled, including the Mouse
+Keys movement/click keys, Mission Control, Launchpad, media playback, Escape,
+Tab, modifiers, and Fn/Globe. Hold either Shift and press K to unlock
+before typing `quit` or `exit` in the game.
+
+Kanata's built-in Left Control + Space + Escape emergency exit still works.
+Kanata reads that chord before remapping, so a layer cannot disable it.
+
+### Virtual mouse prototype
+
+The temporary prototype uses the official Karabiner DriverKit client to create
+a virtual mouse during kid mode. macOS can then ignore the built-in trackpad
+without Mouse Keys intercepting letters. The normal Kanata config stays in
+place; exiting the prototype restores the existing Kanata launch daemon.
+
+On the Mac, run `./install.sh --kid-trackpad-prototype` from this repo. This
+builds only the helper, using the official client release matching the
+installed virtual HID daemon. It requires Xcode Command Line Tools and does
+not change or replace the driver. Rebuild after updating the driver.
+
+In Accessibility → Pointer Control, turn Mouse Keys off and enable
+“Ignore built-in trackpad when mouse or wireless trackpad is present.” Then
+run `sudo /opt/homebrew/bin/python3 scripts/kid_trackpad.py`.
+Both Shifts + K enters kid mode; either Shift + K unlocks.
+Ordinary letters, numbers, and punctuation pass
+through; modifiers, Fn, system function keys, Escape, and Tab stay disabled.
+Brightness, volume, Left/Right, and Space still work.
+
+Test pointer movement, clicks, scrolling, and Mission Control/Spaces gestures
+while locked, then verify that unlocking restores the trackpad. Ctrl+C stops
+the prototype and restores the normal service. A driver or Kanata connection
+failure also stops the prototype and restores the service. These physical
+trackpad checks have not yet been verified on the Mac; the default remains
+the existing Mouse Keys setup.
+
 ## Second Mac
 
 Both machines stay in use, so nothing is wiped and nothing is zipped. The
