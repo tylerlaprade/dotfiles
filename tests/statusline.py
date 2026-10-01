@@ -1,93 +1,141 @@
+from __future__ import annotations
+
 import json
-from datetime import datetime, timedelta
-from pathlib import Path
 import re
 import shutil
 import subprocess
 import tempfile
 import unicodedata
 import unittest
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Union, final
 from zoneinfo import ZoneInfo
 
+JSONValue = Union[None, bool, int, float, str, list["JSONValue"], dict[str, "JSONValue"]]
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 EASTERN = ZoneInfo('America/New_York')
 WEDNESDAY = datetime(2026, 1, 14, tzinfo=EASTERN)
 ESC = '\x1b'
+DELETE = '\x7f'
+FIRST_PRINTABLE = 0x20
 RESET = '\x1b[0m'
 # The narrowest terminal these lines land in is Claude Code's background pty
 # host at 130 columns; anything wider wraps and leaves stale rows behind.
 WIDTH_BUDGET = 120
+MAX_LINES = 3
 CSI_FINAL = range(0x40, 0x7F)
 OSC_HYPERLINK = ']8;'
+TRUECOLOR_CHANNELS = 3
+MAX_CHANNEL = 255
+BAR_CELLS = 10
+PERCENT_PER_CELL = 10
+HALF_CELL_PERCENT = 5
+COMPACTION_PERCENT = 100
+THOUSAND = 1000
+MILLION = 1_000_000
 PLAIN_GIT = '\x1b[37mFondly\x1b[0m \x1b[38;5;242mmaster\x1b[0m\x1b[36m \x1b[0m'
 DIRTY_GIT = '\x1b[37mFondly\x1b[0m \x1b[38;5;242mmaster\x1b[0m\x1b[38;5;218m*\x1b[0m\x1b[36m \x1b[0m'
 PR_GIT = ('\x1b[37mFondly\x1b[0m \x1b]8;;https://app.graphite.dev/github/pr/example/project/12\x1b\\'
           '\x1b[32m#12\x1b[0m \x1b[37mAdd the launch banner\x1b[0m\x1b]8;;\x1b\\\x1b[36m \x1b[0m')
-USAGE_OK = {'ok': True, 'five_hour': 6, 'seven_day': 3, 'fable': 4}
+USAGE_OK: dict[str, JSONValue] = {'ok': True, 'five_hour': 6, 'seven_day': 3, 'fable': 4}
 USAGE_SHIM = '#!/bin/bash\nprintf "%s\\n" "${FAKE_USAGE:-}"\nexit "${FAKE_USAGE_STATUS:-0}"\n'
 
 
-def at(hour, minute, second=0, day=WEDNESDAY):
+def at(hour: int, minute: int, second: int = 0, day: datetime = WEDNESDAY) -> datetime:
     return day.replace(hour=hour, minute=minute, second=second)
 
 
-def visible(text):
+AFTERNOON = at(15, 0)
+
+
+def visible(text: str) -> str:
     return re.sub(r'\x1b\[[0-9;]*m|\x1b\]8;;[^\x07\x1b]*(?:\x07|\x1b\\)', '', text)
 
 
-def display_width(text):
+def display_width(text: str) -> int:
     return sum(2 if unicodedata.east_asian_width(char) in 'WF' else 1 for char in text)
 
 
-def scan_line(line):
+def token_count(tokens: int) -> str:
+    return f'{tokens // THOUSAND}k' if tokens < MILLION else f'{tokens // (MILLION // 10) / 10:g}m'
+
+
+def file_reference(source: str, file_name: str) -> str:
+    match = re.search(rf'/\S*/{re.escape(file_name)}', source)
+    if match is None:
+        raise ValueError(f'the script no longer mentions {file_name}')
+    return match.group(0)
+
+
+def is_control(char: str) -> bool:
+    return ord(char) < FIRST_PRINTABLE
+
+
+def truecolor_problems(parameters: list[str], body: str, index: int) -> list[str]:
+    problems: list[str] = []
+    for position, parameter in enumerate(parameters):
+        if parameter == '38' and parameters[position + 1:position + 2] == ['2']:
+            channels = parameters[position + 2:position + 5]
+            if len(channels) != TRUECOLOR_CHANNELS or not all(channel.isdigit() and int(channel) <= MAX_CHANNEL for channel in channels):
+                problems.append(f'malformed truecolor SGR {body!r} at {index}')
+    return problems
+
+
+def scan_csi(line: str, index: int, problems: list[str]) -> tuple[int, list[str] | None]:
+    end = index + 2
+    while end < len(line) and ord(line[end]) not in CSI_FINAL:
+        if line[end] == ESC or is_control(line[end]):
+            break
+        end += 1
+    if end >= len(line) or ord(line[end]) not in CSI_FINAL:
+        problems.append(f'unterminated CSI at {index}: {line[index:end + 1]!r}')
+        return end, None
+    body = line[index + 2:end]
+    if not re.fullmatch(r'[0-9;?]*', body):
+        problems.append(f'unexpected CSI body {body!r} at {index}')
+    if line[end] != 'm':
+        return end + 1, None
+    parameters = body.split(';')
+    problems.extend(truecolor_problems(parameters, body, index))
+    return end + 1, parameters
+
+
+def scan_osc(line: str, index: int, problems: list[str]) -> int:
+    if not line.startswith(ESC + OSC_HYPERLINK, index):
+        problems.append(f'OSC other than a hyperlink at {index}: {line[index:index + 12]!r}')
+    end = index + 2
+    while end < len(line) and line[end] != '\x07' and line[end] != ESC:
+        end += 1
+    if line.startswith(ESC + '\\', end):
+        return end + 2
+    if line.startswith('\x07', end):
+        return end + 1
+    problems.append(f'unterminated OSC at {index}')
+    return end
+
+
+def scan_line(line: str) -> list[str]:
     """Walk one line byte by byte and return every escape-grammar problem."""
-    problems = []
+    problems: list[str] = []
     index = 0
     open_attributes = False
     while index < len(line):
         char = line[index]
         if char != ESC:
-            if ord(char) < 0x20 or char == '\x7f':
+            if is_control(char) or char == DELETE:
                 problems.append(f'control byte {char!r} at {index}')
             index += 1
             continue
         kind = line[index + 1:index + 2]
         if kind == '[':
-            end = index + 2
-            while end < len(line) and ord(line[end]) not in CSI_FINAL:
-                if line[end] == ESC or ord(line[end]) < 0x20:
-                    break
-                end += 1
-            if end >= len(line) or ord(line[end]) not in CSI_FINAL:
-                problems.append(f'unterminated CSI at {index}: {line[index:end + 1]!r}')
-                index = end
-                continue
-            body = line[index + 2:end]
-            if not re.fullmatch(r'[0-9;?]*', body):
-                problems.append(f'unexpected CSI body {body!r} at {index}')
-            if line[end] == 'm':
-                parameters = body.split(';')
-                for position, parameter in enumerate(parameters):
-                    if parameter == '38' and parameters[position + 1:position + 2] == ['2']:
-                        channels = parameters[position + 2:position + 5]
-                        if len(channels) != 3 or not all(channel.isdigit() and int(channel) <= 255 for channel in channels):
-                            problems.append(f'malformed truecolor SGR {body!r} at {index}')
+            index, parameters = scan_csi(line, index, problems)
+            if parameters is not None:
                 open_attributes = parameters not in (['0'], [''])
-            index = end + 1
         elif kind == ']':
-            if not line.startswith(ESC + OSC_HYPERLINK, index):
-                problems.append(f'OSC other than a hyperlink at {index}: {line[index:index + 12]!r}')
-            end = index + 2
-            while end < len(line) and line[end] != '\x07' and line[end] != ESC:
-                end += 1
-            if line.startswith(ESC + '\\', end):
-                index = end + 2
-            elif line.startswith('\x07', end):
-                index = end + 1
-            else:
-                problems.append(f'unterminated OSC at {index}')
-                index = end
+            index = scan_osc(line, index, problems)
         else:
             problems.append(f'bare ESC before {kind!r} at {index}')
             index += 1
@@ -96,8 +144,42 @@ def scan_line(line):
     return problems
 
 
+@dataclass(frozen=True)
+class Session:
+    tokens: int = 50000
+    window: int = 200000
+    rates: dict[str, JSONValue] | None = None
+    model: str | None = 'Opus 5'
+    effort: str | None = 'max'
+    cost: float | None = None
+
+
+@dataclass(frozen=True)
+class Fakes:
+    now: datetime = AFTERNOON
+    usage: JSONValue = field(default_factory=USAGE_OK.copy)
+    usage_status: int = 0
+    git: str = PLAIN_GIT
+    usage_command: bool = True
+    claude_environment: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ContextLine:
+    percent: int
+    tokens: str
+    clock: str
+    prefix: str = 'Opus 5 max · '
+    due: bool = False
+
+
+DEFAULT_SESSION = Session()
+DEFAULT_FAKES = Fakes()
+
+
+@final
 class StatuslineTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
@@ -110,7 +192,7 @@ class StatuslineTest(unittest.TestCase):
         self.calls = self.root / 'calls'
         source = (REPOSITORY / '.claude/statusline.sh').read_text()
         self.statusline = self.root / 'statusline.sh'
-        self.statusline.write_text(source.replace('/tmp/claude-rate-limits.json', str(self.root / 'rates.json')))
+        self.statusline.write_text(source.replace(file_reference(source, 'claude-rate-limits.json'), str(self.root / 'rates.json')))
         self.install('date', '#!/bin/bash\n'
                      'for argument in "$@"; do [ "$argument" = -r ] && exec /bin/date "$@"; done\n'
                      'exec /bin/date -r "$FAKE_NOW" "$@"\n')
@@ -121,91 +203,95 @@ class StatuslineTest(unittest.TestCase):
                      'printf "%b" "${FAKE_GIT:-}"\n')
         self.install('claude-usage', USAGE_SHIM)
         jq = shutil.which('jq')
-        self.assertIsNotNone(jq, 'jq is required')
+        if jq is None:
+            self.fail('jq is required')
         self.environment = {
             'HOME': str(self.home),
             'PATH': f'{self.bin}:{Path(jq).parent}:/usr/bin:/bin',
             'FAKE_GIT': PLAIN_GIT,
         }
 
-    def install(self, name, source):
+    def install(self, name: str, source: str) -> None:
         target = self.bin / name
         target.write_text(source)
         target.chmod(0o755)
 
-    def payload(self, tokens=50000, window=200000, rates=None, model='Opus 5', effort='max', cost=None):
-        payload = {'workspace': {'current_dir': str(self.workspace)},
-                   'context_window': {'total_input_tokens': tokens, 'context_window_size': window}}
-        if model is not None:
-            payload['model'] = {'display_name': model}
-        if effort is not None:
-            payload['effort'] = {'level': effort}
-        if rates is not None:
-            payload['rate_limits'] = rates
-        if cost is not None:
-            payload['cost'] = {'total_cost_usd': cost}
+    def payload(self, session: Session = DEFAULT_SESSION) -> dict[str, JSONValue]:
+        payload: dict[str, JSONValue] = {
+            'workspace': {'current_dir': str(self.workspace)},
+            'context_window': {'total_input_tokens': session.tokens, 'context_window_size': session.window},
+        }
+        if session.model is not None:
+            payload['model'] = {'display_name': session.model}
+        if session.effort is not None:
+            payload['effort'] = {'level': session.effort}
+        if session.rates is not None:
+            payload['rate_limits'] = session.rates
+        if session.cost is not None:
+            payload['cost'] = {'total_cost_usd': session.cost}
         return payload
 
-    def rates(self, now, five_hour=6, seven_day=3, five_hour_reset=None, seven_day_reset=None):
+    def rates(self, now: datetime, five_hour: int = 6, seven_day: int = 3,
+              five_hour_reset: datetime | None = None, seven_day_reset: datetime | None = None) -> dict[str, JSONValue]:
         five_hour_reset = five_hour_reset or now + timedelta(hours=2)
         seven_day_reset = seven_day_reset or now + timedelta(days=6, hours=15)
         return {'five_hour': {'used_percentage': five_hour, 'resets_at': int(five_hour_reset.timestamp())},
                 'seven_day': {'used_percentage': seven_day, 'resets_at': int(seven_day_reset.timestamp())}}
 
-    def render(self, payload, now=at(15, 0), usage=USAGE_OK, usage_status=0, git=PLAIN_GIT, usage_command=True,
-               claude_environment=None):
-        environment = dict(self.environment, FAKE_NOW=str(int(now.timestamp())), FAKE_GIT=git,
-                           FAKE_USAGE_STATUS=str(usage_status), **(claude_environment or {}))
-        if usage is not None:
-            environment['FAKE_USAGE'] = json.dumps(usage)
+    def render(self, payload: dict[str, JSONValue], fakes: Fakes = DEFAULT_FAKES) -> list[str]:
+        environment = dict(self.environment, FAKE_NOW=str(int(fakes.now.timestamp())), FAKE_GIT=fakes.git,
+                           FAKE_USAGE_STATUS=str(fakes.usage_status), **fakes.claude_environment)
+        if fakes.usage is not None:
+            environment['FAKE_USAGE'] = json.dumps(fakes.usage)
         shim = self.bin / 'claude-usage'
-        if usage_command:
+        if fakes.usage_command:
             self.install('claude-usage', USAGE_SHIM)
         else:
             shim.unlink(missing_ok=True)
         result = subprocess.run(['bash', str(self.statusline)], input=json.dumps(payload).encode(),
-                                env=environment, capture_output=True, timeout=5)
+                                env=environment, capture_output=True, timeout=5, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stderr, b'', 'the script wrote to stderr')
         self.assertFalse(self.calls.exists(), 'pkill was invoked')
         output = result.stdout.decode('utf-8')
         self.assertTrue(output.endswith('\n'), repr(output))
         lines = output[:-1].split('\n')
-        self.assertTrue(1 <= len(lines) <= 3, lines)
+        self.assertTrue(1 <= len(lines) <= MAX_LINES, lines)
         for line in lines:
             self.assertEqual(scan_line(line), [], repr(line))
             self.assertLessEqual(display_width(visible(line)), WIDTH_BUDGET, repr(visible(line)))
         return lines
 
-    def assert_context_line(self, line, expected_percent, expected_tokens, expected_clock, prefix='Opus 5 max · ',
-                            expected_due=False):
+    def assert_context_line(self, line: str, expected: ContextLine) -> None:
         text = visible(line)
         match = re.fullmatch(r'(.*)([▓▒░]{10}) (\d+)% · (\S+)( · compaction due)? · (\d{1,2}:\d\d [AP]M)', text)
-        self.assertIsNotNone(match, text)
-        self.assertEqual(match.group(1), prefix)
-        self.assertEqual(int(match.group(3)), expected_percent)
-        self.assertEqual(match.group(4), expected_tokens)
-        self.assertEqual(match.group(5) is not None, expected_due)
-        self.assertEqual(match.group(6), expected_clock)
-        filled = min(expected_percent // 10, 10)
+        if match is None:
+            self.fail(text)
+        self.assertEqual(match.group(1), expected.prefix)
+        self.assertEqual(int(match.group(3)), expected.percent)
+        self.assertEqual(match.group(4), expected.tokens)
+        self.assertEqual(match.group(5) is not None, expected.due)
+        self.assertEqual(match.group(6), expected.clock)
+        filled = min(expected.percent // PERCENT_PER_CELL, BAR_CELLS)
         self.assertEqual(match.group(2)[:filled], '▓' * filled, text)
-        if filled < 10:
-            self.assertEqual(match.group(2)[filled], '▒' if expected_percent * 10 % 100 >= 50 else '░', text)
-            self.assertEqual(match.group(2)[filled + 1:], '░' * (9 - filled), text)
+        if filled < BAR_CELLS:
+            half_filled = expected.percent % PERCENT_PER_CELL >= HALF_CELL_PERCENT
+            self.assertEqual(match.group(2)[filled], '▒' if half_filled else '░', text)
+            self.assertEqual(match.group(2)[filled + 1:], '░' * (BAR_CELLS - 1 - filled), text)
 
-    def test_context_pressure_across_both_windows(self):
+    def test_context_pressure_across_both_windows(self) -> None:
         for window, limit, unit in ((200000, 167000, '167k'), (1000000, 967000, '967k')):
             for percent in (0, 10, 55, 60, 75, 90, 95, 96, 100, 120, 200):
                 tokens = limit * percent // 100
                 with self.subTest(window=window, percent=percent):
-                    lines = self.render(self.payload(tokens=tokens, window=window))
-                    used = f'{tokens // 1000}k' if tokens < 1000000 else f'{tokens // 100000 / 10:g}m'
-                    self.assert_context_line(lines[0], percent, f'{used}/{unit}', '3:00 PM', expected_due=percent >= 100)
+                    lines = self.render(self.payload(Session(tokens=tokens, window=window)))
+                    expected = ContextLine(percent, f'{token_count(tokens)}/{unit}', '3:00 PM', due=percent >= COMPACTION_PERCENT)
+                    self.assert_context_line(lines[0], expected)
 
-    def test_context_limit_follows_auto_compact_settings(self):
+    def test_context_limit_follows_auto_compact_settings(self) -> None:
         user_settings = self.home / '.claude/settings.json'
         user_settings.parent.mkdir()
-        cases = (
+        cases: tuple[tuple[str, int, dict[str, str], dict[str, JSONValue] | None, str], ...] = (
             ('Claudex compact window', 272000, {'CLAUDE_CODE_AUTO_COMPACT_WINDOW': '258400'}, None, '225k'),
             ('compact window floor', 1000000, {'CLAUDE_CODE_AUTO_COMPACT_WINDOW': '50000'}, None, '67k'),
             ('invalid compact window', 1000000, {'CLAUDE_CODE_AUTO_COMPACT_WINDOW': 'junk'}, None, '967k'),
@@ -223,36 +309,36 @@ class StatuslineTest(unittest.TestCase):
         for name, window, claude_environment, settings, limit in cases:
             with self.subTest(name):
                 user_settings.write_text(json.dumps(settings or {}))
-                lines = self.render(self.payload(tokens=10000, window=window), claude_environment=claude_environment)
+                lines = self.render(self.payload(Session(tokens=10000, window=window)), Fakes(claude_environment=claude_environment))
                 self.assertIn(f' · 10k/{limit} · ', visible(lines[0]))
 
-    def test_compaction_due_follows_auto_compact(self):
-        cases = (
+    def test_compaction_due_follows_auto_compact(self) -> None:
+        cases: tuple[tuple[str, dict[str, str], bool], ...] = (
             ('auto-compact past limit', {}, True),
             ('auto-compact disabled', {'DISABLE_AUTO_COMPACT': '1'}, False),
         )
         for name, claude_environment, due in cases:
             with self.subTest(name):
-                lines = self.render(self.payload(tokens=171000), claude_environment=claude_environment)
+                lines = self.render(self.payload(Session(tokens=171000)), Fakes(claude_environment=claude_environment))
                 self.assertEqual('compaction due' in visible(lines[0]), due)
 
-    def test_project_settings_override_user_settings(self):
+    def test_project_settings_override_user_settings(self) -> None:
         for directory, window in ((self.home, 500000), (self.workspace, 400000)):
             (directory / '.claude').mkdir()
             (directory / '.claude/settings.json').write_text(json.dumps({'autoCompactWindow': window}))
         (self.workspace / '.claude/settings.local.json').write_text(json.dumps({'autoCompactWindow': 300000}))
-        lines = self.render(self.payload(tokens=10000, window=1000000))
+        lines = self.render(self.payload(Session(tokens=10000, window=1000000)))
         self.assertIn(' · 10k/267k · ', visible(lines[0]))
 
-    def test_model_label_variants(self):
+    def test_model_label_variants(self) -> None:
         for model, effort, prefix in (('Opus 5', 'max', 'Opus 5 max · '), ('Opus 5', None, 'Opus 5 · '),
                                       ('Sonnet 5 (1M context)', 'high', 'Sonnet 5 high · '), (None, None, '')):
             with self.subTest(model=model, effort=effort):
-                lines = self.render(self.payload(model=model, effort=effort))
-                self.assert_context_line(lines[0], 29, '50k/167k', '3:00 PM', prefix=prefix)
+                lines = self.render(self.payload(Session(model=model, effort=effort)))
+                self.assert_context_line(lines[0], ContextLine(29, '50k/167k', '3:00 PM', prefix=prefix))
 
-    def test_clock_color_follows_the_time_of_day(self):
-        cases = [
+    def test_clock_color_follows_the_time_of_day(self) -> None:
+        cases: list[tuple[datetime, str, set[str], set[str]]] = [
             (at(15, 0), '3:00 PM', {'\x1b[97m3:00 PM'}, {'\x1b[1m', '\x1b[7m'}),
             (at(16, 45), '4:45 PM', {'\x1b[38;2;0;200;0m'}, {'\x1b[1m', '\x1b[7m', '\x1b[97m'}),
             (at(16, 50), '4:50 PM', {'\x1b[38;2;'}, {'\x1b[1m', '\x1b[7m', '\x1b[97m'}),
@@ -266,18 +352,18 @@ class StatuslineTest(unittest.TestCase):
         ]
         for now, clock, present, absent in cases:
             with self.subTest(now=now.isoformat()):
-                lines = self.render(self.payload(), now=now)
-                self.assert_context_line(lines[0], 29, '50k/167k', clock)
+                lines = self.render(self.payload(), Fakes(now=now))
+                self.assert_context_line(lines[0], ContextLine(29, '50k/167k', clock))
                 clock_part = lines[0][lines[0].rindex(' · ') + 3:]
                 for needle in present:
                     self.assertIn(needle, clock_part)
                 for needle in absent:
                     self.assertNotIn(needle, clock_part)
 
-    def test_rate_limits_with_every_reset_distance(self):
+    def test_rate_limits_with_every_reset_distance(self) -> None:
         now = at(15, 0)
-        base_usage = dict(USAGE_OK, resets_5h=int((now + timedelta(hours=2)).timestamp()),
-                          resets_7d=int((now + timedelta(days=6, hours=15)).timestamp()))
+        resets_7d = int((now + timedelta(days=6, hours=15)).timestamp())
+        base_usage = dict(USAGE_OK, resets_5h=int((now + timedelta(hours=2)).timestamp()), resets_7d=resets_7d)
         cases = {
             'today': (self.rates(now), 'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable 4%'),
             'tomorrow': (self.rates(now, five_hour_reset=now + timedelta(hours=20)),
@@ -289,26 +375,26 @@ class StatuslineTest(unittest.TestCase):
             'same weekly reset as fable': (self.rates(now), None),
         }
         for name, (rates, expected) in cases.items():
-            usage = dict(base_usage, resets_fable=base_usage['resets_7d'] + 1) if name == 'same weekly reset as fable' else base_usage
+            usage = dict(base_usage, resets_fable=resets_7d + 1) if name == 'same weekly reset as fable' else base_usage
             with self.subTest(case=name):
-                lines = self.render(self.payload(rates=rates), now=now, usage=usage)
-                self.assertEqual(len(lines), 3)
+                lines = self.render(self.payload(Session(rates=rates)), Fakes(now=now, usage=usage))
+                self.assertEqual(len(lines), MAX_LINES)
                 if expected is not None:
                     self.assertEqual(visible(lines[1]), expected)
                 else:
                     self.assertEqual(visible(lines[1]), cases['today'][1])
 
-    def test_exhausted_five_hour_window_shows_cost(self):
+    def test_exhausted_five_hour_window_shows_cost(self) -> None:
         now = at(15, 0)
-        lines = self.render(self.payload(rates=self.rates(now, five_hour=100, seven_day=100), cost=12.5), now=now)
+        lines = self.render(self.payload(Session(rates=self.rates(now, five_hour=100, seven_day=100), cost=12.5)), Fakes(now=now))
         text = visible(lines[1])
         self.assertTrue(text.startswith('Usage · 5h $12.50 (resets in 2h 0m at 5:00 PM) · 7d 100%+ (resets in'), text)
-        lines = self.render(self.payload(rates=self.rates(now, five_hour=100, seven_day=100)), now=now)
+        lines = self.render(self.payload(Session(rates=self.rates(now, five_hour=100, seven_day=100))), Fakes(now=now))
         self.assertTrue(visible(lines[1]).startswith('Usage · 5h 100%+ (resets in'), visible(lines[1]))
 
-    def test_usage_fetch_outcomes(self):
+    def test_usage_fetch_outcomes(self) -> None:
         now = at(15, 0)
-        cases = {
+        cases: dict[str, tuple[JSONValue, int, bool, str]] = {
             'ok': (USAGE_OK, 0, True, 'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable 4%'),
             'keychain unavailable': ({'ok': False, 'error': 'keychain unavailable'}, 1, True,
                                      'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable unavailable'),
@@ -327,29 +413,29 @@ class StatuslineTest(unittest.TestCase):
         }
         for name, (usage, status, command, expected) in cases.items():
             with self.subTest(case=name):
-                lines = self.render(self.payload(rates=self.rates(now)), now=now, usage=usage, usage_status=status,
-                                    usage_command=command)
+                lines = self.render(self.payload(Session(rates=self.rates(now))),
+                                    Fakes(now=now, usage=usage, usage_status=status, usage_command=command))
                 self.assertEqual(visible(lines[1]), expected)
 
-    def test_stdin_rates_absent_falls_back_to_the_usage_fetch(self):
+    def test_stdin_rates_absent_falls_back_to_the_usage_fetch(self) -> None:
         now = at(15, 0)
         usage = dict(USAGE_OK, five_hour=20, seven_day=30, resets_5h=int((now + timedelta(hours=1)).timestamp()),
                      resets_7d=int((now + timedelta(days=2)).timestamp()))
-        lines = self.render(self.payload(), now=now, usage=usage)
+        lines = self.render(self.payload(), Fakes(now=now, usage=usage))
         self.assertEqual(visible(lines[1]), 'Usage · 5h 20% (resets in 1h 0m at 4:00 PM) · 7d 30% (resets in 2d 0h at Fri 3:00 PM) · Fable 4%')
-        lines = self.render(self.payload(), now=now, usage=None, usage_status=1, usage_command=False)
+        lines = self.render(self.payload(), Fakes(now=now, usage=None, usage_status=1, usage_command=False))
         self.assertEqual(len(lines), 2)
         self.assertEqual(visible(lines[1]), 'Fondly master ')
 
-    def test_git_line_variants(self):
+    def test_git_line_variants(self) -> None:
         for name, git, expected in (('plain', PLAIN_GIT, 'Fondly master '), ('dirty', DIRTY_GIT, 'Fondly master* '),
                                     ('pull request', PR_GIT, 'Fondly #12 Add the launch banner ')):
             with self.subTest(case=name):
-                lines = self.render(self.payload(), git=git)
-                self.assertEqual(len(lines), 3)
+                lines = self.render(self.payload(), Fakes(git=git))
+                self.assertEqual(len(lines), MAX_LINES)
                 self.assertEqual(visible(lines[2]), expected)
                 self.assertEqual(lines[2], git)
-        lines = self.render(self.payload(), git='')
+        lines = self.render(self.payload(), Fakes(git=''))
         self.assertEqual(len(lines), 2)
 
 
