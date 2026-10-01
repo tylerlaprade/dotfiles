@@ -25,16 +25,17 @@ int main() try {
     std::condition_variable state_changed;
     bool pointing_ready = false;
     bool was_ready = false;
-    const auto report = [&output_mutex](const std::string& message) {
+    const auto report = [&output_mutex](const std::string &message) {
       const std::scoped_lock lock(output_mutex);
       std::cout << message << '\n' << std::flush;
     };
     pqrs::karabiner::driverkit::virtual_hid_device_service::client client;
 
-    client.connected.connect([&client] {
-      client.async_virtual_hid_pointing_initialize(false);
-    });
-    client.virtual_hid_pointing_ready.connect([&was_ready, &report, &state_mutex, &state_changed, &pointing_ready](bool ready) {
+    client.connected.connect(
+        [&client] { client.async_virtual_hid_pointing_initialize(false); });
+    client.virtual_hid_pointing_ready.connect([&was_ready, &report,
+                                               &state_mutex, &state_changed,
+                                               &pointing_ready](bool ready) {
       {
         const std::scoped_lock lock(state_mutex);
         pointing_ready = ready;
@@ -47,15 +48,15 @@ int main() try {
         report("ERROR virtual mouse disconnected");
       }
     });
-    client.connect_failed.connect([&report](const auto& error) {
-      report("ERROR cannot connect to the virtual HID daemon: " + error.message());
+    client.connect_failed.connect([&report](const auto &error) {
+      report("ERROR cannot connect to the virtual HID daemon: " +
+             error.message());
     });
-    client.error_occurred.connect([&report](const auto& error) {
+    client.error_occurred.connect([&report](const auto &error) {
       report("ERROR virtual HID client: " + error.message());
     });
-    client.closed.connect([&report] {
-      report("ERROR virtual HID connection closed");
-    });
+    client.closed.connect(
+        [&report] { report("ERROR virtual HID connection closed"); });
     client.driver_version_mismatched.connect([&report](bool mismatched) {
       if (mismatched) {
         report("ERROR rebuild the prototype against the installed driver");
@@ -67,9 +68,8 @@ int main() try {
     client.async_virtual_hid_pointing_terminate();
     {
       std::unique_lock<std::mutex> lock(state_mutex);
-      released = state_changed.wait_for(lock, release_timeout, [&pointing_ready] {
-        return !pointing_ready;
-      });
+      released = state_changed.wait_for(
+          lock, release_timeout, [&pointing_ready] { return !pointing_ready; });
     }
     client.async_stop();
   }
@@ -79,7 +79,7 @@ int main() try {
     return 1;
   }
   return 0;
-} catch (const std::exception& error) {
+} catch (const std::exception &error) {
   std::cerr << "Virtual mouse client failed: " << error.what() << '\n';
   return 1;
 } catch (...) {
