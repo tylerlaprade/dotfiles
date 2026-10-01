@@ -148,7 +148,7 @@ class VirtualMouse:
         if process.stdin is not None:
             process.stdin.close()
         try:
-            await asyncio.wait_for(process.wait(), timeout=5)
+            await asyncio.wait_for(process.wait(), timeout=10)
         except TimeoutError:
             await stop_process(process)
         if process.returncode != 0:
