@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from typing import override
 
 from scripts.sync import threeway
 
@@ -63,6 +64,7 @@ class MergeTest(unittest.TestCase):
 
 
 class BaseStoreTest(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)

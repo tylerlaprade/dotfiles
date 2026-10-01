@@ -8,12 +8,12 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
-from typing import TYPE_CHECKING, Union, final
+from typing import TYPE_CHECKING, final, override
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-JSONValue = Union[None, bool, int, float, str, list["JSONValue"], dict[str, "JSONValue"]]
+type JSONValue = bool | int | float | str | list[JSONValue] | dict[str, JSONValue] | None
 
 parse_json: Callable[[str], JSONValue] = json.loads
 
@@ -48,6 +48,7 @@ def file_reference(source: str, file_name: str) -> str:
 
 @final
 class BackgroundHelpersTest(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
@@ -126,6 +127,20 @@ class BackgroundHelpersTest(unittest.TestCase):
                                 FAKE_STATUS='0', FAKE_RESULT='{"login":"Tyler"}')
         result = self.run_helper('gh-background', 'api', 'user')
         self.assertEqual((result.returncode, result.stdout), (0, '{"login":"Tyler"}'))
+
+    def test_missing_homebrew_python_names_the_fix(self) -> None:
+        for name in ['gh-background', 'claude-usage']:
+            source = (self.bin / name).read_text()
+            interpreter = shell_assignment(source, 'homebrew_python')
+            self.install(name, source.replace(interpreter, str(self.root / 'missing/python3')))
+        background = self.run_helper('gh-background', 'api', 'user')
+        self.assertEqual(background.returncode, 12)
+        self.assertIn('brew install python', background.stderr)
+        result = self.run_helper('claude-usage')
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(usage_report(result.stdout)['error'], 'no python')
+        self.assertIn('brew install python', result.stderr)
+        self.assertFalse(self.calls.exists())
 
     def test_missing_keychain_check_skips_credential_commands(self) -> None:
         (self.root / 'scripts/keychain-unlocked.py').unlink()

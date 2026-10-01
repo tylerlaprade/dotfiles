@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/opt/homebrew/bin/python3
 """Apply one personal lint policy to every local `cargo clippy` run."""
 
 import os

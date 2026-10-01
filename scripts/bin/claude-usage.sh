@@ -32,6 +32,8 @@ now=$(date +%s)
 
 lock=/tmp/claude-usage.fetch
 
+homebrew_python=/opt/homebrew/bin/python3
+
 # Sets global fetch_lock_claimed.
 _claim_fetch_lock() {
   fetch_lock_claimed=false
@@ -132,7 +134,11 @@ fi
 
 script_path=$(realpath "${BASH_SOURCE[0]}")
 keychain_check="$(dirname "$script_path")/../keychain-unlocked.py"
-timeout 2 python3 "$keychain_check" 2>/dev/null || emit_stale "keychain unavailable"
+if [[ ! -x "$homebrew_python" ]]; then
+  echo "claude-usage: $homebrew_python is missing; run: brew install python" >&2
+  emit_stale "no python"
+fi
+timeout 2 "$homebrew_python" "$keychain_check" 2>/dev/null || emit_stale "keychain unavailable"
 
 credential_status=0
 blob=$(timeout 5 security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null) || credential_status=$?

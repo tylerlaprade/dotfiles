@@ -1,4 +1,4 @@
-#!/usr/bin/env -S uv run --script
+#!/opt/homebrew/bin/python3
 """Bidirectional sync of Helix languages.toml with local-only secrets.
 
 The repo copy contains a SOURCERY_TOKEN placeholder. The live copy has the real

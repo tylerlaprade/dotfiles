@@ -400,6 +400,8 @@ if [[ -n "$_usage" ]]; then
       else
         fable_part="${DIM}Fable unavailable${RESET}"
       fi
+    elif [[ "$_usage_error" = "no python" ]]; then
+      fable_part="${YELLOW}Fable: brew install python${RESET}"
     elif [[ "$_usage_error" = "token expired" ]] || [[ "$_usage_error" = "no login" ]] || [[ "$_usage_error" = "no token" ]] || [[ "$_usage_error" = "HTTP 401" ]]; then
       fable_part="${YELLOW}Fable: login required${RESET}"
     elif [[ "$_usage_error" = "HTTP 429" ]]; then

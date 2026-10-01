@@ -8,12 +8,12 @@ import tempfile
 import unittest
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Union, final
+from typing import TYPE_CHECKING, final, override
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-JSONValue = Union[None, bool, int, float, str, list["JSONValue"], dict[str, "JSONValue"]]
+type JSONValue = bool | int | float | str | list[JSONValue] | dict[str, JSONValue] | None
 
 parse_json: Callable[[str], JSONValue] = json.loads
 
@@ -66,6 +66,7 @@ class ProbeRun:
 
 @final
 class ClaudexTest(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)

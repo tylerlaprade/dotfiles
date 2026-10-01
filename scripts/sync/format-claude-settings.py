@@ -1,4 +1,4 @@
-#!/usr/bin/env -S uv run --script
+#!/opt/homebrew/bin/python3
 """Format settings.json to match Claude Code's native JSON serializer.
 
 Claude Code uses Node.js JSON.stringify(obj, null, 2) — standard 2-space
@@ -10,12 +10,12 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-JSONValue = Union[None, bool, int, float, str, list["JSONValue"], dict[str, "JSONValue"]]
+type JSONValue = bool | int | float | str | list[JSONValue] | dict[str, JSONValue] | None
 parse_json: Callable[[str], JSONValue] = json.loads
 
 

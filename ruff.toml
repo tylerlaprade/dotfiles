@@ -1,2 +1,9 @@
 extend = "../../.config/ruff/ruff.toml"
-target-version = "py39"
+target-version = "py314"
+
+[per-file-target-version]
+"scripts/setup/apply-macos-defaults.py" = "py39"
+"scripts/sync/sync-browser-local-state.py" = "py39"
+"scripts/sync/sync-graphite.py" = "py39"
+"scripts/sync/sync-macos-defaults.py" = "py39"
+"scripts/sync/threeway.py" = "py39"

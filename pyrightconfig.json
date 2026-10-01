@@ -1,6 +1,13 @@
 {
   "extends": "../../.config/basedpyright/pyrightconfig.json",
   "include": ["scripts", "tests"],
-  "pythonVersion": "3.9",
-  "executionEnvironments": [{ "root": "scripts/sync" }]
+  "pythonVersion": "3.14",
+  "executionEnvironments": [
+    { "root": "scripts/setup/apply-macos-defaults.py", "pythonVersion": "3.9" },
+    { "root": "scripts/sync/sync-browser-local-state.py", "pythonVersion": "3.9", "extraPaths": ["scripts/sync"] },
+    { "root": "scripts/sync/sync-graphite.py", "pythonVersion": "3.9", "extraPaths": ["scripts/sync"] },
+    { "root": "scripts/sync/sync-macos-defaults.py", "pythonVersion": "3.9", "extraPaths": ["scripts/sync"] },
+    { "root": "scripts/sync/threeway.py", "pythonVersion": "3.9" },
+    { "root": "scripts/sync" }
+  ]
 }

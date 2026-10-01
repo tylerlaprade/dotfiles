@@ -4,8 +4,13 @@
 
 script_path=$(realpath "${BASH_SOURCE[0]}")
 keychain_check="$(dirname "$script_path")/../keychain-unlocked.py"
+homebrew_python=/opt/homebrew/bin/python3
 if [[ -z "${GH_TOKEN:-}${GITHUB_TOKEN:-}${GH_ENTERPRISE_TOKEN:-}${GITHUB_ENTERPRISE_TOKEN:-}" ]]; then
-  timeout 2 python3 "$keychain_check" 2>/dev/null || exit 12
+  if [[ ! -x "$homebrew_python" ]]; then
+    echo "gh-background: $homebrew_python is missing; run: brew install python" >&2
+    exit 12
+  fi
+  timeout 2 "$homebrew_python" "$keychain_check" 2>/dev/null || exit 12
 fi
 
 stderr=$(mktemp)

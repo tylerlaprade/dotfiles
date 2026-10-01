@@ -10,10 +10,10 @@ import unittest
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Union, final
+from typing import final, override
 from zoneinfo import ZoneInfo
 
-JSONValue = Union[None, bool, int, float, str, list["JSONValue"], dict[str, "JSONValue"]]
+type JSONValue = bool | int | float | str | list[JSONValue] | dict[str, JSONValue] | None
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 EASTERN = ZoneInfo('America/New_York')
@@ -179,6 +179,7 @@ DEFAULT_FAKES = Fakes()
 
 @final
 class StatuslineTest(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
@@ -400,6 +401,8 @@ class StatuslineTest(unittest.TestCase):
                                      'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable unavailable'),
             'keychain unavailable with cache': ({'ok': False, 'error': 'keychain unavailable', 'fable': 40}, 1, True,
                                                 'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable 40% · stale'),
+            'python missing': ({'ok': False, 'error': 'no python', 'fable': 40}, 1, True,
+                               'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable: brew install python'),
             'login required': ({'ok': False, 'error': 'HTTP 401', 'fable': 40}, 1, True,
                                'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable: login required'),
             'rate limited': ({'ok': False, 'error': 'HTTP 429', 'fable': 73}, 1, True,
