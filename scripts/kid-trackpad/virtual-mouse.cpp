@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Tyler Laprade. SPDX-License-Identifier: GPL-3.0-only
+#include <filesystem>
 #include <iostream>
 #include <mutex>
+#include <pqrs/karabiner/driverkit/virtual_hid_device_driver.hpp>
 #include <pqrs/karabiner/driverkit/virtual_hid_device_service.hpp>
 #include <string>
 #include <unistd.h>

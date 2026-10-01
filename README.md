@@ -51,7 +51,7 @@ not change or replace the driver. Rebuild after updating the driver.
 
 In Accessibility → Pointer Control, turn Mouse Keys off and enable
 “Ignore built-in trackpad when mouse or wireless trackpad is present.” Then
-run `sudo python3 scripts/kid_trackpad.py`. Both Shifts + K enters kid mode;
+run `sudo /opt/homebrew/bin/python3 scripts/kid_trackpad.py`. Both Shifts + K enters kid mode;
 either Shift + K unlocks. Ordinary letters, numbers, and punctuation pass
 through; modifiers, Fn, system function keys, Escape, and Tab stay disabled.
 Brightness, volume, Left/Right, and Space still work.

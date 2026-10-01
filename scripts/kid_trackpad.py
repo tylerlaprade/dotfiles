@@ -335,6 +335,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    if sys.version_info < (3, 11):
+        raise SystemExit("Use Homebrew Python 3.11 or newer to run the prototype.")
     if sys.platform != "darwin" or os.geteuid() != 0:
         raise SystemExit("Run this prototype on macOS with sudo.")
     signal.signal(signal.SIGTERM, signal.default_int_handler)
