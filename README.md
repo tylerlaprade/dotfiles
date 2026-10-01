@@ -36,6 +36,7 @@ Tab, modifiers, and Fn/Globe. Hold either Shift and press K to unlock
 before typing `quit` or `exit` in the game.
 
 Kanata's built-in Left Control + Space + Escape emergency exit still works.
+Kanata reads that chord before remapping, so a layer cannot disable it.
 
 ### Virtual mouse prototype
 
@@ -51,8 +52,9 @@ not change or replace the driver. Rebuild after updating the driver.
 
 In Accessibility → Pointer Control, turn Mouse Keys off and enable
 “Ignore built-in trackpad when mouse or wireless trackpad is present.” Then
-run `sudo /opt/homebrew/bin/python3 scripts/kid_trackpad.py`. Both Shifts + K enters kid mode;
-either Shift + K unlocks. Ordinary letters, numbers, and punctuation pass
+run `sudo /opt/homebrew/bin/python3 scripts/kid_trackpad.py`.
+Both Shifts + K enters kid mode; either Shift + K unlocks.
+Ordinary letters, numbers, and punctuation pass
 through; modifiers, Fn, system function keys, Escape, and Tab stay disabled.
 Brightness, volume, Left/Right, and Space still work.
 
@@ -62,7 +64,6 @@ the prototype and restores the normal service. A driver or Kanata connection
 failure also stops the prototype and restores the service. These physical
 trackpad checks have not yet been verified on the Mac; the default remains
 the existing Mouse Keys setup.
-Kanata reads that chord before remapping, so a layer cannot disable it.
 
 ## Second Mac
 
