@@ -12,6 +12,7 @@ import tempfile
 import unittest
 from collections import Counter
 from pathlib import Path
+from typing import override
 
 import recall
 from recall import Message
@@ -25,6 +26,7 @@ from support import (
 
 
 class AntigravityIndexing(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         self.tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.corpus: Corpus = Corpus(self.tmp.name)
@@ -84,6 +86,7 @@ class AntigravityIndexing(unittest.TestCase):
 
 
 class OpenCodeIndexing(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         self.tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.corpus: Corpus = Corpus(self.tmp.name)

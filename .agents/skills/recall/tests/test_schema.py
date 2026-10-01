@@ -11,7 +11,7 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, override
 
 import recall
 from recall import SqlValue, fetch_all, fetch_one, sql_text
@@ -69,6 +69,7 @@ def first_text(conn: sqlite3.Connection) -> str:
 
 
 class Migration(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         self._tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.tmp: Path = Path(self._tmp.name)

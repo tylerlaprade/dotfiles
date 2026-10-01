@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/opt/homebrew/bin/python3
 """Pretty-print a Claude Code, Codex, Grok, Antigravity, or OpenCode session transcript."""
 
 from __future__ import annotations

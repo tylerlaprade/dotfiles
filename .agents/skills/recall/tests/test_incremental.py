@@ -13,6 +13,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr
 from pathlib import Path
+from typing import override
 from unittest import mock
 
 import recall
@@ -46,6 +47,7 @@ def first_value(conn: sqlite3.Connection, sql: str) -> SqlValue:
 
 
 class IndexingCase(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         self._tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.tmp: Path = Path(self._tmp.name)
@@ -783,6 +785,38 @@ class DatabaseLocationMigration(IndexingCase):
         with pointed_at(self.corpus, self.db):
             recall.migrate_db_location()
             self.assertFalse(Path(self.db).exists())
+
+
+class SessionScan(unittest.TestCase):
+    @override
+    def setUp(self) -> None:
+        self.tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
+        self.corpus: Corpus = Corpus(self.tmp.name)
+        self.db: Path = Path(self.tmp.name) / "index.db"
+        self.addCleanup(self.tmp.cleanup)
+
+    def scanned(self) -> set[str]:
+        with pointed_at(self.corpus, self.db):
+            return {scanned.path for scanned in recall.scan_session_files([])}
+
+    def test_hidden_names_are_skipped_unless_spelled_out(self) -> None:
+        kept = [
+            self.corpus.write(self.corpus.claude / "proj" / "s.jsonl", [claude_entry("kept")]),
+            self.corpus.antigravity_session("traj", [claude_entry("kept")]),
+        ]
+        self.corpus.write(self.corpus.claude / "proj" / ".s.jsonl", [claude_entry("hidden file")])
+        self.corpus.write(self.corpus.claude / ".proj" / "s.jsonl", [claude_entry("hidden dir")])
+        self.corpus.write(self.corpus.grok / ".old" / "chat_history.jsonl", [grok_entry("hidden dir")])
+        self.corpus.antigravity_session(".traj", [claude_entry("hidden trajectory")])
+
+        self.assertEqual(self.scanned(), {str(path) for path in kept})
+
+    def test_symlinked_directories_are_followed(self) -> None:
+        elsewhere = Path(self.tmp.name) / "elsewhere"
+        self.corpus.write(elsewhere / "nested" / "s.jsonl", [claude_entry("linked")])
+        (self.corpus.claude / "linked").symlink_to(elsewhere, target_is_directory=True)
+
+        self.assertEqual(self.scanned(), {str(self.corpus.claude / "linked" / "nested" / "s.jsonl")})
 
 
 if __name__ == "__main__":

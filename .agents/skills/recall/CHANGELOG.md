@@ -5,6 +5,17 @@ Forked from [arjunkmrm/recall](https://github.com/arjunkmrm/recall) at 0.2.2 on
 third source is `pi` where ours is Grok, so the two cannot simply be merged.
 Versions below 0.2.3 are upstream's; from 0.2.3 on they are local.
 
+## 0.8.0 — 2026-10-01
+
+- Runs on Homebrew's Python instead of macOS's 3.9. Both scripts name
+  `/opt/homebrew/bin/python3` in their shebang and are run directly, so a
+  missing interpreter fails as a bad interpreter rather than falling back to
+  an older Python. The code now needs 3.13 or newer.
+- Session files are found with `Path.glob` instead of `glob.glob`. The set is
+  the same: names starting with "." are still skipped unless the pattern
+  spells them out, and symlinked directories are still followed. A test now
+  holds both rules.
+
 ## 0.7.1 — 2026-09-30
 
 - A transcript field holding the wrong kind of JSON no longer ends the run.

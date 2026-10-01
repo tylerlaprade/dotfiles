@@ -12,12 +12,14 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from typing import override
 
 import recall
 from support import Corpus, claude_entry, pointed_at
 
 
 class ExitCodes(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         self._tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
@@ -75,6 +77,7 @@ class DegradedIndex(unittest.TestCase):
     conclusion — "nothing exists" — is exactly what neither may produce.
     """
 
+    @override
     def setUp(self) -> None:
         self._tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)

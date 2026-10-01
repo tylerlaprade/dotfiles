@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/opt/homebrew/bin/python3
 """Search past Claude Code, Codex, Grok, Antigravity, and OpenCode sessions using FTS5 full-text search."""
 
 from __future__ import annotations
@@ -15,9 +15,8 @@ import sys
 import time
 from contextlib import contextmanager
 from datetime import datetime
-from glob import glob
-from pathlib import Path
-from typing import TYPE_CHECKING, NamedTuple, Union
+from pathlib import Path, PurePath
+from typing import TYPE_CHECKING, NamedTuple
 from urllib.parse import unquote
 
 if TYPE_CHECKING:
@@ -35,7 +34,7 @@ GROK_SESSIONS_DIR = GROK_DIR / "sessions"
 # getting a directory of its own beside its parent's.
 ANTIGRAVITY_BRAIN_DIR = Path.home() / ".gemini" / "antigravity-cli" / "brain"
 # Spelled out rather than globbed with **, which skips a dot directory.
-ANTIGRAVITY_TRANSCRIPT = Path("*") / ".system_generated" / "logs" / "transcript.jsonl"
+ANTIGRAVITY_TRANSCRIPT = PurePath("*", ".system_generated", "logs", "transcript.jsonl")
 # OpenCode keeps every session in one SQLite database rather than a file each.
 OPENCODE_DB = Path.home() / ".local" / "share" / "opencode" / "opencode.db"
 # Separates that database from the session inside it, in the path column.
@@ -57,11 +56,11 @@ EXIT_NO_RESULTS = 1
 EXIT_BROKEN_INDEX = 3
 EXIT_DEGRADED_INDEX = 4
 
-JSONValue = Union[None, bool, int, float, str, list["JSONValue"], dict[str, "JSONValue"]]
-JSONObject = dict[str, "JSONValue"]
+type JSONValue = bool | int | float | str | list[JSONValue] | dict[str, JSONValue] | None
+JSONObject = dict[str, JSONValue]
 parse_json: Callable[[str], JSONValue] = json.loads
 
-SqlValue = Union[None, int, float, str, bytes]
+type SqlValue = int | float | str | bytes | None
 Row = tuple[SqlValue, ...]
 
 Message = tuple[str, str]
@@ -132,7 +131,7 @@ def sql_count(conn: sqlite3.Connection, sql: str) -> int:
 
 
 @contextmanager
-def index_lock() -> Generator[bool, None, None]:
+def index_lock() -> Generator[bool]:
     """Hold an exclusive lock while the index is updated.
 
     Indexing is one write transaction spanning every file it parses, so two
@@ -399,8 +398,7 @@ def parse_iso_timestamp(ts_str: JSONValue) -> int | None:
             if isinstance(ts_str, (int, float)):
                 return int(ts_str)
             return None
-        # Handle "2026-03-03T00:26:57.352Z" format
-        dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(ts_str)
         return int(dt.timestamp() * 1000)
     except (ValueError, TypeError, OverflowError):
         return None
@@ -936,18 +934,38 @@ def scan_opencode_sessions(skipped: list[Skip]) -> list[ScannedFile]:
         return []
 
 
+def spelled_out(names: tuple[str, ...], pattern: PurePath) -> bool:
+    """Whether every hidden name in a match is written literally in `pattern`.
+
+    A wildcard never matches a name starting with "." in shell globbing, and
+    Path.glob matches one anyway.
+    """
+    if "**" in pattern.parts:
+        split = pattern.parts.index("**")
+        head, tail = pattern.parts[:split], pattern.parts[split + 1 :]
+        recursed = len(names) - len(head) - len(tail)
+        aligned = (*head, *("**",) * recursed, *tail)
+    else:
+        aligned = pattern.parts
+    return all(
+        name == part or not name.startswith(".")
+        for name, part in zip(names, aligned, strict=True)
+    )
+
+
 def scan_session_files(skipped: list[Skip]) -> list[ScannedFile]:
     """Every session on disk, paired with the tool that wrote it."""
     patterns = (
-        (CLAUDE_PROJECTS_DIR / "**" / "*.jsonl", "claude"),
-        (CODEX_SESSIONS_DIR / "**" / "*.jsonl", "codex"),
-        (GROK_SESSIONS_DIR / "**" / "chat_history.jsonl", "grok"),
-        (ANTIGRAVITY_BRAIN_DIR / ANTIGRAVITY_TRANSCRIPT, "antigravity"),
+        (CLAUDE_PROJECTS_DIR, PurePath("**", "*.jsonl"), "claude"),
+        (CODEX_SESSIONS_DIR, PurePath("**", "*.jsonl"), "codex"),
+        (GROK_SESSIONS_DIR, PurePath("**", "chat_history.jsonl"), "grok"),
+        (ANTIGRAVITY_BRAIN_DIR, ANTIGRAVITY_TRANSCRIPT, "antigravity"),
     )
     found = [
-        ScannedFile(fpath, source, None)
-        for pattern, source in patterns
-        for fpath in glob(str(pattern), recursive=True)
+        ScannedFile(str(fpath), source, None)
+        for directory, pattern, source in patterns
+        for fpath in directory.glob(str(pattern), recurse_symlinks=True)
+        if spelled_out(fpath.parts[len(directory.parts) :], pattern)
     ]
     return found + scan_opencode_sessions(skipped)
 

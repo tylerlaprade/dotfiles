@@ -10,7 +10,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 from urllib.parse import quote
 
 import read_session
@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 
 class SharedWithTheIndexer(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -92,6 +93,7 @@ class SharedWithTheIndexer(unittest.TestCase):
 
 
 class FormatDetection(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)

@@ -9,6 +9,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from typing import override
 
 import recall
 
@@ -28,6 +29,7 @@ def read_all(path: str, start: int = 0) -> tuple[list[str], int]:
 
 
 class ReadCompleteLines(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         self._tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.tmp: Path = Path(self._tmp.name)
@@ -110,6 +112,7 @@ class ReadCompleteLines(unittest.TestCase):
 
 
 class TailHash(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         self._tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.tmp: Path = Path(self._tmp.name)
@@ -146,6 +149,7 @@ class TailHash(unittest.TestCase):
 
 
 class ResumeOffset(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         self._tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.tmp: Path = Path(self._tmp.name)

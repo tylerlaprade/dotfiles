@@ -247,7 +247,7 @@ _pointed_at_lock = threading.Lock()
 
 
 @contextmanager
-def pointed_at(corpus: Corpus, db_path: Path | str) -> Generator[None, None, None]:
+def pointed_at(corpus: Corpus, db_path: Path | str) -> Generator[None]:
     """Point the recall module at a throwaway corpus and database.
 
     Not reentrant, and not safe to enter from more than one thread: it swaps

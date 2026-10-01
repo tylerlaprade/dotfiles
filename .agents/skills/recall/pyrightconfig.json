@@ -1,6 +1,6 @@
 {
   "extends": "../../../.config/basedpyright/pyrightconfig.json",
-  "pythonVersion": "3.9",
+  "pythonVersion": "3.14",
   "executionEnvironments": [
     { "root": "scripts" },
     { "root": "tests", "extraPaths": ["scripts"] }

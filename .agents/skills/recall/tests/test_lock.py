@@ -17,7 +17,7 @@ import time
 import unittest
 from contextlib import contextmanager, redirect_stderr, redirect_stdout, suppress
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 import recall
 from support import Corpus, claude_entry, index, pointed_at
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 
 @contextmanager
-def lock_held_elsewhere(lock_path: str) -> Generator[None, None, None]:
+def lock_held_elsewhere(lock_path: str) -> Generator[None]:
     """Hold the lock the way another session would.
 
     flock belongs to the open file description rather than the process, so a
@@ -39,6 +39,7 @@ def lock_held_elsewhere(lock_path: str) -> Generator[None, None, None]:
 
 
 class LockBehavior(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         self._tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.tmp: Path = Path(self._tmp.name)
@@ -144,6 +145,7 @@ class ConcurrentIndexing(unittest.TestCase):
     """The reason the lock exists. Two runs indexing the same growing session
     must not each insert the same new messages."""
 
+    @override
     def setUp(self) -> None:
         self._tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.tmp: Path = Path(self._tmp.name)

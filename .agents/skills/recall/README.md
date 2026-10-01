@@ -42,7 +42,7 @@ Then use `/recall` in any of those agents, or ask "find a past session where we 
 - Results tagged `[claude]`, `[codex]`, `[grok]`, `[antigravity]`, or `[opencode]` with highlighted excerpts
 - Hyphenated search terms are split into quoted words, because FTS5 reads a bare `-` as NOT
 - Run it with no query at all to list recent sessions by date instead of searching
-- No dependencies — Python 3.9+ stdlib only. POSIX only, since it uses `fcntl` for locking
+- No dependencies — Python 3.13+ stdlib only, run by Homebrew's `/opt/homebrew/bin/python3`. POSIX only, since it uses `fcntl` for locking
 
 ### Reading only what is new
 
@@ -73,7 +73,7 @@ it stands rather than hanging.
 ## Tests
 
 ```bash
-PYTHONPATH=scripts python3 -m unittest discover tests -v
+PYTHONPATH=scripts /opt/homebrew/bin/python3 -m unittest discover tests -v
 ```
 
 Stdlib `unittest`, no dependencies. Every fixture is synthetic and built in a

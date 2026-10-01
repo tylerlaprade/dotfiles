@@ -9,7 +9,7 @@ metadata:
   author: tylerlaprade
   upstream: arjunkmrm/recall
   fork: diverged from upstream 0.2.2
-  version: "0.7.1"
+  version: "0.8.0"
   license: MIT
 ---
 
@@ -21,42 +21,42 @@ using full-text search with BM25 ranking.
 ## Usage
 
 ```bash
-python3 ~/.claude/skills/recall/scripts/recall.py [QUERY] [--project PATH] [--days N] [--source claude|codex|grok|antigravity|opencode] [--limit N] [--reindex]
+~/.claude/skills/recall/scripts/recall.py [QUERY] [--project PATH] [--days N] [--source claude|codex|grok|antigravity|opencode] [--limit N] [--reindex]
 ```
 
 ## Examples
 
 ```bash
 # Simple keyword search
-python3 ~/.claude/skills/recall/scripts/recall.py "bufferStore"
+~/.claude/skills/recall/scripts/recall.py "bufferStore"
 
 # Phrase search (exact match)
-python3 ~/.claude/skills/recall/scripts/recall.py '"ACP protocol"'
+~/.claude/skills/recall/scripts/recall.py '"ACP protocol"'
 
 # Boolean query
-python3 ~/.claude/skills/recall/scripts/recall.py "rust AND async"
+~/.claude/skills/recall/scripts/recall.py "rust AND async"
 
 # Prefix search
-python3 ~/.claude/skills/recall/scripts/recall.py "buffer*"
+~/.claude/skills/recall/scripts/recall.py "buffer*"
 
 # Filter by project and recency
-python3 ~/.claude/skills/recall/scripts/recall.py "state machine" --project ~/my-project --days 7
+~/.claude/skills/recall/scripts/recall.py "state machine" --project ~/my-project --days 7
 
 # Search only Claude Code sessions
-python3 ~/.claude/skills/recall/scripts/recall.py "buffer" --source claude
+~/.claude/skills/recall/scripts/recall.py "buffer" --source claude
 
 # Search only Codex sessions
-python3 ~/.claude/skills/recall/scripts/recall.py "buffer" --source codex
+~/.claude/skills/recall/scripts/recall.py "buffer" --source codex
 
 # Search only Grok sessions
-python3 ~/.claude/skills/recall/scripts/recall.py "buffer" --source grok
+~/.claude/skills/recall/scripts/recall.py "buffer" --source grok
 
 # Search only Antigravity (agy) or OpenCode sessions
-python3 ~/.claude/skills/recall/scripts/recall.py "buffer" --source antigravity
-python3 ~/.claude/skills/recall/scripts/recall.py "buffer" --source opencode
+~/.claude/skills/recall/scripts/recall.py "buffer" --source antigravity
+~/.claude/skills/recall/scripts/recall.py "buffer" --source opencode
 
 # Force reindex
-python3 ~/.claude/skills/recall/scripts/recall.py --reindex "test"
+~/.claude/skills/recall/scripts/recall.py --reindex "test"
 ```
 
 ## Query Syntax (FTS5)
@@ -113,7 +113,7 @@ opencode --session SESSION_ID
 Each result includes a `File:` path. Use it to read the raw transcript (auto-detects format):
 
 ```bash
-python3 ~/.claude/skills/recall/scripts/read_session.py <File-path-from-result>
+~/.claude/skills/recall/scripts/read_session.py <File-path-from-result>
 ```
 
 If results are missing `File:` paths, run `--reindex` to backfill.
@@ -127,7 +127,8 @@ If results are missing `File:` paths, run `--reindex` to backfill.
   (Antigravity), and `~/.local/share/opencode/opencode.db` (OpenCode)
 - First run indexes all sessions; after that only the bytes a session has added are read, except for Grok, which rewrites its whole history file on every save, and OpenCode, whose sessions are database rows re-read whenever one changes
 - Omit the query to list recent sessions instead of searching
-- Run tests with `PYTHONPATH=scripts python3 -m unittest discover tests -v` from the skill root
+- The scripts run under Homebrew's `/opt/homebrew/bin/python3` (3.13 or newer) through their shebang; if it is missing, the shell reports a bad interpreter and `brew install python` fixes it
+- Run tests with `PYTHONPATH=scripts /opt/homebrew/bin/python3 -m unittest discover tests -v` from the skill root
 - Only user and assistant messages are indexed (tool calls, thinking blocks, state snapshots, synthetic harness context skipped)
 - Results show a `[claude]`, `[codex]`, `[grok]`, `[antigravity]`, or `[opencode]` tag to indicate the source
 - An OpenCode session's `File:` is `<opencode.db>#<session id>`; pass it to `read_session.py` as-is

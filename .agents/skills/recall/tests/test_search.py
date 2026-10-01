@@ -14,8 +14,9 @@ import tempfile
 import time
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import override
 
 import recall
 from recall import Result, Scope, fetch_all, fetch_one, sql_text
@@ -27,7 +28,7 @@ DEFAULT_SCOPE = Scope()
 
 def iso_days_ago(now_ms: float, age_days: int) -> str:
     """An ISO timestamp, as transcripts write them, `age_days` before `now_ms`."""
-    moment = datetime.fromtimestamp((now_ms - age_days * MS_PER_DAY) / 1000, tz=timezone.utc)
+    moment = datetime.fromtimestamp((now_ms - age_days * MS_PER_DAY) / 1000, tz=UTC)
     return moment.isoformat().replace("+00:00", "Z")
 
 
@@ -83,6 +84,7 @@ class SanitizeQuery(unittest.TestCase):
 
 
 class SearchEndToEnd(unittest.TestCase):
+    @override
     def setUp(self) -> None:
         self._tmp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.tmp: Path = Path(self._tmp.name)
@@ -157,6 +159,7 @@ class Ranking(unittest.TestCase):
     """Recent sessions should come first among equally good matches. The blend
     that exists to do that was pushing them down the page instead."""
 
+    @override
     def setUp(self) -> None:
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -202,6 +205,7 @@ class RolesAreNotSearchable(unittest.TestCase):
     """`role` holds the literal words "user" and "assistant". Indexing it made
     both behave as wildcards matching most of the corpus."""
 
+    @override
     def setUp(self) -> None:
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -277,6 +281,7 @@ class Filters(unittest.TestCase):
     """--project, --days and --limit had no test at all, so every one of them
     could have been returning the wrong set of sessions."""
 
+    @override
     def setUp(self) -> None:
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -348,6 +353,7 @@ class Filters(unittest.TestCase):
 class ResultsAreReadable(unittest.TestCase):
     """The excerpt and the date are the whole of what a result shows."""
 
+    @override
     def setUp(self) -> None:
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -408,6 +414,7 @@ class ListMode(unittest.TestCase):
     """With no query, show what is there by recency rather than demanding a
     keyword. Answers "what was I working on" instead of "where did I say X"."""
 
+    @override
     def setUp(self) -> None:
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
