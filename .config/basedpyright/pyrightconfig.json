@@ -1,0 +1,11 @@
+{
+  "typeCheckingMode": "all",
+  // Joining adjacent string literals across lines is style.
+  "reportImplicitStringConcatenation": false,
+  // Ignoring a call's result is ordinary; marking each one adds noise, not safety.
+  "reportUnusedCallResult": false,
+  // Ruff's ANN401 already bans writing Any in an annotation.
+  "reportExplicitAny": false,
+  // unittest sets fixtures up in setUp, not __init__.
+  "reportUninitializedInstanceVariable": false
+}
