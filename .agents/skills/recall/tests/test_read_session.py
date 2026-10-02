@@ -57,6 +57,24 @@ class SharedWithTheIndexer(unittest.TestCase):
         self.assertEqual(printed, parsed.messages if parsed else None)
         self.assertEqual(len(printed), 2)
 
+    def test_claude_keeps_what_the_user_sent_mid_turn(self) -> None:
+        """A message sent while the agent works is stored only as a queued
+        command. Dropping it lost rulings Tyler spoke between tool calls."""
+        entries: list[JSONObject] = [
+            {"type": "user", "cwd": "/w", "message": {"content": "write a tagline"}},
+            {"type": "queue-operation", "operation": "enqueue", "content": "too wordy"},
+            {"type": "attachment", "attachment": {
+                "type": "queued_command", "commandMode": "prompt", "prompt": "too wordy"}},
+            {"type": "attachment", "attachment": {
+                "type": "queued_command", "commandMode": "task-notification",
+                "prompt": "<task-notification>done</task-notification>"}},
+        ]
+        path = self.write("proj/2222.jsonl", entries)
+        parsed = recall.parse_claude_session(str(path), 0, [])
+        printed = list(read_session.iter_messages(str(path)))
+        self.assertEqual(printed, parsed.messages if parsed else None)
+        self.assertEqual(printed, [("user", "write a tagline"), ("user", "too wordy")])
+
     def test_codex_drops_the_same_injected_blocks(self) -> None:
         entries: list[JSONObject] = [
             {"timestamp": "2026-01-01T00:00:00.000Z", "type": "session_meta",

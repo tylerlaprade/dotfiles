@@ -9,7 +9,7 @@ metadata:
   author: tylerlaprade
   upstream: arjunkmrm/recall
   fork: diverged from upstream 0.2.2
-  version: "0.8.0"
+  version: "0.8.1"
   license: MIT
 ---
 

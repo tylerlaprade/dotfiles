@@ -5,6 +5,16 @@ Forked from [arjunkmrm/recall](https://github.com/arjunkmrm/recall) at 0.2.2 on
 third source is `pi` where ours is Grok, so the two cannot simply be merged.
 Versions below 0.2.3 are upstream's; from 0.2.3 on they are local.
 
+## 0.8.1 — 2026-10-02
+
+- A message sent while Claude Code was still working is now indexed and
+  printed. Claude Code stores it only as a queued-command attachment, never
+  as a user turn, so search could not find it and `read_session.py` left it
+  out. Rulings spoken between tool calls were missing from the voice sweep
+  for that reason. Task notifications queued the same way stay out.
+- The parser version is now 2, so the next run re-reads every Claude session
+  once to pick up those messages.
+
 ## 0.8.0 — 2026-10-01
 
 - Runs on Homebrew's Python instead of macOS's 3.9. Both scripts name

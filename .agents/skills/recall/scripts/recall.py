@@ -278,7 +278,7 @@ TAIL_WINDOW = 4096
 # Stored per session. Bump it when a parser starts keeping or dropping different
 # text, so already-indexed sessions get read again instead of keeping a mix of
 # old and new parsing forever.
-PARSER_VERSION = 1
+PARSER_VERSION = 2
 
 
 class Indexed(NamedTuple):
@@ -462,7 +462,12 @@ def claude_turn(entry: JSONObject) -> tuple[str, JSONValue] | None:
 
     The role comes from "role" or, failing that, "type". The content sits in
     {message: {content}}, in a plain-string message, or in a top-level content.
+    A message the user sent while the agent was working is stored only as a
+    queued-command attachment, so that counts as a user turn too.
     """
+    attachment = json_object(entry.get("attachment", {}))
+    if attachment.get("type") == "queued_command" and attachment.get("commandMode") == "prompt":
+        return "user", attachment.get("prompt", "")
     role: str | None = None
     declared = entry.get("role", "")
     if isinstance(declared, str) and declared in CONVERSATION_ROLES:
