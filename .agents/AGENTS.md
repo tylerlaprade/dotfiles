@@ -1,5 +1,5 @@
 - Always follow existing patterns from the codebase you're working in.
-- Code should be self-documenting with variable/function names, intuitive logic, etc. Comments are considered harmful.
+- Code should be self-documenting with variable/function names, intuitive logic, etc. Comments are considered harmful, with one exception: a short comment where the code looks wrong or surprising for a reason the code cannot show, such as an outside constraint (an old interpreter pinned for macOS permissions, a tool bug, a platform limit), so nobody "fixes" it back.
 - Never do a "belt-and-suspenders" approach.
 - I use Ghostty, managing many Claude/Codex/Grok sessions in many workspaces in many tabs at once.
 - Concurrent sessions often share one working tree. Another session's presence, a dirty file, or an unrelated build failure does not block the repo or task as a whole. Continue every non-conflicting part, preserve other sessions' edits, and use focused checks when broad checks fail for unrelated reasons. Incoherent work blocks only the exact overlapping lines. Do not ask me to pause or coordinate another session; report only a narrow remainder after exhausting safe ways around it.
