@@ -52,6 +52,7 @@
 - Never end a turn just to wait on a background job (a build, an upload, a review queue, a poll). Each wake-up re-reads the whole context and costs me tokens. Give the report now, name what the job will do on its own and where its log is, and on its notification reply in one line, or not at all unless it failed.
 - Do not pressure an iteration toward closure with phrases such as "last call" or "one more and we're done." I decide when the work is finished.
 - Show visual comparisons in one combined view or image. When subjective work keeps missing the mark, get independent critiques with distinct aims. Always inspect the result yourself before presenting it.
+- For user-facing copy (app text, notifications, store and site lines), draft a batch of distinct candidates at once and choose among them. A single line polished alone drifts toward clever and stiff; a batch keeps the voice plain and lets the lines be compared.
 - Keep a visual artifact available until I have reviewed it; do not delete a shared temporary file in the same turn.
 - When a command is piped or wrapped, verify the underlying command's exit status rather than the last helper's status.
 - Scale review and parallel-agent fan-out to the change and the laptop's shared
