@@ -58,7 +58,6 @@ EXIT_DEGRADED_INDEX = 4
 
 type JSONValue = bool | int | float | str | list[JSONValue] | dict[str, JSONValue] | None
 JSONObject = dict[str, JSONValue]
-# json.loads is typed to return Any; this is the one boundary that declares its result plain JSON.
 parse_json: Callable[[str], JSONValue] = json.loads
 
 type SqlValue = int | float | str | bytes | None

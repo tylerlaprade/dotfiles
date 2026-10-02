@@ -52,7 +52,6 @@ SECRET_KEY_RE = re.compile(r"token|secret|passw|credential|api[_-]?key", re.IGNO
 ACCOUNT_RECORD_KEYS = {"AccountID", "AccountAlternateDSID", "AccountDescription", "AccountAuthenticationType"}
 
 PlistValue = Union[bool, int, float, str, bytes, datetime, plistlib.UID, list["PlistValue"], dict[str, "PlistValue"]]
-# plistlib.loads is typed to return Any; this is the one boundary that declares its result plain plist values.
 parse_plist: Callable[[bytes], PlistValue] = plistlib.loads
 
 
@@ -592,8 +591,6 @@ if applied_domains and not options.dry_run:
         subprocess.run(["killall", proc], stderr=subprocess.DEVNULL, check=False)
 
 # ---------------------------------------------------------------------------
-# Login items — three-way merge, same rule as the defaults domains.
-# An empty or failed osascript read leaves the repo file untouched.
 # ---------------------------------------------------------------------------
 
 # Apps that register their own login item (SMAppService). A SharedFileList

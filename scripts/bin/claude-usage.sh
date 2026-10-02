@@ -34,7 +34,6 @@ lock=/tmp/claude-usage.fetch
 
 homebrew_python=/opt/homebrew/bin/python3
 
-# Sets global fetch_lock_claimed.
 _claim_fetch_lock() {
   fetch_lock_claimed=false
   if mkdir "$lock" 2>/dev/null; then
@@ -90,7 +89,6 @@ CACHE_HEARTBEAT=1800
 # Activity: stdin 5h or 7d passed by the statusline exceeds what the cache
 # last recorded, so the account has burned budget since the last successful
 # fetch and Fable may have moved.
-# Sets global cache_servable.
 check_cache() {
   cache_servable=false
   [[ -f "$cache" ]] || return 0

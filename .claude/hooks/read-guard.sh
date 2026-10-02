@@ -11,11 +11,6 @@
 # PostToolUse: cross-project access that succeeded was approved by the user,
 # so record its repo in the session's state file; later access to the same
 # repo in the same session then passes without a prompt.
-# Read-only explore subagents pass without a prompt, and their access is not
-# recorded: Claude's Explore, Codex's explorer, Grok's explore, and Gemini's
-# codebase_investigator. The main agent's own later read of that repo still
-# asks. A session started as one of those agents has no subagent id and stays
-# guarded.
 # Fail-soft: on any parse or lookup problem, exit 0 with no opinion.
 
 # Top-level repos under ~/Code that every session may read (standing rule:

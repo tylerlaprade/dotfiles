@@ -38,7 +38,6 @@ fi
 all_prs=$(gh pr list --state all --limit 200 --author @me \
   --json number,state,baseRefName,headRefName 2>/dev/null || echo "[]")
 
-# Sets pr_field to one field of the newest PR whose head is the given branch.
 lookup_pr_field() {
   pr_field=$(echo "$all_prs" | jq -r --arg b "$1" --arg field "$2" \
     '[.[] | select(.headRefName == $b)] | sort_by(.number) | last | .[$field] // empty')

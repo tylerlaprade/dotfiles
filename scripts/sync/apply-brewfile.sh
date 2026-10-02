@@ -1,6 +1,4 @@
 #!/bin/bash
-# Install anything the Brewfile lists that is not already installed.
-# Called from install.sh. A matching hash exits before Homebrew starts.
 
 set -euo pipefail
 

@@ -29,7 +29,6 @@ JSONValue = Union[None, bool, int, float, str, list["JSONValue"], dict[str, "JSO
 JSONObject = dict[str, JSONValue]
 Value = TypeVar("Value")
 
-# json.load and json.loads are typed to return Any; this is the one boundary that declares their result plain JSON.
 load_json: Callable[[TextIO], JSONValue] = json.load
 parse_json: Callable[[str], JSONValue] = json.loads
 

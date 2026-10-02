@@ -1,6 +1,4 @@
 #!/bin/bash
-# Install tools and link this repo. Safe to run again: each step stops when it
-# is already done. The daily sync does not run this.
 set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
