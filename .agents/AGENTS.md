@@ -49,6 +49,7 @@
 - Before removing a gate or check, state the invariant it protects and update any
   paired upstream gate and downstream resolver together.
 - Do not hand work back to me because it is awkward or because a subagent failed. Exhaust what you can do, then explain any true user-only action in plain words with a recommended default. A subagent or workflow does not have a separate capacity. If you are back online, it is too.
+- While a decision of mine is pending, restate it in full, with the evidence and options, in every report until I answer; a later message must never bury it under replies to background notifications.
 - Never end a turn just to wait on a background job (a build, an upload, a review queue, a poll). Each wake-up re-reads the whole context and costs me tokens. Give the report now, name what the job will do on its own and where its log is, and on its notification reply in one line, or not at all unless it failed.
 - Do not pressure an iteration toward closure with phrases such as "last call" or "one more and we're done." I decide when the work is finished.
 - Show visual comparisons in one combined view or image. When subjective work keeps missing the mark, get independent critiques with distinct aims. Always inspect the result yourself before presenting it.
@@ -60,6 +61,7 @@
   proof.
 - Never stash or revert another session's work. Preserve foreign edits and stage only your intended hunks. Another session may already have staged its own work, so commit only when the staged list is exactly yours. A push publishes every local commit on the branch, so push only when `git log @{u}..HEAD` lists nothing but your commits.
 - Recheck `HEAD` before amending in a shared repo.
+- When renaming or moving something other repositories depend on, land the dependents' changes first, or all together; never push the move ahead of the code that still points at the old path.
 - Never commit with `--no-verify` unless I ask. If a hook fails, report the exact failure and leave the staged changes intact.
 - Do not propose moving concurrent sessions into worktrees unless I ask for that workflow.
 - For external platforms, inspect the live configuration and native options before proposing custom machinery.
@@ -98,7 +100,7 @@
 - We use difft. For a raw unified diff, use `git diff --no-ext-diff`. Don't touch `diff.external`.
 - If you push, monitor CI for failures.
 - Linters: use the standard tool for the language (SwiftLint, Ruff, Clippy, ESLint), never a bespoke one-issue script. Enable every rule, opt-in and pedantic included, then disable only rules that are pure style opinion, each with a one-line reason in the config. Line length is the formatter's job, so line-length rules stay off in every language. Warnings are errors and block the build; keep each finding's original severity visible in reports.
-- One lint policy per tool lives in dotfiles and applies everywhere, locally and in CI; a project config adds only its own paths. Never bypass it with flags, alternate binaries, or a looser project config.
+- One lint policy per tool lives in dotfiles and applies everywhere, locally and in CI; a project config adds only its own paths. Never bypass it with flags, alternate binaries, or a looser project config. Run the same current version of each linter locally and in CI, so neither finds what the other misses.
 - Treat a lint finding as a lead to a better design, not an obstacle. Fix every finding your work causes or exposes, errors before warnings. Never suppress one in the code; if the fix breaks the code, rethink the approach.
 - Make every switch exhaustive. Turn on the compiler or linter check where one exists, enumerate every case, and make an unavoidable catch-all fail loudly instead of silently absorbing a case you forgot.
 
