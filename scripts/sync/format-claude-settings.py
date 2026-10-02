@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 type JSONValue = bool | int | float | str | list[JSONValue] | dict[str, JSONValue] | None
+# json.loads is typed to return Any; this is the one boundary that declares its result plain JSON.
 parse_json: Callable[[str], JSONValue] = json.loads
 
 

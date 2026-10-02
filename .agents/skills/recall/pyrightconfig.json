@@ -1,4 +1,5 @@
 {
+  // basedpyright always skips dot-folders such as .agents when run from the repo root, so the skill has its own config.
   "extends": "../../../.config/basedpyright/pyrightconfig.json",
   "pythonVersion": "3.14",
   "executionEnvironments": [

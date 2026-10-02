@@ -34,6 +34,7 @@ type PlistValue = (
     | list[PlistValue]
     | dict[str, PlistValue]
 )
+# These stdlib calls are typed to return Any; this is the one boundary that declares what they return.
 parse_json: Callable[[str], JSONValue] = json.loads
 parse_plist: Callable[[bytes], PlistValue] = plistlib.loads
 

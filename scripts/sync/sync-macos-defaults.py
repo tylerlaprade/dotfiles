@@ -52,6 +52,7 @@ SECRET_KEY_RE = re.compile(r"token|secret|passw|credential|api[_-]?key", re.IGNO
 ACCOUNT_RECORD_KEYS = {"AccountID", "AccountAlternateDSID", "AccountDescription", "AccountAuthenticationType"}
 
 PlistValue = Union[bool, int, float, str, bytes, datetime, plistlib.UID, list["PlistValue"], dict[str, "PlistValue"]]
+# plistlib.loads is typed to return Any; this is the one boundary that declares its result plain plist values.
 parse_plist: Callable[[bytes], PlistValue] = plistlib.loads
 
 
