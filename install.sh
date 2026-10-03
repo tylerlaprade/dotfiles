@@ -218,6 +218,7 @@ if [[ -x "$kanata_src" ]]; then
     sudo launchctl bootstrap system "$kanata_plist_dest" || failed=1
   fi
   rm -f "$rendered"
+  /opt/homebrew/bin/python3 "$DOTFILES/scripts/kid-trackpad/build.py" || failed=1
 fi
 
 if [[ -f "$HOME/.npmrc" && ! -L "$HOME/.npmrc" ]]; then

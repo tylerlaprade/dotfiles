@@ -45,10 +45,11 @@ a virtual mouse during kid mode. macOS can then ignore the built-in trackpad
 without Mouse Keys intercepting letters. The normal Kanata config stays in
 place; exiting the prototype restores the existing Kanata launch daemon.
 
-On the Mac, run `./install.sh --kid-trackpad-prototype` from this repo. This
-builds only the helper, using the official client release matching the
-installed virtual HID daemon. It requires Xcode Command Line Tools and does
-not change or replace the driver. Rebuild after updating the driver.
+Starting the prototype automatically builds the helper if it is missing or
+out of date, using the official client release matching the installed virtual
+HID daemon. It requires Homebrew Python and Xcode Command Line Tools and does
+not change or replace the driver. The normal `install.sh` also prepares the
+helper; no special install flag or manual rebuild is needed.
 
 In Accessibility → Pointer Control, turn Mouse Keys off and enable
 “Ignore built-in trackpad when mouse or wireless trackpad is present.” Then

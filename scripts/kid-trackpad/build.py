@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import plistlib
 import re
 import subprocess
@@ -85,12 +87,36 @@ def compile_client(source: Path, destination: Path) -> None:
     )
 
 
+def source_fingerprint() -> str:
+    digest = hashlib.sha256()
+    for source in (Path(__file__), Path(__file__).with_name("virtual-mouse.cpp")):
+        digest.update(source.read_bytes())
+    return digest.hexdigest()
+
+
+def is_current(destination: Path, version: str) -> bool:
+    if not destination.is_file() or not os.access(destination, os.X_OK):
+        return False
+    try:
+        metadata = parse_json(destination.with_suffix(".json").read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return False
+    return (
+        isinstance(metadata, dict)
+        and metadata.get("package_version") == version
+        and metadata.get("source_sha256") == source_fingerprint()
+    )
+
+
 def build(destination: Path, source: Path | None = None) -> None:
+    version = installed_version() if source is None else None
+    if version is not None and is_current(destination, version):
+        return
+    print("Building the kid-mode virtual mouse helper…", flush=True)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="kid-trackpad-build-") as temporary:
         root = Path(temporary)
         if source is None:
-            version = installed_version()
             source = root / "driver"
             subprocess.run(
                 [
@@ -108,8 +134,17 @@ def build(destination: Path, source: Path | None = None) -> None:
         metadata = json_object(parse_json((source / "version.json").read_text()))
         output = root / "kid-trackpad-mouse"
         compile_client(source, output)
-        destination.write_bytes(output.read_bytes())
-        destination.chmod(0o755)
+        with tempfile.NamedTemporaryFile(
+            dir=destination.parent, delete=False
+        ) as staging:
+            staged = Path(staging.name)
+        try:
+            staged.write_bytes(output.read_bytes())
+            staged.chmod(0o755)
+            staged.replace(destination)
+        finally:
+            staged.unlink(missing_ok=True)
+        metadata["source_sha256"] = source_fingerprint()
         destination.with_suffix(".json").write_text(json.dumps(metadata) + "\n")
     print(f"Built {destination} for driver {metadata['package_version']}.")
 

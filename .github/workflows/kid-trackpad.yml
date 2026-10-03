@@ -6,6 +6,8 @@ on:
       - 'scripts/kid_trackpad.py'
       - 'scripts/kid-trackpad/**'
       - 'tests/kid_trackpad.py'
+      - 'tests/kid_trackpad_build.py'
+      - 'install.sh'
       - '.config/clang-tidy/**'
       - '.config/ruff/**'
       - '.github/workflows/kid-trackpad.yml'
@@ -26,9 +28,10 @@ jobs:
         run: brew install llvm ruff
       - name: Test controller and lint Python
         run: |
-          python3 -m unittest tests/kid_trackpad.py
-          ruff check --config .config/ruff/ruff.toml scripts/kid_trackpad.py scripts/kid-trackpad/build.py tests/kid_trackpad.py
-          ruff format --check --config .config/ruff/ruff.toml scripts/kid_trackpad.py scripts/kid-trackpad/build.py tests/kid_trackpad.py
+          python3 -m unittest tests/kid_trackpad.py tests/kid_trackpad_build.py
+          ruff check --config .config/ruff/ruff.toml scripts/kid_trackpad.py scripts/kid-trackpad/build.py tests/kid_trackpad.py tests/kid_trackpad_build.py
+          ruff format --check --config .config/ruff/ruff.toml scripts/kid_trackpad.py scripts/kid-trackpad/build.py tests/kid_trackpad.py tests/kid_trackpad_build.py
+          bash -n install.sh
       - name: Compile with the official driver client
         run: |
           git clone --depth 1 https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice.git "$RUNNER_TEMP/driver"

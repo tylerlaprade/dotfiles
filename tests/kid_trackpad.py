@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import pwd
 import subprocess
 import sys
 import tempfile
@@ -76,6 +77,39 @@ class ConfigTest(unittest.TestCase):
                 command.call_args_list[2].args,
                 ("launchctl", "bootstrap", "system", SERVICE_PLIST),
             )
+
+    def test_failed_automatic_build_keeps_the_normal_service_running(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            config = home / ".config/kanata/kanata.kbd"
+            config.parent.mkdir(parents=True)
+            config.write_text((REPOSITORY / ".config/kanata/kanata.kbd").read_text())
+            kanata = home / ".local/bin/kanata"
+            kanata.parent.mkdir(parents=True)
+            kanata.touch()
+            with (
+                patch.object(sys, "argv", ["kid-trackpad", "--home", str(home)]),
+                patch(
+                    "scripts.kid_trackpad.subprocess.run",
+                    side_effect=subprocess.CalledProcessError(1, "builder"),
+                ) as build,
+                patch("scripts.kid_trackpad.run_command") as service,
+                self.assertRaises(subprocess.CalledProcessError),
+            ):
+                main()
+            build.assert_called_once_with(
+                [
+                    "sudo",
+                    "-u",
+                    pwd.getpwuid(home.stat().st_uid).pw_name,
+                    "/opt/homebrew/bin/python3",
+                    str(REPOSITORY / "scripts/kid-trackpad/build.py"),
+                    "--output",
+                    str(home / ".local/bin/kid-trackpad-mouse"),
+                ],
+                check=True,
+            )
+            service.assert_not_called()
 
 
 @final

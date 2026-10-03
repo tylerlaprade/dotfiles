@@ -287,10 +287,21 @@ def run_command(*command: str, check: bool = True) -> subprocess.CompletedProces
 
 
 def preflight(home: Path, kanata: Path, client: Path, config: Path) -> None:
-    if not kanata.is_file() or not client.is_file():
-        raise ValueError(
-            "Run install.sh --kid-trackpad-prototype before starting the prototype."
-        )
+    if not kanata.is_file():
+        raise ValueError("Kanata is missing. Run the normal dotfiles install.sh first.")
+    owner = pwd.getpwuid(home.stat().st_uid).pw_name
+    subprocess.run(
+        [
+            "sudo",
+            "-u",
+            owner,
+            "/opt/homebrew/bin/python3",
+            str(REPOSITORY / "scripts/kid-trackpad/build.py"),
+            "--output",
+            str(client),
+        ],
+        check=True,
+    )
     driver_version = plist_dictionary(parse_plist(DAEMON_INFO.read_bytes()))[
         "CFBundleShortVersionString"
     ]
@@ -299,13 +310,13 @@ def preflight(home: Path, kanata: Path, client: Path, config: Path) -> None:
     ]
     if driver_version != built_version:
         raise ValueError(
-            "The virtual HID driver changed. Run install.sh --kid-trackpad-prototype to rebuild."
+            "The virtual HID driver changed during setup. Start the prototype again to rebuild."
         )
     run_command(str(kanata), "--check", "--cfg", str(config))
     setting = run_command(
         "sudo",
         "-u",
-        pwd.getpwuid(home.stat().st_uid).pw_name,
+        owner,
         "defaults",
         "read",
         "com.apple.AppleMultitouchTrackpad",
@@ -318,7 +329,7 @@ def preflight(home: Path, kanata: Path, client: Path, config: Path) -> None:
     enabled = run_command(
         "sudo",
         "-u",
-        pwd.getpwuid(home.stat().st_uid).pw_name,
+        owner,
         "defaults",
         "read",
         "com.apple.universalaccess",
