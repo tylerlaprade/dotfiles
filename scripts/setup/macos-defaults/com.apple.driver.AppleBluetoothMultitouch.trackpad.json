@@ -85,7 +85,7 @@
   },
   "USBMouseStopsTrackpad": {
     "type": "int",
-    "value": 0
+    "value": 1
   },
   "UserPreferences": {
     "type": "bool",

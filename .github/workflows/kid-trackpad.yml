@@ -8,6 +8,7 @@ on:
       - 'tests/kid_trackpad.py'
       - 'tests/kid_trackpad_build.py'
       - 'install.sh'
+      - 'LaunchDaemons/com.tylerlaprade.kanata.plist'
       - '.config/clang-tidy/**'
       - '.config/ruff/**'
       - '.github/workflows/kid-trackpad.yml'
@@ -34,6 +35,7 @@ jobs:
           python3 -m ruff check --config .config/ruff/ruff.toml scripts/kid_trackpad.py scripts/kid-trackpad/build.py tests/kid_trackpad.py tests/kid_trackpad_build.py
           python3 -m ruff format --check --config .config/ruff/ruff.toml scripts/kid_trackpad.py scripts/kid-trackpad/build.py tests/kid_trackpad.py tests/kid_trackpad_build.py
           bash -n install.sh
+          plutil -lint LaunchDaemons/com.tylerlaprade.kanata.plist
       - name: Compile with the official driver client
         run: |
           git clone --depth 1 https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice.git "$RUNNER_TEMP/driver"

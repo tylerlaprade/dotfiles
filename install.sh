@@ -200,27 +200,6 @@ while IFS= read -r entry || [[ -n "$entry" ]]; do
   grep -qxF "$entry" /etc/hosts || echo "$entry" | sudo tee -a /etc/hosts >/dev/null
 done < "$DOTFILES/scripts/setup/hosts"
 
-kanata_src=/opt/homebrew/bin/kanata
-kanata_dest="$HOME/.local/bin/kanata"
-kanata_plist_dest=/Library/LaunchDaemons/com.tylerlaprade.kanata.plist
-if [[ -x "$kanata_src" ]]; then
-  kanata_changed=0
-  [[ -x "$kanata_dest" ]] && cmp -s "$kanata_src" "$kanata_dest" || kanata_changed=1
-  rendered=$(mktemp)
-  sed "s|__HOME__|$HOME|g" "$DOTFILES/LaunchDaemons/com.tylerlaprade.kanata.plist" > "$rendered"
-  [[ -f "$kanata_plist_dest" ]] && cmp -s "$rendered" "$kanata_plist_dest" || kanata_changed=1
-  if [[ $kanata_changed -eq 1 ]]; then
-    mkdir -p "$HOME/.local/bin"
-    cp "$kanata_src" "$kanata_dest"
-    sudo mkdir -p /usr/local/var/log
-    sudo cp "$rendered" "$kanata_plist_dest"
-    sudo launchctl bootout system "$kanata_plist_dest" 2>/dev/null || true
-    sudo launchctl bootstrap system "$kanata_plist_dest" || failed=1
-  fi
-  rm -f "$rendered"
-  /opt/homebrew/bin/python3 "$DOTFILES/scripts/kid-trackpad/build.py" || failed=1
-fi
-
 if [[ -f "$HOME/.npmrc" && ! -L "$HOME/.npmrc" ]]; then
   rm "$HOME/.npmrc"
 fi
@@ -234,6 +213,32 @@ SKIP_DEFAULTS_SYNC=1 "$DOTFILES/scripts/sync/sync-dotfiles.sh"
 echo ""
 echo "Applying macOS defaults..."
 "$DOTFILES/scripts/setup/apply-macos-defaults.py"
+
+kanata_src=/opt/homebrew/bin/kanata
+kanata_dest="$HOME/.local/bin/kanata"
+kanata_plist_dest=/Library/LaunchDaemons/com.tylerlaprade.kanata.plist
+if [[ -x "$kanata_src" ]]; then
+  kanata_changed=0
+  [[ -x "$kanata_dest" ]] && cmp -s "$kanata_src" "$kanata_dest" || kanata_changed=1
+  mkdir -p "$HOME/.local/bin"
+  if [[ $kanata_changed -eq 1 ]]; then
+    cp "$kanata_src" "$kanata_dest"
+  fi
+  if sudo /opt/homebrew/bin/python3 "$DOTFILES/scripts/kid_trackpad.py" --home "$HOME" --check; then
+    rendered=$(mktemp)
+    sed -e "s|__HOME__|$HOME|g" -e "s|__DOTFILES__|$DOTFILES|g" "$DOTFILES/LaunchDaemons/com.tylerlaprade.kanata.plist" > "$rendered"
+    [[ -f "$kanata_plist_dest" ]] && cmp -s "$rendered" "$kanata_plist_dest" || kanata_changed=1
+    if [[ $kanata_changed -eq 1 ]]; then
+      sudo mkdir -p /usr/local/var/log
+      sudo cp "$rendered" "$kanata_plist_dest"
+      sudo launchctl bootout system "$kanata_plist_dest" 2>/dev/null || true
+      sudo launchctl bootstrap system "$kanata_plist_dest" || failed=1
+    fi
+    rm -f "$rendered"
+  else
+    failed=1
+  fi
+fi
 
 launch_domain="gui/$(id -u)"
 for plist in "$HOME/Library/LaunchAgents"/com.tylerlaprade.*.plist; do

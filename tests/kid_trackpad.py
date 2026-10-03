@@ -23,6 +23,8 @@ from scripts.kid_trackpad import (
     follow_layers,
     layer_name,
     main,
+    parse_plist,
+    plist_dictionary,
     prototype_config,
 )
 
@@ -110,6 +112,61 @@ class ConfigTest(unittest.TestCase):
                 check=True,
             )
             service.assert_not_called()
+
+    def test_service_does_not_stop_or_restart_its_own_launch_daemon(self) -> None:
+        async def failed_run(_kanata: Path, _client: Path, _config: Path) -> None:
+            raise RuntimeError("driver failed")
+
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            config = home / ".config/kanata/kanata.kbd"
+            config.parent.mkdir(parents=True)
+            config.write_text((REPOSITORY / ".config/kanata/kanata.kbd").read_text())
+            with (
+                patch.object(sys, "argv", ["kanata", "--service", "--home", str(home)]),
+                patch("scripts.kid_trackpad.preflight"),
+                patch("scripts.kid_trackpad.run_prototype", failed_run),
+                patch("scripts.kid_trackpad.run_command") as service,
+                self.assertRaisesRegex(RuntimeError, "driver failed"),
+            ):
+                main()
+            service.assert_not_called()
+
+    def test_installation_check_does_not_start_kanata(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            config = home / ".config/kanata/kanata.kbd"
+            config.parent.mkdir(parents=True)
+            config.write_text((REPOSITORY / ".config/kanata/kanata.kbd").read_text())
+            with (
+                patch.object(sys, "argv", ["kanata", "--check", "--home", str(home)]),
+                patch("scripts.kid_trackpad.preflight") as preflight,
+                patch("scripts.kid_trackpad.run_prototype") as start,
+                patch("scripts.kid_trackpad.run_command") as service,
+            ):
+                main()
+            preflight.assert_called_once()
+            start.assert_not_called()
+            service.assert_not_called()
+
+    def test_installed_daemon_starts_the_controller(self) -> None:
+        data = plist_dictionary(
+            parse_plist(
+                (
+                    REPOSITORY / "LaunchDaemons/com.tylerlaprade.kanata.plist"
+                ).read_bytes()
+            )
+        )
+        self.assertEqual(
+            data["ProgramArguments"],
+            [
+                "/opt/homebrew/bin/python3",
+                "__DOTFILES__/scripts/kid_trackpad.py",
+                "--home",
+                "__HOME__",
+                "--service",
+            ],
+        )
 
 
 @final

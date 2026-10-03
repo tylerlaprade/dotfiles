@@ -27,44 +27,38 @@ model.
 
 ## Train game keyboard lock
 
-Hold both Shift keys, then press K to enter kid mode. It also toggles Mouse
-Keys, which disables the built-in trackpad with the existing Pointer Control
-settings. In kid mode, only Left/Right arrows, Space, screen brightness, and
-volume (including mute) work. All other keys are disabled, including the Mouse
-Keys movement/click keys, Mission Control, Launchpad, media playback, Escape,
-Tab, modifiers, and Fn/Globe. Hold either Shift and press K to unlock
-before typing `quit` or `exit` in the game.
+Hold both Shift keys, then press K to enter kid mode. The normal Kanata service
+creates a virtual mouse while locked so macOS can ignore the built-in trackpad
+without Mouse Keys intercepting letters. Hold either Shift and press K to unlock.
+Ordinary letters, numbers, and punctuation pass through; brightness, volume,
+Left/Right, and Space work. Modifiers, Fn, system function keys, Escape, and Tab
+stay disabled.
 
 Kanata's built-in Left Control + Space + Escape emergency exit still works.
 Kanata reads that chord before remapping, so a layer cannot disable it.
 
-### Virtual mouse prototype
+### Setup
 
-The temporary prototype uses the official Karabiner DriverKit client to create
-a virtual mouse during kid mode. macOS can then ignore the built-in trackpad
-without Mouse Keys intercepting letters. The normal Kanata config stays in
-place; exiting the prototype restores the existing Kanata launch daemon.
-
-Starting the prototype automatically builds the helper if it is missing or
+Starting the service automatically builds the helper if it is missing or
 out of date, using the official client release matching the installed virtual
 HID daemon. It requires Homebrew Python and Xcode Command Line Tools and does
 not change or replace the driver. The normal `install.sh` also prepares the
-helper; no special install flag or manual rebuild is needed.
+helper; no special install flag or manual rebuild is needed. Existing Macs need
+one normal `./install.sh` run to update the installed root launch daemon. The
+installer checks the new setup before replacing the old service.
 
 In Accessibility → Pointer Control, turn Mouse Keys off and enable
-“Ignore built-in trackpad when mouse or wireless trackpad is present.” Then
-run `sudo /opt/homebrew/bin/python3 scripts/kid_trackpad.py`.
-Both Shifts + K enters kid mode; either Shift + K unlocks.
-Ordinary letters, numbers, and punctuation pass
-through; modifiers, Fn, system function keys, Escape, and Tab stay disabled.
-Brightness, volume, Left/Right, and Space still work.
+“Ignore built-in trackpad when mouse or wireless trackpad is present.” No
+separate terminal command is needed after installation; launchd starts and
+supervises Kanata at boot.
 
 Test pointer movement, clicks, scrolling, and Mission Control/Spaces gestures
-while locked, then verify that unlocking restores the trackpad. Ctrl+C stops
-the prototype and restores the normal service. A driver or Kanata connection
-failure also stops the prototype and restores the service. These physical
-trackpad checks have not yet been verified on the Mac; the default remains
-the existing Mouse Keys setup.
+while locked, then verify that unlocking restores the trackpad. A driver or
+Kanata connection failure cleans up the virtual mouse and stops Kanata;
+launchd restarts the service. These physical trackpad checks have not yet been
+verified on the Mac. The checked-in keyboard config retains the old Mouse Keys
+mapping for standalone Kanata; the service generates its virtual-mouse config
+without modifying that file.
 
 ## Second Mac
 

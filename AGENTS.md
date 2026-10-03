@@ -4,7 +4,10 @@
   docs and the installed bundle under `~/.local/share/claude/versions/` before
   editing. Version-specific memory and old presets are not current evidence.
 - The Mouse Keys Option-five-times toggle and built-in-trackpad behavior are
-  deliberate because they let Tyler disable the trackpad for his daughter.
+  deliberate in the standalone Kanata config. The installed Kanata launch
+  daemon uses the virtual mouse controller instead; it builds its helper at
+  startup and uses the existing lock/unlock shortcuts. Install the root daemon
+  only after linking config and applying the trackpad preferences.
   Dock autohide stays on. `com.zeitalabs.jottleai` is Monologue and remains
   excluded from synced defaults because it stores account data.
 - The `claude()` GPG prewarm already heals a stale keyboxd lock. Diagnose its

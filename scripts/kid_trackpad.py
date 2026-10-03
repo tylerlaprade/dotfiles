@@ -342,12 +342,16 @@ def preflight(home: Path, kanata: Path, client: Path, config: Path) -> None:
 
 class Arguments(argparse.Namespace):
     home: Path
+    service: bool
+    check: bool
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run the temporary virtual-mouse kid-mode prototype."
+        description="Run Kanata with automatic kid-mode trackpad control."
     )
+    parser.add_argument("--service", action="store_true")
+    parser.add_argument("--check", action="store_true")
     parser.add_argument(
         "--home",
         type=Path,
@@ -367,6 +371,15 @@ def main() -> None:
             prototype_config((home / ".config/kanata/kanata.kbd").read_text())
         )
         preflight(home, kanata, client, config)
+        if arguments.check:
+            return
+        if arguments.service:
+            print(
+                "Kanata running. Both Shifts + K locks; either Shift + K unlocks.",
+                flush=True,
+            )
+            asyncio.run(run_prototype(kanata, client, config))
+            return
         active = run_command("launchctl", "print", SERVICE, check=False).returncode == 0
         if active:
             run_command("launchctl", "bootout", SERVICE)
@@ -384,7 +397,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     if sys.platform != "darwin" or os.geteuid() != 0:
-        raise SystemExit("Run this prototype on macOS with sudo.")
+        raise SystemExit("Run Kanata trackpad control on macOS as root.")
     signal.signal(signal.SIGTERM, signal.default_int_handler)
     try:
         main()

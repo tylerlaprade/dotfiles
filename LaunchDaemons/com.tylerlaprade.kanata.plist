@@ -6,10 +6,11 @@
   <string>com.tylerlaprade.kanata</string>
   <key>ProgramArguments</key>
   <array>
-    <string>__HOME__/.local/bin/kanata</string>
-    <string>--no-wait</string>
-    <string>--cfg</string>
-    <string>__HOME__/.config/kanata/kanata.kbd</string>
+    <string>/opt/homebrew/bin/python3</string>
+    <string>__DOTFILES__/scripts/kid_trackpad.py</string>
+    <string>--home</string>
+    <string>__HOME__</string>
+    <string>--service</string>
   </array>
   <key>RunAtLoad</key>
   <true/>
