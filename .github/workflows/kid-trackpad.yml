@@ -25,12 +25,14 @@ jobs:
         with:
           python-version: '3.14'
       - name: Install linters
-        run: brew install llvm ruff
+        run: |
+          brew install llvm
+          python3 -m pip install ruff
       - name: Test controller and lint Python
         run: |
           python3 -m unittest tests/kid_trackpad.py tests/kid_trackpad_build.py
-          ruff check --config .config/ruff/ruff.toml scripts/kid_trackpad.py scripts/kid-trackpad/build.py tests/kid_trackpad.py tests/kid_trackpad_build.py
-          ruff format --check --config .config/ruff/ruff.toml scripts/kid_trackpad.py scripts/kid-trackpad/build.py tests/kid_trackpad.py tests/kid_trackpad_build.py
+          python3 -m ruff check --config .config/ruff/ruff.toml scripts/kid_trackpad.py scripts/kid-trackpad/build.py tests/kid_trackpad.py tests/kid_trackpad_build.py
+          python3 -m ruff format --check --config .config/ruff/ruff.toml scripts/kid_trackpad.py scripts/kid-trackpad/build.py tests/kid_trackpad.py tests/kid_trackpad_build.py
           bash -n install.sh
       - name: Compile with the official driver client
         run: |

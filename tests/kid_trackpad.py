@@ -105,7 +105,7 @@ class ConfigTest(unittest.TestCase):
                     "/opt/homebrew/bin/python3",
                     str(REPOSITORY / "scripts/kid-trackpad/build.py"),
                     "--output",
-                    str(home / ".local/bin/kid-trackpad-mouse"),
+                    str(home.resolve() / ".local/bin/kid-trackpad-mouse"),
                 ],
                 check=True,
             )
