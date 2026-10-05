@@ -166,22 +166,12 @@ ensure_gitconfig() {
   fi
 }
 
-# A repo's own core.hooksPath outranks the shared gitconfig's Queenspawn Games rule.
-drop_queenspawn_hook_overrides() {
-  local repo
-  for repo in "$HOME/Code/QueenspawnGames" "$HOME/Code/QueenspawnGames"/*/; do
-    [[ -e "${repo%/}/.git" ]] || continue
-    git -C "$repo" config --local --unset core.hooksPath 2>/dev/null || true
-  done
-}
-
 # ~/.*rc, ~/.gitconfig, etc.
 for item in "$DOTFILES"/.[!.]*; do
   local_name="$(basename "$item")"
   [[ "$local_name" == ".git" || "$local_name" == ".config" || "$local_name" == ".claude" || "$local_name" == ".codex" || "$local_name" == ".agents" || "$local_name" == ".vscode" ]] && continue
   if [[ "$local_name" == ".gitconfig" ]]; then
     ensure_gitconfig
-    drop_queenspawn_hook_overrides
     continue
   fi
   if [[ -d "$item" && ! -L "$item" ]]; then
