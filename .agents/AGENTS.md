@@ -65,6 +65,7 @@
 - Never commit with `--no-verify` unless I ask. If a hook fails, report the exact failure and leave the staged changes intact.
 - Do not propose moving concurrent sessions into worktrees unless I ask for that workflow.
 - For external platforms, inspect the live configuration and native options before proposing custom machinery.
+- When I say to whitelist a repo the read guard asked about, run `read-guard allow <this repo> <other repo>` (the two read each other) or, if I say every repo, `read-guard share <other repo>`; then retry.
 - Never use my private email or strings derived from it as test data. "Tyler" is
   fine as a sample name.
 - Do not override the repository's Git identity with `-c user.name` or
