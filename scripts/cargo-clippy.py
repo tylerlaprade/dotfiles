@@ -30,9 +30,10 @@ EXTRA_DENY = {
     "todo",
 }
 
-# rustc 1.97 lists this unstable lint as warn-by-default, then rejects it when
-# stable rustc receives it on the command line.
-HELP_ONLY_RUSTC_LINTS = {"tail-call-track-caller"}
+# rustc lists these unstable lints as warn-by-default (tail-call-track-caller
+# since 1.97, malformed-diagnostic-filters since 1.99), then rejects them when
+# stable rustc receives them on the command line.
+HELP_ONLY_RUSTC_LINTS = {"malformed-diagnostic-filters", "tail-call-track-caller"}
 
 MIN_DEFAULT_RUSTC_WARNINGS = 20
 
