@@ -63,7 +63,7 @@
 - Recheck `HEAD` before amending in a shared repo.
 - When renaming or moving something other repositories depend on, land the dependents' changes first, or all together; never push the move ahead of the code that still points at the old path.
 - Never commit with `--no-verify` unless I ask. If a hook fails, report the exact failure and leave the staged changes intact.
-- Do not propose moving concurrent sessions into worktrees unless I ask for that workflow.
+- Never use git worktrees in any project, for sessions, subagents, helpers or builds, unless I ask for that workflow. Everything works in the shared checkout.
 - For external platforms, inspect the live configuration and native options before proposing custom machinery.
 - When I say to whitelist a repo the read guard asked about, run `read-guard allow <this repo> <other repo>` (the two read each other) or, if I say every repo, `read-guard share <other repo>`; then retry.
 - Never use my private email or strings derived from it as test data. "Tyler" is
