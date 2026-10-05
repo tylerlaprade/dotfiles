@@ -53,14 +53,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "screenbuddy agent busy --tool claude --pid \"$PPID\""
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "/opt/homebrew/bin/claude-title hook"
           }
         ]
@@ -73,14 +65,6 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/read-guard.sh"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "screenbuddy agent busy --tool claude --pid \"$PPID\""
           }
         ]
       },
@@ -103,14 +87,6 @@
       }
     ],
     "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "screenbuddy agent end"
-          }
-        ]
-      },
       {
         "hooks": [
           {
@@ -153,14 +129,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "screenbuddy agent idle --tool claude --pid \"$PPID\""
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "[ \"$CLAUDE_CODE_ENTRYPOINT\" = cli ] || exit 0; tool_pid=\"$PPID\"; shell_pid=\"${SESSION_GUARD_SHELL_PID:-}\"; [ -n \"$shell_pid\" ] || shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else session-guard register --tool claude --pid \"$tool_pid\"; fi"
           }
         ]
@@ -175,14 +143,6 @@
       }
     ],
     "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "screenbuddy agent busy --tool claude --pid \"$PPID\""
-          }
-        ]
-      },
       {
         "hooks": [
           {
