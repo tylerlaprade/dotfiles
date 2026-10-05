@@ -3,8 +3,7 @@
 # prompts, even in bypassPermissions mode. Access is cross-project when it
 # targets a top-level repo under ~/Code other than the session's own.
 # "Own" is the first directory under ~/Code that holds the session's project,
-# so nested repos (the QueenspawnGames umbrella) share access with every
-# sibling under the same top-level directory.
+# so every folder under one top-level directory shares access.
 #
 # PreToolUse: emit an ask decision for cross-project access, unless this
 # session already got approval for that repo. Output nothing to allow.
