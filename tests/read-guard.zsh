@@ -52,6 +52,14 @@ expect_ask() {
   [[ "$decision" == "ask" ]] || fail "expected ask decision, got: $last_stdout"
 }
 
+reason() {
+  print -r -- "$last_stdout" | jq -r '.hookSpecificOutput.permissionDecisionReason' 2>/dev/null
+}
+
+expect_reason_has() {
+  [[ "$(reason)" == *"$1"* ]] || fail "reason lacks \"$1\": $(reason)"
+}
+
 # pre <session> <cwd> <tool_input-json> [extra json fields, no braces]
 pre() {
   local extra=""
@@ -326,6 +334,81 @@ test_general_purpose_approval_reaches_main() {
   expect_allow
 }
 
+test_reason_names_repos_and_path() {
+  run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/flint" "$(read_input "$HOME/Code/BrainDump/App.swift")" '"tool_name":"Read"')"
+  expect_ask
+  expect_reason_has "The agent in flint wants to read another repo, BrainDump (~/Code/BrainDump/App.swift)."
+  expect_reason_has '`read-guard allow flint BrainDump` (flint and BrainDump read each other)'
+  expect_reason_has '`read-guard share BrainDump` (every repo reads BrainDump)'
+}
+
+test_bash_reason_names_paths_not_command() {
+  run_hook "$HOME/Code/flint" \
+    "$(pre s1 "$HOME/Code/flint" "$(bash_input "git -C ~/Code/BrainDump log -5 | head; cat ~/Code/swarm-forge/src/main.rs ~/Code/dotfiles/x")")"
+  expect_ask
+  expect_reason_has "wants to run a command on other repos, BrainDump and swarm-forge (~/Code/BrainDump and ~/Code/swarm-forge/src/main.rs)."
+  expect_reason_has "(flint and each of them read each other)"
+  [[ "$(reason)" != *"git -C"* ]] || fail "reason repeats the command: $(reason)"
+}
+
+test_reason_names_subagent_and_nested_project() {
+  local proj="$HOME/Code/QueenspawnGames/castle-game"
+  run_hook "$proj" "$(pre s1 "$proj" '{"pattern":"x","path":"../../BrainDump"}' '"tool_name":"Grep","agent_id":"a","agent_type":"general-purpose"')"
+  expect_reason_has "A general-purpose subagent in QueenspawnGames/castle-game wants to search another repo, BrainDump (~/Code/BrainDump)."
+  expect_reason_has "read-guard allow QueenspawnGames BrainDump"
+}
+
+test_reason_outside_code_offers_share_only() {
+  run_hook "$HOME/Documents" "$(pre s1 "$HOME/Documents" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
+  expect_ask
+  [[ "$(reason)" != *"read-guard allow"* ]] || fail "offered a pair without a project: $(reason)"
+  expect_reason_has "read-guard share BrainDump"
+}
+
+# Whitelist tests edit a copy reached through a symlink, like ~/.claude/hooks.
+with_hook_copy() {
+  local hook_dir="$state_dir/hook-copy"
+  rm -rf "$hook_dir"
+  mkdir -p "$hook_dir"
+  cp "$repo_root/.claude/hooks/read-guard.sh" "$hook_dir/read-guard.sh"
+  ln -s "$hook_dir/read-guard.sh" "$hook_dir/link"
+  local hook="$hook_dir/link"
+  "$@"
+}
+
+test_whitelist_allow() {
+  "$hook" allow flint BrainDump >/dev/null || fail "allow exited $?"
+  [[ -L "$hook" ]] || fail "allow replaced the symlink"
+  [[ -x "${hook:A}" ]] || fail "allow left the hook not executable"
+  [[ -z "$(print -l "${hook:A:h}"/read-guard.sh.*(N))" ]] || fail "allow left a temp file"
+  grep -qxF 'ASSOCIATED=("Fondly scrollfondly.com" "flint BrainDump")' "${hook:A}" || fail "ASSOCIATED not extended"
+  run_hook "$HOME/Code/flint" "$(pre wl "$HOME/Code/flint" "$(foreign_read)")"
+  expect_allow
+  run_hook "$HOME/Code/BrainDump" "$(pre wl "$HOME/Code/BrainDump" "$(read_input "$HOME/Code/flint/main.rs")")"
+  expect_allow
+  run_hook "$HOME/Code/BrainDump" "$(pre wl "$HOME/Code/BrainDump" "$(read_input "$HOME/Code/swarm-forge/main.rs")")"
+  expect_ask
+  "$hook" allow flint BrainDump >/dev/null || fail "repeat allow exited $?"
+  [[ "$(grep -c '"flint BrainDump"' "${hook:A}")" -eq 1 ]] || fail "repeat allow added a duplicate"
+}
+
+test_whitelist_share() {
+  "$hook" share swarm-forge >/dev/null || fail "share exited $?"
+  grep -qxF 'SHARED=("dotfiles" "swarm-forge")' "${hook:A}" || fail "SHARED not extended"
+  run_hook "$HOME/Code/flint" "$(pre wl "$HOME/Code/flint" "$(bash_input "ls ~/Code/swarm-forge")")"
+  expect_allow
+}
+
+test_whitelist_rejects_bad_names() {
+  local before
+  before="$(<"${hook:A}")"
+  "$hook" allow flint ../BrainDump 2>/dev/null
+  [[ $? -eq 2 ]] || fail "bad repo name was not rejected"
+  "$hook" share 2>/dev/null
+  [[ $? -eq 2 ]] || fail "share without a repo was not rejected"
+  [[ "$(<"${hook:A}")" == "$before" ]] || fail "rejected whitelist changed the file"
+}
+
 run_case() {
   local before=$failures
   current_test="$1"
@@ -376,6 +459,13 @@ run_case "gemini investigator does not approve the main agent" test_gemini_inves
 run_case "main session started as Explore still asks" test_main_started_as_explore_still_asks
 run_case "general-purpose subagent still asks" test_general_purpose_still_asks
 run_case "general-purpose approval reaches the main agent" test_general_purpose_approval_reaches_main
+run_case "reason names both repos and the path" test_reason_names_repos_and_path
+run_case "bash reason names paths, not the command" test_bash_reason_names_paths_not_command
+run_case "reason names the subagent and nested project" test_reason_names_subagent_and_nested_project
+run_case "reason outside ~/Code offers share only" test_reason_outside_code_offers_share_only
+run_case "allow pairs repos in ASSOCIATED" with_hook_copy test_whitelist_allow
+run_case "share adds a repo to SHARED" with_hook_copy test_whitelist_share
+run_case "whitelist rejects bad names" with_hook_copy test_whitelist_rejects_bad_names
 
 if (( failures > 0 )); then
   print -u2 -- "$failures failure(s)"
