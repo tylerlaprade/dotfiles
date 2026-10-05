@@ -22,3 +22,6 @@
 	insteadOf = https://github.com/
 [diff]
 	external = difft
+
+[includeIf "gitdir:~/Code/QueenspawnGames/"]
+	path = .config/git/queenspawn-games.gitconfig
