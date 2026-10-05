@@ -231,9 +231,9 @@
     "ralph-loop@claude-plugins-official": false,
     "rust-analyzer-lsp@claude-plugins-official": false,
     "skill-creator@claude-plugins-official": false,
-    "superpowers@claude-plugins-official": false,
     "swift-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
+    "typescript-lsp@claude-plugins-official": true,
+    "cc-plugin-you-should-know@builtin": true
   },
   "extraKnownMarketplaces": {
     "basedpyright-lsp": {
@@ -280,6 +280,5 @@
   "voiceEnabled": true,
   "feedbackSurveyState": {
     "lastShownTime": 9999999999999
-  },
-  "model": "opus"
+  }
 }
