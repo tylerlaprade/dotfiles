@@ -54,42 +54,6 @@ claude() {
   local _rf=/tmp/claude-rate-limits.json
   local _killed=/tmp/claude-overage-killed
 
-  # Prewarm GPG agent so pinentry never fires mid-Claude-session
-  if command -v gpg >/dev/null 2>&1; then
-    local _key
-    _key=$(git config user.signingkey 2>/dev/null)
-    if [ -n "$_key" ]; then
-      export GPG_TTY=$(tty)   # refresh: point pinentry at the current terminal, not a stale one
-      gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
-      # Prewarm sign, bounded so a wedged keyring or stale-TTY pinentry can't hang
-      # launch for minutes. Log outcome + tty context so a silent failure is diagnosable.
-      local _gpglog=/tmp/claude-gpg-prewarm.log
-      if echo | timeout 60s gpg --sign --local-user "$_key" -o /dev/null 2>>"$_gpglog"; then
-        echo "[$(date '+%F %T')] prewarm OK   key=$_key GPG_TTY=$GPG_TTY tty=$(tty 2>/dev/null)" >> "$_gpglog"
-      else
-        local _rc=$?
-        echo "[$(date '+%F %T')] prewarm FAIL rc=$_rc key=$_key GPG_TTY=$GPG_TTY tty=$(tty 2>/dev/null)" >> "$_gpglog"
-        # Likely a stale keyboxd dotlock: unclean shutdown leaves it behind, and PID
-        # recycling after reboot stops GnuPG from breaking it (dev.gnupg.org T6838).
-        # Heal only when the lock's holder is provably not keyboxd, then retry once.
-        local _lock=$HOME/.gnupg/public-keys.d/pubring.db.lock _lockpid
-        _lockpid=$(awk 'NR==1{print $1+0}' "$_lock" 2>/dev/null)
-        if [ -n "$_lockpid" ] && ! command ps -p "$_lockpid" -o comm= 2>/dev/null | grep -q keyboxd; then
-          gpgconf --kill keyboxd 2>>"$_gpglog"
-          gpgconf --unlock pubring.db 2>>"$_gpglog"
-          if echo | timeout 60s gpg --sign --local-user "$_key" -o /dev/null 2>>"$_gpglog"; then
-            echo "[$(date '+%F %T')] prewarm OK   healed stale lock (was pid=$_lockpid)" >> "$_gpglog"
-          else
-            echo "[$(date '+%F %T')] prewarm FAIL rc=$? after healing stale lock (was pid=$_lockpid)" >> "$_gpglog"
-            echo "GPG prewarm failed even after healing stale keyboxd lock — see $_gpglog" >&2
-          fi
-        else
-          echo "GPG prewarm failed (rc=$_rc, not a stale lock) — see $_gpglog" >&2
-        fi
-      fi
-    fi
-  fi
-
   local _args=("$@") _resuming=false
 
   while true; do
@@ -203,7 +167,7 @@ alias lg="lazygit"
 alias top="btm"
 
 # Not drop-in: old name prints the new name and fails. `command du` etc. still
-# reach the system binary. GPG prewarm keeps `command ps` for that reason.
+# reach the system binary.
 du() {
   print -u2 "Use dust, not du.  dust -d 1 <path>     dust --help"
   return 2

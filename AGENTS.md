@@ -18,9 +18,9 @@
   Accessibility grants survive upgrades.
 - Dock autohide stays on. `com.zeitalabs.jottleai` is Monologue and remains
   excluded from synced defaults because it stores account data.
-- The `claude()` GPG prewarm already heals a stale keyboxd lock. Diagnose its
-  current log and code before changing the wrapper; do not restart
-  `gpg-agent` as a first response.
+- GPG uses Homebrew's `pinentry-mac` and macOS Keychain for its passphrase.
+  Claude startup does not prewarm GPG. Reload changed agent settings with
+  `gpgconf --reload gpg-agent`; do not kill the agent during signed work.
 - The daily sync only links config and merges defaults. It does not install
   tools. `install.sh` is the one installer. On an existing Mac it installs
   only what is missing: `brew bundle --no-upgrade`, the three-way defaults
