@@ -27,8 +27,8 @@ model.
 
 ## Train game keyboard lock
 
-Hold both Shift keys, then press K to enter kid mode. Hold either Shift and press
-K to unlock. In kid mode, ordinary letters, numbers, and punctuation type
+Hold both Shift keys, then press K to enter kid mode; it plays Tink. Hold either
+Shift and press K to unlock; it plays Pop. In kid mode, ordinary letters, numbers, and punctuation type
 normally; brightness, volume, Left/Right, and Space work. Modifiers, Fn, system
 function keys, Escape, Tab, Return, and Backspace stay disabled.
 

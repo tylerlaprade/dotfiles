@@ -1,33 +1,10 @@
-;; Kanata for macOS — first-principles layout
+;; Kanata for macOS
 ;;
-;; KEEP
 ;;   Caps: tap Esc / hold Ctrl
 ;;   F1–F12 → media; hold fn + F1–F12 → real F1–F12
 ;;   Hold fn → F-keys + delete family (native fn is not reliable through VirtualHID)
 ;;   Tap fn  → send fn (input-source / Globe if macOS accepts it)
-;;   Space hold → extend (nav: hjkl arrows + jump keys)
 ;;   Kid lock: both shifts + K to lock; either Shift + K to unlock
-;;
-;; Shift intensity ladder (left and right share one ladder; hold = normal Shift):
-;;   tap 1 → next key only is shifted          (one-shot Shift)
-;;   tap 2 → Caps Word until a word boundary   (kanata caps-word)
-;;   tap 3 → Caps Lock until Shift tapped again (OS Caps Lock)
-;;   Only a standalone Shift tap climbs or cancels. No Escape cancel.
-;;   Any other physical key already down → real Shift.
-;;
-;; Idle timeout (letter + word share one value; lock has none):
-;;   Same walk-away reset for both armed intensities — one ladder, one timer.
-;;   Letter also ends on the next key; word also ends on a word-boundary key
-;;   (and refreshes the timer on each letter). Lock stays until Shift.
-;;   Only lock uses OS Caps Lock (menu-bar / keyboard indicator). Letter and
-;;   word are silent. Confused? Tap Shift until normal (at most 3 taps).
-;;
-;; State layers are thin: they only special-case Shift (and word-boundary
-;; exits on c-word). All real key bindings live on `base` once.
-;;
-;; Space timing: require-prior-idle so mid-sentence spaces fire on press.
-;; Tap is (macro spc), not a held spc: idle-triggered tap would otherwise
-;; stay down until release, and macOS key-repeat (~225ms) types a second space.
 ;;
 ;; Kid lock uses switch on K — NOT defchordsv2. Chords buffer every
 ;; participating key after idle. Here K types normally unless both
@@ -35,10 +12,8 @@
 
 (defcfg
   process-unmapped-keys yes
-  ;; Temporary: log layer changes so kid lock / shift ladder is visible in kanata.out.log
-  log-layer-changes yes
   concurrent-tap-hold yes
-  ;; Transparent keys on ladder layers fall through to `base`.
+  ;; Transparent keys on fnkeys fall through to `base`, not the raw key.
   delegate-to-first-layer yes
   macos-dev-names-include (
     "Apple Internal Keyboard / Trackpad"
@@ -48,31 +23,6 @@
 (defvar
   tap-time 180
   hold-time 200
-  prior-idle-spc 400
-  ;; Shared idle reset for letter + word (Kanata max 65535). Lock: no idle timeout.
-  shift-arm-ms 3000
-  ;; Kanata has no "any other key is down" test — only named keys.
-  ;; This is defsrc minus both Shifts. Each Shift also checks the other Shift.
-  else-held (or
-    (input real esc) (input real f1)  (input real f2)  (input real f3)
-    (input real f4)  (input real f5)  (input real f6)  (input real f7)
-    (input real f8)  (input real f9)  (input real f10) (input real f11)
-    (input real f12) (input real grv) (input real 1)   (input real 2)
-    (input real 3)   (input real 4)   (input real 5)   (input real 6)
-    (input real 7)   (input real 8)   (input real 9)   (input real 0)
-    (input real -)   (input real =)   (input real bspc) (input real tab)
-    (input real q)   (input real w)   (input real e)   (input real r)
-    (input real t)   (input real y)   (input real u)   (input real i)
-    (input real o)   (input real p)   (input real [)   (input real ])
-    (input real \)   (input real caps) (input real a)  (input real s)
-    (input real d)   (input real f)   (input real g)   (input real h)
-    (input real j)   (input real k)   (input real l)   (input real ;)
-    (input real ')   (input real ret) (input real z)   (input real x)
-    (input real c)   (input real v)   (input real b)   (input real n)
-    (input real m)   (input real ,)   (input real .)   (input real /)
-    (input real fn)  (input real lctl) (input real lalt) (input real lmet)
-    (input real spc) (input real rmet) (input real ralt)
-  )
 )
 
 (defsrc
@@ -99,7 +49,6 @@
             (release-key rmet)
             (release-key fn)
             (release-layer fnkeys)
-            (release-layer extend)
             (layer-switch kid))
   vk-base (multi
             (release-key lsft)
@@ -107,113 +56,13 @@
             (layer-switch base))
 )
 
-;; ---------------------------------------------------------------------------
-;; Base — sole home for real key bindings
-;; ---------------------------------------------------------------------------
 (deflayer base
   _    brdn brup mctl lpad bldn blup prev pp   next mute vold volu
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
   @cap _    _    _    _    _    _    _    @kk  _    _    _    _
-  @ls  _    _    _    _    _    _    _    _    _    _    @rs
-  @fnh _    _    _              @spc          _    _
-)
-
-;; ---------------------------------------------------------------------------
-;; Letter intensity: one-shot Shift + this base layer as the state flag.
-;; Non-Shift keys return to base (and consume the one-shot). Shift escalates.
-;; Space/Enter use raw keys — base @spc is tap-hold and can double-emit when
-;; fired via (multi … _) on the way out of a ladder layer.
-;; ---------------------------------------------------------------------------
-(deflayermap (c-letter)
-  lsft @ls
-  rsft @rs
-  spc (multi (layer-switch base) (macro spc))
-  ret (multi (layer-switch base) ret)
-  _ (multi (layer-switch base) _)
-)
-
-;; ---------------------------------------------------------------------------
-;; Word intensity: caps-word shifts; this layer is state + boundary exits.
-;; Non-terminals stay transparent → base (future base key edits apply here).
-;; ---------------------------------------------------------------------------
-(deflayermap (c-word)
-  lsft @ls
-  rsft @rs
-
-  ;; caps-word non-terminals: keep base bindings (transparent)
-  a _
-  b _
-  c _
-  d _
-  e _
-  f _
-  g _
-  h _
-  i _
-  j _
-  k _
-  l _
-  m _
-  n _
-  o _
-  p _
-  q _
-  r _
-  s _
-  t _
-  u _
-  v _
-  w _
-  x _
-  y _
-  z _
-  - _
-  0 _
-  1 _
-  2 _
-  3 _
-  4 _
-  5 _
-  6 _
-  7 _
-  8 _
-  9 _
-  bspc _
-  del  _
-  left _
-  rght _
-  up   _
-  down _
-
-  ;; Word boundary: leave word intensity, then emit a plain key (not @spc).
-  spc (multi (layer-switch base) (macro spc))
-  ret (multi (layer-switch base) ret)
-  _ (multi (layer-switch base) _)
-)
-
-;; ---------------------------------------------------------------------------
-;; Lock intensity: OS Caps Lock on. Shift tap clears.
-;; ---------------------------------------------------------------------------
-(deflayermap (c-lock)
-  lsft @ls
-  rsft @rs
-)
-
-;; ---------------------------------------------------------------------------
-;; Extend (hold Space) — nav only
-;;   h j k l → ← ↓ ↑ →
-;;   y u i o → home pgup pgdn end
-;;   number row → F1–F12
-;;   Modifiers real for Shift/Option/Cmd + arrows
-;; ---------------------------------------------------------------------------
-(deflayer extend
-  _    brdn brup mctl lpad bldn blup prev pp   next mute vold volu
-  _    f1   f2   f3   f4   f5   f6   f7   f8   f9   f10  f11  f12  _
-  _    _    _    _    _    _    home pgup pgdn end  _    _    _    _
-  _    _    _    _    _    _    left down up   rght _    _    _
-  @ls  _    _    _    _    _    _    _    _    _    _    @rs
-  @fnh lctl lalt lmet           _              rmet ralt
+  _    _    _    _    _    _    _    _    _    _    _    _
+  @fnh _    _    _              _              _    _
 )
 
 ;; Hold fn — media duals + delete family
@@ -259,8 +108,6 @@
 
 (defalias
   cap (tap-hold-press $tap-time $hold-time esc lctl)
-  spc (tap-hold $tap-time $hold-time (macro spc) (layer-while-held extend)
-      (require-prior-idle $prior-idle-spc))
   ;; Tap: pass fn through. Hold: F-keys + delete (the path that works).
   fnh (tap-hold $tap-time $hold-time fn (layer-while-held fnkeys))
   fdel (switch
@@ -268,48 +115,8 @@
     () del break
   )
 
-  ;; Shared Shift ladder. Hold is still real Shift (kid lock, chords, selection).
-  ;; Alias order matters: helpers before @ls/@rs.
-  sft-letter (multi
-    (layer-switch c-letter)
-    (one-shot-press-pcancel $shift-arm-ms lsft)
-  )
-  sft-word (multi
-    (release-key lsft)
-    (layer-switch c-word)
-    (caps-word $shift-arm-ms)
-  )
-  sft-lock (multi
-    (release-key lsft)
-    ;; End caps-word if still active (toggle ends when on; avoid re-starting).
-    (caps-word-toggle $shift-arm-ms)
-    caps
-    (layer-switch c-lock)
-  )
-  sft-clear-lock (multi
-    caps
-    (layer-switch base)
-  )
-  sftt (switch
-    ((base-layer c-lock)) @sft-clear-lock break
-    ((base-layer c-word)) @sft-lock break
-    ((base-layer c-letter)) @sft-word break
-    () @sft-letter break
-  )
-  ls (switch
-    ($else-held) lsft break
-    ((input real rsft)) lsft break
-    () (tap-hold $tap-time $hold-time @sftt lsft) break
-  )
-  rs (switch
-    ($else-held) rsft break
-    ((input real lsft)) rsft break
-    () (tap-hold $tap-time $hold-time @sftt rsft) break
-  )
-
   ;; Both shifts already held → toggle kid. Otherwise type k as normal.
   ;; (input real …) = physical keys, so this works on the kid layer too.
-  ;; Leaving kid always returns to base (clears any shift-ladder state).
   kk (switch
     ((and (input real lsft) (input real rsft) (layer kid))) (on-press tap-vkey vk-base) break
     ((and (input real lsft) (input real rsft))) (on-press tap-vkey vk-kid) break

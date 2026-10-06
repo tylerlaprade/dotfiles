@@ -10,6 +10,7 @@ import enum
 import json
 import plistlib
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -22,6 +23,8 @@ if TYPE_CHECKING:
 
 KANATA_PLIST = Path("/Library/LaunchDaemons/com.tylerlaprade.kanata.plist")
 KID_LAYER = "kid"
+LOCK_SOUND = "/System/Library/Sounds/Tink.aiff"
+UNLOCK_SOUND = "/System/Library/Sounds/Pop.aiff"
 IGNORED_MESSAGES = frozenset(
     {"TapActivated", "HoldActivated", "ConfigFileReload", "MessagePush"}
 )
@@ -140,6 +143,10 @@ release: Callable[[int], None] = foundation.CFRelease
 default_run_loop_mode = ctypes.c_void_p.in_dll(foundation, "kCFRunLoopDefaultMode")
 
 
+def play(sound: str) -> None:
+    subprocess.Popen(["/usr/bin/afplay", sound])
+
+
 class PointerGate(Protocol):
     def block(self) -> None: ...
 
@@ -183,14 +190,19 @@ class PointerBlocker:
     def filter(
         self, _proxy: int | None, event_type: int, event: int | None, _info: int | None
     ) -> int | None:
+        # Re-enabling only while locked: re-disabling an unlocked tap posts another disabled event.
         if event_type in TAP_DISABLED:
-            enable_event_tap(self.tap, self.blocking)
+            if self.blocking:
+                enable_event_tap(self.tap, self.blocking)
             return event
         return None if self.blocking else event
 
     def block(self) -> None:
+        if self.blocking:
+            return
         self.blocking = True
         enable_event_tap(self.tap, self.blocking)
+        play(LOCK_SOUND)
         print("Kid mode locked: pointer input blocked.", flush=True)
 
     def allow(self) -> None:
@@ -198,6 +210,7 @@ class PointerBlocker:
             return
         self.blocking = False
         enable_event_tap(self.tap, self.blocking)
+        play(UNLOCK_SOUND)
         print("Kid mode unlocked: pointer input restored.", flush=True)
 
     def close(self) -> None:

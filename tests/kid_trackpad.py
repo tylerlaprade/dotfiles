@@ -8,7 +8,9 @@ from pathlib import Path
 from typing import final
 
 from scripts.kid_trackpad import (
+    LOCK_SOUND,
     POINTER_EVENT_MASK,
+    UNLOCK_SOUND,
     follow_layers,
     kanata_address,
     layer_name,
@@ -63,6 +65,11 @@ class ConfigTest(unittest.TestCase):
     def test_event_tap_never_sees_keyboard_or_media_keys(self) -> None:
         for event_type in (KEY_DOWN, KEY_UP, FLAGS_CHANGED, SYSTEM_DEFINED):
             self.assertFalse(POINTER_EVENT_MASK & (1 << event_type))
+
+    def test_lock_and_unlock_sounds_are_distinct_system_sounds(self) -> None:
+        self.assertTrue(Path(LOCK_SOUND).is_file())
+        self.assertTrue(Path(UNLOCK_SOUND).is_file())
+        self.assertNotEqual(LOCK_SOUND, UNLOCK_SOUND)
 
     def test_agent_finds_the_port_the_kanata_daemon_opens(self) -> None:
         self.assertEqual(
