@@ -3,13 +3,14 @@
 - For Claude Code flags, model settings, or hook behavior, check current official
   docs and the installed bundle under `~/.local/share/claude/versions/` before
   editing. Version-specific memory and old presets are not current evidence.
-- The Mouse Keys Option-five-times toggle and built-in-trackpad behavior are
-  deliberate in the standalone Kanata config. The installed Kanata launch
-  daemon uses the virtual mouse controller instead; it builds its helper at
-  startup and uses the existing lock/unlock shortcuts. Install the root daemon
-  only after linking config and applying the trackpad preferences.
-  Dock autohide stays on. `com.zeitalabs.jottleai` is Monologue and remains
-  excluded from synced defaults because it stores account data.
+- Kid mode blocks pointer input with an event tap in `scripts/kid_trackpad.py`,
+  run by a launch agent that follows the root Kanata daemon's TCP port. A launch
+  daemon cannot create that tap on macOS 15, and seizing the trackpad's HID
+  device has no effect on this Mac. Do not bring back Mouse Keys or “Ignore
+  built-in trackpad”: Karabiner-Elements always presents a virtual mouse, so
+  shared defaults keep that setting off. Dock autohide stays on.
+  `com.zeitalabs.jottleai` is Monologue and remains excluded from synced
+  defaults because it stores account data.
 - The `claude()` GPG prewarm already heals a stale keyboxd lock. Diagnose its
   current log and code before changing the wrapper; do not restart
   `gpg-agent` as a first response.
@@ -26,10 +27,10 @@
 - Python here runs on Homebrew's `/opt/homebrew/bin/python3`, named in each
   shebang and shell caller, and the checkers target its version. The
   exceptions are `sync-macos-defaults.py`, `sync-browser-local-state.py`,
-  `sync-graphite.py`, `apply-macos-defaults.py`, and the `threeway.py` they
-  import: they stay on Apple's `/usr/bin/python3` (3.9) so macOS Automation
-  and App Data grants survive Homebrew upgrades, and `ruff.toml` and
-  `pyrightconfig.json` check those files as 3.9.
+  `sync-graphite.py`, `apply-macos-defaults.py`, the `threeway.py` they
+  import, and `kid_trackpad.py`: they stay on Apple's `/usr/bin/python3` (3.9)
+  so macOS Automation, App Data, and Accessibility grants survive Homebrew
+  upgrades, and `ruff.toml` and `pyrightconfig.json` check those files as 3.9.
 - Run the Python tests in `tests/` from the repo root as
   `/opt/homebrew/bin/python3 -m unittest tests/<name>.py`; `tests/threeway.py`
   imports the sync module as `scripts.sync.threeway`, which resolves only from

@@ -3,14 +3,6 @@ set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [[ ${1:-} == --kid-trackpad-prototype ]]; then
-  prototype_python=/opt/homebrew/bin/python3
-  if ! "$prototype_python" -c 'import sys; sys.exit(sys.version_info < (3, 14))' 2>/dev/null; then
-    brew install python
-  fi
-  exec "$prototype_python" "$DOTFILES/scripts/kid-trackpad/build.py"
-fi
-
 echo "=== Dotfiles Setup ==="
 
 sudo -v
@@ -49,7 +41,7 @@ if ! command -v brew >/dev/null 2>&1; then
   eval "$homebrew_env"
 fi
 
-export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 # One-time on a new Mac. A later install of one of these on one machine should stay.
 for app in GarageBand iMovie Keynote Numbers Pages; do
@@ -220,24 +212,18 @@ kanata_plist_dest=/Library/LaunchDaemons/com.tylerlaprade.kanata.plist
 if [[ -x "$kanata_src" ]]; then
   kanata_changed=0
   [[ -x "$kanata_dest" ]] && cmp -s "$kanata_src" "$kanata_dest" || kanata_changed=1
-  mkdir -p "$HOME/.local/bin"
+  rendered=$(mktemp)
+  sed "s|__HOME__|$HOME|g" "$DOTFILES/LaunchDaemons/com.tylerlaprade.kanata.plist" > "$rendered"
+  [[ -f "$kanata_plist_dest" ]] && cmp -s "$rendered" "$kanata_plist_dest" || kanata_changed=1
   if [[ $kanata_changed -eq 1 ]]; then
+    mkdir -p "$HOME/.local/bin"
     cp "$kanata_src" "$kanata_dest"
+    sudo mkdir -p /usr/local/var/log
+    sudo cp "$rendered" "$kanata_plist_dest"
+    sudo launchctl bootout system "$kanata_plist_dest" 2>/dev/null || true
+    sudo launchctl bootstrap system "$kanata_plist_dest" || failed=1
   fi
-  if sudo /opt/homebrew/bin/python3 "$DOTFILES/scripts/kid_trackpad.py" --home "$HOME" --check; then
-    rendered=$(mktemp)
-    sed -e "s|__HOME__|$HOME|g" -e "s|__DOTFILES__|$DOTFILES|g" "$DOTFILES/LaunchDaemons/com.tylerlaprade.kanata.plist" > "$rendered"
-    [[ -f "$kanata_plist_dest" ]] && cmp -s "$rendered" "$kanata_plist_dest" || kanata_changed=1
-    if [[ $kanata_changed -eq 1 ]]; then
-      sudo mkdir -p /usr/local/var/log
-      sudo cp "$rendered" "$kanata_plist_dest"
-      sudo launchctl bootout system "$kanata_plist_dest" 2>/dev/null || true
-      sudo launchctl bootstrap system "$kanata_plist_dest" || failed=1
-    fi
-    rm -f "$rendered"
-  else
-    failed=1
-  fi
+  rm -f "$rendered"
 fi
 
 launch_domain="gui/$(id -u)"

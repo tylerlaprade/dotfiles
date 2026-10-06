@@ -27,38 +27,29 @@ model.
 
 ## Train game keyboard lock
 
-Hold both Shift keys, then press K to enter kid mode. The normal Kanata service
-creates a virtual mouse while locked so macOS can ignore the built-in trackpad
-without Mouse Keys intercepting letters. Hold either Shift and press K to unlock.
-Ordinary letters, numbers, and punctuation pass through; brightness, volume,
-Left/Right, and Space work. Modifiers, Fn, system function keys, Escape, and Tab
-stay disabled.
+Hold both Shift keys, then press K to enter kid mode. Hold either Shift and press
+K to unlock. In kid mode, ordinary letters, numbers, and punctuation type
+normally; brightness, volume, Left/Right, and Space work. Modifiers, Fn, system
+function keys, Escape, Tab, Return, and Backspace stay disabled.
+
+The `com.tylerlaprade.kid-trackpad` launch agent runs `scripts/kid_trackpad.py`,
+which follows Kanata's layer over the TCP port the Kanata daemon opens on
+`127.0.0.1:41471`. While kid mode is on, an event tap drops pointer movement,
+clicks, scrolling, and trackpad gestures, including Spaces and Mission Control
+swipes. Keyboard and media keys never reach the tap. Unlocking turns the tap off,
+and the tap ends with the agent, so a crash cannot leave the trackpad blocked.
+Neither Mouse Keys nor “Ignore built-in trackpad when mouse or wireless trackpad
+is present” is involved. Leave that setting off: the Karabiner-Elements virtual
+pointing device would disable the trackpad all the time.
+
+The tap is an agent, not part of the root Kanata daemon, because macOS 15 does
+not let a launch daemon create it. It runs on Apple's `/usr/bin/python3`, which
+needs Accessibility once: allow `python3` in System Settings → Privacy &
+Security → Accessibility. Until then the agent logs the missing permission to
+`/tmp/kid-trackpad.log` and retries every ten seconds.
 
 Kanata's built-in Left Control + Space + Escape emergency exit still works.
 Kanata reads that chord before remapping, so a layer cannot disable it.
-
-### Setup
-
-Starting the service automatically builds the helper if it is missing or
-out of date, using the official client release matching the installed virtual
-HID daemon. It requires Homebrew Python and Xcode Command Line Tools and does
-not change or replace the driver. The normal `install.sh` also prepares the
-helper; no special install flag or manual rebuild is needed. Existing Macs need
-one normal `./install.sh` run to update the installed root launch daemon. The
-installer checks the new setup before replacing the old service.
-
-In Accessibility → Pointer Control, turn Mouse Keys off and enable
-“Ignore built-in trackpad when mouse or wireless trackpad is present.” No
-separate terminal command is needed after installation; launchd starts and
-supervises Kanata at boot.
-
-Test pointer movement, clicks, scrolling, and Mission Control/Spaces gestures
-while locked, then verify that unlocking restores the trackpad. A driver or
-Kanata connection failure cleans up the virtual mouse and stops Kanata;
-launchd restarts the service. These physical trackpad checks have not yet been
-verified on the Mac. The checked-in keyboard config retains the old Mouse Keys
-mapping for standalone Kanata; the service generates its virtual-mouse config
-without modifying that file.
 
 ## Second Mac
 

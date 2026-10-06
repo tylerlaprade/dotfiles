@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  An agent, not part of the root Kanata daemon: since macOS 15 a launch daemon
+  cannot create the filtering event tap that blocks the trackpad in kid mode.
+
+  python3 starts directly, not through bash like the other agents: macOS grants
+  Accessibility to the program launchd starts, so bash would need the grant.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.tylerlaprade.kid-trackpad</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/bin/python3</string>
+		<string>-c</string>
+		<string>import os, runpy; runpy.run_path(os.path.expanduser("~/Code/dotfiles/scripts/kid_trackpad.py"), run_name="__main__")</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>ProcessType</key>
+	<string>Interactive</string>
+	<key>StandardOutPath</key>
+	<string>/tmp/kid-trackpad.log</string>
+	<key>StandardErrorPath</key>
+	<string>/tmp/kid-trackpad.log</string>
+</dict>
+</plist>

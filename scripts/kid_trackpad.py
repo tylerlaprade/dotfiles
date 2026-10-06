@@ -1,414 +1,334 @@
+#!/usr/bin/python3
 # Copyright (C) 2026 Tyler Laprade. SPDX-License-Identifier: GPL-3.0-only
+# Apple's stable python3 on purpose: the Accessibility grant this event tap needs
+# is keyed to the interpreter's binary, and Homebrew's moves on every release.
 from __future__ import annotations
 
-import argparse
-import asyncio
 import contextlib
+import ctypes
+import enum
 import json
-import os
 import plistlib
-import pwd
-import re
-import signal
 import socket
-import subprocess
 import sys
-import tempfile
+import threading
+import time
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol, Union
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Iterable
 
-REPOSITORY = Path(__file__).resolve().parents[1]
-DAEMON_INFO = Path(
-    "/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/Applications/Karabiner-VirtualHIDDevice-Daemon.app/Contents/Info.plist"
+KANATA_PLIST = Path("/Library/LaunchDaemons/com.tylerlaprade.kanata.plist")
+KID_LAYER = "kid"
+IGNORED_MESSAGES = frozenset(
+    {"TapActivated", "HoldActivated", "ConfigFileReload", "MessagePush"}
 )
-SERVICE = "system/com.tylerlaprade.kanata"
-SERVICE_PLIST = "/Library/LaunchDaemons/com.tylerlaprade.kanata.plist"
-TEXT_KEYS = [
-    "grv",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "0",
-    "-",
-    "=",
-    "q",
-    "w",
-    "e",
-    "r",
-    "t",
-    "y",
-    "u",
-    "i",
-    "o",
-    "p",
-    "[",
-    "]",
-    "\\",
-    "a",
-    "s",
-    "d",
-    "f",
-    "g",
-    "h",
-    "j",
-    "l",
-    ";",
-    "'",
-    "z",
-    "x",
-    "c",
-    "v",
-    "b",
-    "n",
-    "m",
-    ",",
-    ".",
-    "/",
+RECONNECT_SECONDS = 1
+PERMISSION_RETRY_SECONDS = 10
+SESSION_EVENT_TAP = 1
+HEAD_INSERT_EVENT_TAP = 0
+FILTERING_EVENT_TAP = 0
+
+
+class EventType(enum.IntEnum):
+    LEFT_MOUSE_DOWN = 1
+    LEFT_MOUSE_UP = 2
+    RIGHT_MOUSE_DOWN = 3
+    RIGHT_MOUSE_UP = 4
+    MOUSE_MOVED = 5
+    LEFT_MOUSE_DRAGGED = 6
+    RIGHT_MOUSE_DRAGGED = 7
+    ROTATE = 18
+    BEGIN_GESTURE = 19
+    END_GESTURE = 20
+    SCROLL_WHEEL = 22
+    TABLET_POINTER = 23
+    TABLET_PROXIMITY = 24
+    OTHER_MOUSE_DOWN = 25
+    OTHER_MOUSE_UP = 26
+    OTHER_MOUSE_DRAGGED = 27
+    GESTURE = 29
+    MAGNIFY = 30
+    SWIPE = 31
+    SMART_MAGNIFY = 32
+    QUICK_LOOK = 33
+    PRESSURE = 34
+    DIRECT_TOUCH = 37
+    CHANGE_MODE = 38
+    TAP_DISABLED_BY_TIMEOUT = 0xFFFFFFFE
+    TAP_DISABLED_BY_USER_INPUT = 0xFFFFFFFF
+
+
+TAP_DISABLED = frozenset(
+    {EventType.TAP_DISABLED_BY_TIMEOUT, EventType.TAP_DISABLED_BY_USER_INPUT}
+)
+POINTER_EVENT_MASK = sum(1 << event for event in EventType if event not in TAP_DISABLED)
+
+JSONValue = Union[
+    None, bool, int, float, str, list["JSONValue"], dict[str, "JSONValue"]
 ]
-MOUSE_KEYS_MACRO = "(macro 120 lalt 70 lalt 70 lalt 70 lalt 70 lalt)"
-MOUSE_KEYS_TOGGLE_COUNT = 2
-
-type JSONValue = (
-    bool | int | float | str | list[JSONValue] | dict[str, JSONValue] | None
-)
-type PlistValue = (
-    bool
-    | int
-    | float
-    | str
-    | bytes
-    | datetime
-    | plistlib.UID
-    | list[PlistValue]
-    | dict[str, PlistValue]
-)
-parse_json: Callable[[str | bytes], JSONValue] = json.loads
+parse_json: Callable[[bytes], JSONValue] = json.loads
+PlistValue = Union[
+    bool,
+    int,
+    float,
+    str,
+    bytes,
+    datetime,
+    list["PlistValue"],
+    dict[str, "PlistValue"],
+]
 parse_plist: Callable[[bytes], PlistValue] = plistlib.loads
-ipv4_address: Callable[[socket.socket], tuple[str, int]] = socket.socket.getsockname
+
+TapCallback = ctypes.CFUNCTYPE(
+    ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_void_p
+)
+graphics = ctypes.CDLL(
+    "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices"
+)
+foundation = ctypes.CDLL(
+    "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
+)
+graphics.CGEventTapCreate.restype = ctypes.c_void_p
+graphics.CGEventTapCreate.argtypes = (
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.c_uint64,
+    TapCallback,
+    ctypes.c_void_p,
+)
+graphics.CGEventTapEnable.restype = None
+graphics.AXIsProcessTrustedWithOptions.restype = ctypes.c_bool
+graphics.AXIsProcessTrustedWithOptions.argtypes = (ctypes.c_void_p,)
+foundation.CFDictionaryCreate.restype = ctypes.c_void_p
+foundation.CFDictionaryCreate.argtypes = (
+    ctypes.c_void_p,
+    ctypes.POINTER(ctypes.c_void_p),
+    ctypes.POINTER(ctypes.c_void_p),
+    ctypes.c_long,
+    ctypes.c_void_p,
+    ctypes.c_void_p,
+)
+graphics.CGEventTapEnable.argtypes = (ctypes.c_void_p, ctypes.c_bool)
+foundation.CFMachPortCreateRunLoopSource.restype = ctypes.c_void_p
+foundation.CFMachPortCreateRunLoopSource.argtypes = (
+    ctypes.c_void_p,
+    ctypes.c_void_p,
+    ctypes.c_long,
+)
+foundation.CFMachPortInvalidate.restype = None
+foundation.CFMachPortInvalidate.argtypes = (ctypes.c_void_p,)
+foundation.CFRunLoopGetCurrent.restype = ctypes.c_void_p
+foundation.CFRunLoopGetCurrent.argtypes = ()
+foundation.CFRunLoopAddSource.restype = None
+foundation.CFRunLoopAddSource.argtypes = (
+    ctypes.c_void_p,
+    ctypes.c_void_p,
+    ctypes.c_void_p,
+)
+foundation.CFRunLoopRun.restype = None
+foundation.CFRunLoopRun.argtypes = ()
+foundation.CFRunLoopStop.restype = None
+foundation.CFRunLoopStop.argtypes = (ctypes.c_void_p,)
+foundation.CFRelease.restype = None
+foundation.CFRelease.argtypes = (ctypes.c_void_p,)
+create_event_tap: Callable[[int, int, int, int, object, None], int | None] = (
+    graphics.CGEventTapCreate
+)
+enable_event_tap: Callable[[int, bool], None] = graphics.CGEventTapEnable
+create_run_loop_source: Callable[[None, int, int], int] = (
+    foundation.CFMachPortCreateRunLoopSource
+)
+invalidate_mach_port: Callable[[int], None] = foundation.CFMachPortInvalidate
+current_run_loop: Callable[[], int] = foundation.CFRunLoopGetCurrent
+add_run_loop_source: Callable[[int, int, int], None] = foundation.CFRunLoopAddSource
+run_run_loop: Callable[[], None] = foundation.CFRunLoopRun
+stop_run_loop: Callable[[int], None] = foundation.CFRunLoopStop
+release: Callable[[int], None] = foundation.CFRelease
+check_accessibility: Callable[[int], bool] = graphics.AXIsProcessTrustedWithOptions
+create_dictionary: Callable[[None, object, object, int, int, int], int] = (
+    foundation.CFDictionaryCreate
+)
+default_run_loop_mode = ctypes.c_void_p.in_dll(foundation, "kCFRunLoopDefaultMode")
+accessibility_prompt = ctypes.c_void_p.in_dll(graphics, "kAXTrustedCheckOptionPrompt")
+boolean_true = ctypes.c_void_p.in_dll(foundation, "kCFBooleanTrue")
+dictionary_key_callbacks = ctypes.c_byte.in_dll(
+    foundation, "kCFTypeDictionaryKeyCallBacks"
+)
+dictionary_value_callbacks = ctypes.c_byte.in_dll(
+    foundation, "kCFTypeDictionaryValueCallBacks"
+)
 
 
-def json_object(value: JSONValue) -> dict[str, JSONValue]:
-    if isinstance(value, dict):
-        return value
-    raise TypeError(f"Expected a JSON object, got {value!r}")
+class PointerGate(Protocol):
+    def block(self) -> None: ...
+
+    def allow(self) -> None: ...
 
 
-def plist_dictionary(value: PlistValue) -> dict[str, PlistValue]:
-    if isinstance(value, dict):
-        return value
-    raise TypeError(f"Expected a property list dictionary, got {value!r}")
-
-
-def prototype_config(source: str) -> str:
-    if source.count(MOUSE_KEYS_MACRO) != MOUSE_KEYS_TOGGLE_COUNT:
-        raise ValueError(
-            "The Mouse Keys toggle changed; update the prototype generator."
+class PointerBlocker:
+    def __init__(self) -> None:
+        self.blocking: bool = False
+        self.callback: object = TapCallback(self.filter)
+        tap = create_event_tap(
+            SESSION_EVENT_TAP,
+            HEAD_INSERT_EVENT_TAP,
+            FILTERING_EVENT_TAP,
+            POINTER_EVENT_MASK,
+            self.callback,
+            None,
         )
-    result = source.replace(MOUSE_KEYS_MACRO, "")
-    pattern = r"\(deflayermap \(kid\)\n(?P<keys>.*?)\n\)"
-    match = re.search(pattern, result, re.DOTALL)
-    if match is None or "  k @kid-k\n  ___ XX" not in match["keys"]:
-        raise ValueError("The kid layer changed; update the prototype generator.")
-    keys = match["keys"].replace(
-        "  k @kid-k", "\n".join(f"  {key} {key}" for key in TEXT_KEYS) + "\n  k @kid-k"
-    )
-    result = result[: match.start("keys")] + keys + result[match.end("keys") :]
-    fallback = "(on-press tap-vkey vk-base) break\n    () XX break"
-    if result.count(fallback) != 1:
-        raise ValueError("The unlock action changed; update the prototype generator.")
-    return result.replace(fallback, "(on-press tap-vkey vk-base) break\n    () k break")
-
-
-async def stop_process(process: asyncio.subprocess.Process) -> None:
-    if process.returncode is not None:
-        return
-    process.terminate()
-    try:
-        await asyncio.wait_for(process.wait(), timeout=5)
-    except TimeoutError:
-        process.kill()
-        await process.wait()
-
-
-class VirtualMouse:
-    def __init__(self, command: Sequence[str]) -> None:
-        self.command: Sequence[str] = command
-        self.process: asyncio.subprocess.Process | None = None
-        self.failure: asyncio.Task[bytes] | None = None
-
-    async def lock(self) -> None:
-        if self.process is not None:
-            return
-        process = await asyncio.create_subprocess_exec(
-            *self.command,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            start_new_session=True,
+        if tap is None:
+            raise PermissionError(
+                "macOS refused the pointer event tap. Allow python3 in System Settings → Privacy & Security → Accessibility."
+            )
+        self.tap: int = tap
+        enable_event_tap(self.tap, self.blocking)
+        self.run_loop: int | None = None
+        listening = threading.Event()
+        self.thread: threading.Thread = threading.Thread(
+            target=self.listen, args=(listening,), name="pointer-event-tap", daemon=True
         )
-        self.process = process
-        if process.stdout is None:
-            raise RuntimeError("The virtual mouse has no status channel.")
-        ready = await asyncio.wait_for(process.stdout.readline(), timeout=10)
-        if ready != b"READY\n":
-            raise RuntimeError(
-                f"Virtual mouse failed: {ready.decode().strip() or 'client exited'}"
-            )
-        self.failure = asyncio.create_task(process.stdout.readline())
-        print("Kid mode: virtual mouse connected; Mouse Keys remains off.", flush=True)
+        self.thread.start()
+        listening.wait()
 
-    async def unlock(self) -> None:
-        process = self.process
-        self.process = None
-        if self.failure is not None:
-            self.failure.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self.failure
-            self.failure = None
-        if process is None:
+    def listen(self, listening: threading.Event) -> None:
+        self.run_loop = current_run_loop()
+        source = create_run_loop_source(None, self.tap, 0)
+        add_run_loop_source(self.run_loop, source, default_run_loop_mode.value or 0)
+        release(source)
+        listening.set()
+        run_run_loop()
+
+    def filter(
+        self, _proxy: int | None, event_type: int, event: int | None, _info: int | None
+    ) -> int | None:
+        if event_type in TAP_DISABLED:
+            enable_event_tap(self.tap, self.blocking)
+            return event
+        return None if self.blocking else event
+
+    def block(self) -> None:
+        self.blocking = True
+        enable_event_tap(self.tap, self.blocking)
+        print("Kid mode locked: pointer input blocked.", flush=True)
+
+    def allow(self) -> None:
+        if not self.blocking:
             return
-        if process.stdin is not None:
-            process.stdin.close()
-        try:
-            await asyncio.wait_for(process.wait(), timeout=10)
-        except TimeoutError:
-            await stop_process(process)
-        if process.returncode != 0:
-            raise RuntimeError(
-                f"Virtual mouse exited with status {process.returncode}."
-            )
-        print("Kid mode unlocked: virtual mouse removed.", flush=True)
+        self.blocking = False
+        enable_event_tap(self.tap, self.blocking)
+        print("Kid mode unlocked: pointer input restored.", flush=True)
+
+    def close(self) -> None:
+        self.allow()
+        invalidate_mach_port(self.tap)
+        if self.run_loop is not None:
+            stop_run_loop(self.run_loop)
+        self.thread.join()
+        release(self.tap)
 
 
 def layer_name(message: bytes) -> str | None:
     data = parse_json(message)
     if not isinstance(data, dict) or len(data) != 1:
         raise ValueError(f"Unexpected Kanata message: {data!r}")
-    if set(data) in ({"TapActivated"}, {"HoldActivated"}):
+    ((kind, event),) = data.items()
+    if kind in IGNORED_MESSAGES:
         return None
-    if set(data) != {"LayerChange"}:
+    if kind != "LayerChange":
         raise ValueError(f"Unexpected Kanata message: {data!r}")
-    event = data["LayerChange"]
     layer = event.get("new") if isinstance(event, dict) else None
     if not isinstance(layer, str):
         raise TypeError(f"Invalid Kanata layer: {event!r}")
     return layer
 
 
-async def follow_layers(reader: asyncio.StreamReader, mouse: VirtualMouse) -> None:
+def follow_layers(messages: Iterable[bytes], pointer: PointerGate) -> None:
     try:
-        while True:
-            change = asyncio.create_task(reader.readline())
-            try:
-                watches = {change}
-                if mouse.failure is not None:
-                    watches.add(mouse.failure)
-                finished, _ = await asyncio.wait(
-                    watches, return_when=asyncio.FIRST_COMPLETED
-                )
-                if mouse.failure in finished:
-                    raise RuntimeError(
-                        "The virtual mouse disconnected while kid mode was active."
-                    )
-                message = await change
-                if not message:
-                    raise ConnectionError("Kanata disconnected.")
-                layer = layer_name(message)
-                if layer is None:
-                    continue
-                if layer == "kid":
-                    await mouse.lock()
-                else:
-                    await mouse.unlock()
-            finally:
-                change.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await change
+        for message in messages:
+            layer = layer_name(message)
+            if layer == KID_LAYER:
+                pointer.block()
+            elif layer is not None:
+                pointer.allow()
     finally:
-        await mouse.unlock()
+        pointer.allow()
 
 
-async def try_connect(
-    port: int,
-) -> tuple[asyncio.StreamReader, asyncio.StreamWriter] | None:
+def kanata_address(plist: bytes) -> tuple[str, int]:
+    data = parse_plist(plist)
+    arguments = data.get("ProgramArguments") if isinstance(data, dict) else None
+    if not isinstance(arguments, list) or "--port" not in arguments:
+        raise ValueError("The Kanata launch daemon does not open a TCP port.")
+    address = arguments[arguments.index("--port") + 1]
+    if not isinstance(address, str):
+        raise TypeError(f"Invalid Kanata port: {address!r}")
+    host, port = address.rsplit(":", 1)
+    return host, int(port)
+
+
+def try_blocking() -> PointerBlocker | None:
     try:
-        return await asyncio.open_connection("127.0.0.1", port)
+        return PointerBlocker()
+    except PermissionError as error:
+        print(error, flush=True)
+        return None
+
+
+def request_accessibility() -> None:
+    options = create_dictionary(
+        None,
+        (ctypes.c_void_p * 1)(accessibility_prompt.value),
+        (ctypes.c_void_p * 1)(boolean_true.value),
+        1,
+        ctypes.addressof(dictionary_key_callbacks),
+        ctypes.addressof(dictionary_value_callbacks),
+    )
+    check_accessibility(options)
+    release(options)
+
+
+def wait_for_permission() -> PointerBlocker:
+    pointer = try_blocking()
+    if pointer is None:
+        request_accessibility()
+    while pointer is None:
+        time.sleep(PERMISSION_RETRY_SECONDS)
+        pointer = try_blocking()
+    return pointer
+
+
+def try_connect(address: tuple[str, int]) -> socket.socket | None:
+    try:
+        return socket.create_connection(address)
     except ConnectionRefusedError:
         return None
 
 
-async def connect_kanata(
-    port: int,
-) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-    async with asyncio.timeout(10):
-        while True:
-            connection = await try_connect(port)
-            if connection is not None:
-                return connection
-            await asyncio.sleep(0.1)
-
-
-async def run_prototype(kanata: Path, client: Path, config: Path) -> None:
-    with socket.socket() as reservation:
-        reservation.bind(("127.0.0.1", 0))
-        _, port = ipv4_address(reservation)
-    process = await asyncio.create_subprocess_exec(
-        str(kanata),
-        "--no-wait",
-        "--cfg",
-        str(config),
-        "--port",
-        f"127.0.0.1:{port}",
-        start_new_session=True,
-    )
-    mouse = VirtualMouse([str(client)])
-    try:
-        reader, writer = await connect_kanata(port)
-        try:
-            await follow_layers(reader, mouse)
-        finally:
-            writer.close()
-            await writer.wait_closed()
-    finally:
-        await stop_process(process)
-
-
-def run_command(*command: str, check: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(command, capture_output=True, text=True, check=check)
-
-
-def preflight(home: Path, kanata: Path, client: Path, config: Path) -> None:
-    if not kanata.is_file():
-        raise ValueError("Kanata is missing. Run the normal dotfiles install.sh first.")
-    owner = pwd.getpwuid(home.stat().st_uid).pw_name
-    subprocess.run(
-        [
-            "sudo",
-            "-u",
-            owner,
-            "/opt/homebrew/bin/python3",
-            str(REPOSITORY / "scripts/kid-trackpad/build.py"),
-            "--output",
-            str(client),
-        ],
-        check=True,
-    )
-    driver_version = plist_dictionary(parse_plist(DAEMON_INFO.read_bytes()))[
-        "CFBundleShortVersionString"
-    ]
-    built_version = json_object(parse_json(client.with_suffix(".json").read_text()))[
-        "package_version"
-    ]
-    if driver_version != built_version:
-        raise ValueError(
-            "The virtual HID driver changed during setup. Start the prototype again to rebuild."
-        )
-    run_command(str(kanata), "--check", "--cfg", str(config))
-    setting = run_command(
-        "sudo",
-        "-u",
-        owner,
-        "defaults",
-        "read",
-        "com.apple.AppleMultitouchTrackpad",
-        "USBMouseStopsTrackpad",
-    ).stdout.strip()
-    if setting != "1":
-        raise ValueError(
-            "Enable “Ignore built-in trackpad when mouse or wireless trackpad is present” in Accessibility → Pointer Control first."
-        )
-    enabled = run_command(
-        "sudo",
-        "-u",
-        owner,
-        "defaults",
-        "read",
-        "com.apple.universalaccess",
-        "mouseDriver",
-        check=False,
-    )
-    if enabled.returncode == 0 and enabled.stdout.strip() == "1":
-        raise ValueError("Turn Mouse Keys off before starting the prototype.")
-
-
-class Arguments(argparse.Namespace):
-    home: Path
-    service: bool
-    check: bool
-
-
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Run Kanata with automatic kid-mode trackpad control."
-    )
-    parser.add_argument("--service", action="store_true")
-    parser.add_argument("--check", action="store_true")
-    parser.add_argument(
-        "--home",
-        type=Path,
-        default=Path(
-            pwd.getpwnam(
-                os.environ.get("SUDO_USER", pwd.getpwuid(os.getuid()).pw_name)
-            ).pw_dir
-        ),
-    )
-    arguments = parser.parse_args(namespace=Arguments())
-    home = arguments.home.resolve()
-    kanata = home / ".local/bin/kanata"
-    client = home / ".local/bin/kid-trackpad-mouse"
-    with tempfile.TemporaryDirectory(prefix="kid-trackpad-") as temporary:
-        config = Path(temporary) / "kanata.kbd"
-        config.write_text(
-            prototype_config((home / ".config/kanata/kanata.kbd").read_text())
-        )
-        preflight(home, kanata, client, config)
-        if arguments.check:
-            return
-        if arguments.service:
-            print(
-                "Kanata running. Both Shifts + K locks; either Shift + K unlocks.",
-                flush=True,
-            )
-            asyncio.run(run_prototype(kanata, client, config))
-            return
-        active = run_command("launchctl", "print", SERVICE, check=False).returncode == 0
-        if active:
-            run_command("launchctl", "bootout", SERVICE)
-        try:
-            print(
-                "Prototype running. Both Shifts + K locks; either Shift + K unlocks. Ctrl+C restores your normal service.",
-                flush=True,
-            )
-            asyncio.run(run_prototype(kanata, client, config))
-        finally:
-            if active:
-                run_command("launchctl", "bootstrap", "system", SERVICE_PLIST)
-                print("Restored the normal Kanata service.", flush=True)
+    with contextlib.closing(wait_for_permission()) as pointer:
+        address = kanata_address(KANATA_PLIST.read_bytes())
+        print(f"Following Kanata at {address[0]}:{address[1]}.", flush=True)
+        while True:
+            connection = try_connect(address)
+            if connection is None:
+                time.sleep(RECONNECT_SECONDS)
+                continue
+            with connection, connection.makefile("rb") as messages:
+                follow_layers(messages, pointer)
+            print("Kanata disconnected; pointer input restored.", flush=True)
 
 
 if __name__ == "__main__":
-    if sys.platform != "darwin" or os.geteuid() != 0:
-        raise SystemExit("Run Kanata trackpad control on macOS as root.")
-    signal.signal(signal.SIGTERM, signal.default_int_handler)
+    if sys.platform != "darwin":
+        raise SystemExit("Kid mode pointer blocking requires macOS.")
     try:
         main()
-    except (
-        OSError,
-        ValueError,
-        TypeError,
-        RuntimeError,
-        TimeoutError,
-        subprocess.CalledProcessError,
-    ) as error:
+    except (OSError, ValueError, TypeError) as error:
         raise SystemExit(str(error)) from error
     except KeyboardInterrupt:
-        print("Prototype stopped.")
+        print("Stopped.", flush=True)

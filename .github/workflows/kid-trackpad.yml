@@ -1,16 +1,18 @@
-name: Kid trackpad prototype
+name: Kid trackpad
 
 on:
   push:
     paths:
       - 'scripts/kid_trackpad.py'
-      - 'scripts/kid-trackpad/**'
       - 'tests/kid_trackpad.py'
-      - 'tests/kid_trackpad_build.py'
       - 'install.sh'
       - 'LaunchDaemons/com.tylerlaprade.kanata.plist'
-      - '.config/clang-tidy/**'
+      - 'LaunchAgents/com.tylerlaprade.kid-trackpad.plist'
+      - 'ruff.toml'
+      - 'pyrightconfig.json'
+      - '.config/kanata/kanata.kbd'
       - '.config/ruff/**'
+      - '.config/basedpyright/**'
       - '.github/workflows/kid-trackpad.yml'
   workflow_dispatch:
 
@@ -18,7 +20,7 @@ permissions:
   contents: read
 
 jobs:
-  macos-build:
+  macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
@@ -26,24 +28,18 @@ jobs:
         with:
           python-version: '3.14'
       - name: Install linters
+        run: python3 -m pip install ruff basedpyright
+      - name: Link the shared lint policy where the project configs extend it
         run: |
-          brew install llvm
-          python3 -m pip install ruff
+          mkdir -p ../../.config
+          ln -s "$PWD/.config/ruff" ../../.config/ruff
+          ln -s "$PWD/.config/basedpyright" ../../.config/basedpyright
       - name: Test controller and lint Python
         run: |
-          python3 -m unittest tests/kid_trackpad.py tests/kid_trackpad_build.py
-          python3 -m ruff check --config .config/ruff/ruff.toml scripts/kid_trackpad.py scripts/kid-trackpad/build.py tests/kid_trackpad.py tests/kid_trackpad_build.py
-          python3 -m ruff format --check --config .config/ruff/ruff.toml scripts/kid_trackpad.py scripts/kid-trackpad/build.py tests/kid_trackpad.py tests/kid_trackpad_build.py
+          python3 -m unittest tests/kid_trackpad.py
+          /usr/bin/python3 -m unittest tests/kid_trackpad.py
+          python3 -m ruff check scripts/kid_trackpad.py tests/kid_trackpad.py
+          python3 -m ruff format --check scripts/kid_trackpad.py tests/kid_trackpad.py
+          basedpyright scripts/kid_trackpad.py tests/kid_trackpad.py
           bash -n install.sh
-          plutil -lint LaunchDaemons/com.tylerlaprade.kanata.plist
-      - name: Compile with the official driver client
-        run: |
-          git clone --depth 1 https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice.git "$RUNNER_TEMP/driver"
-          python3 scripts/kid-trackpad/build.py --driver-source "$RUNNER_TEMP/driver" --output "$RUNNER_TEMP/kid-trackpad-mouse"
-          git -C "$RUNNER_TEMP/driver" fetch --depth 1 origin tag v6.2.0
-          git -C "$RUNNER_TEMP/driver" checkout v6.2.0
-          python3 scripts/kid-trackpad/build.py --driver-source "$RUNNER_TEMP/driver" --output "$RUNNER_TEMP/kid-trackpad-mouse"
-      - name: Lint native client
-        run: |
-          sdk=$(xcrun --show-sdk-path)
-          "$(brew --prefix llvm)/bin/clang-tidy" --config-file=.config/clang-tidy/.clang-tidy scripts/kid-trackpad/virtual-mouse.cpp -- -std=c++23 -isysroot "$sdk" -nostdinc++ -isystem "$sdk/usr/include/c++/v1" -isystem "$RUNNER_TEMP/driver/include" -isystem "$RUNNER_TEMP/driver/vendor/vendor/include"
+          plutil -lint LaunchDaemons/com.tylerlaprade.kanata.plist LaunchAgents/com.tylerlaprade.kid-trackpad.plist

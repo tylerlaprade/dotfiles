@@ -5,6 +5,7 @@
   // The 3.9 files run on Apple's /usr/bin/python3: macOS Automation and App Data grants are tied to
   // the interpreter path, and Homebrew's changes on every upgrade.
   "executionEnvironments": [
+    { "root": "scripts/kid_trackpad.py", "pythonVersion": "3.9" },
     { "root": "scripts/setup/apply-macos-defaults.py", "pythonVersion": "3.9" },
     { "root": "scripts/sync/sync-browser-local-state.py", "pythonVersion": "3.9", "extraPaths": ["scripts/sync"] },
     { "root": "scripts/sync/sync-graphite.py", "pythonVersion": "3.9", "extraPaths": ["scripts/sync"] },

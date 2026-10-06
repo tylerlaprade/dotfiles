@@ -6,11 +6,12 @@
   <string>com.tylerlaprade.kanata</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/opt/homebrew/bin/python3</string>
-    <string>__DOTFILES__/scripts/kid_trackpad.py</string>
-    <string>--home</string>
-    <string>__HOME__</string>
-    <string>--service</string>
+    <string>__HOME__/.local/bin/kanata</string>
+    <string>--no-wait</string>
+    <string>--cfg</string>
+    <string>__HOME__/.config/kanata/kanata.kbd</string>
+    <string>--port</string>
+    <string>127.0.0.1:41471</string>
   </array>
   <key>RunAtLoad</key>
   <true/>

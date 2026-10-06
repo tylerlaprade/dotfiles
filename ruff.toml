@@ -4,6 +4,7 @@ target-version = "py314"
 # These run on Apple's /usr/bin/python3 (3.9): macOS Automation and App Data grants are tied to
 # the interpreter path, and Homebrew's changes on every upgrade.
 [per-file-target-version]
+"scripts/kid_trackpad.py" = "py39"
 "scripts/setup/apply-macos-defaults.py" = "py39"
 "scripts/sync/sync-browser-local-state.py" = "py39"
 "scripts/sync/sync-graphite.py" = "py39"

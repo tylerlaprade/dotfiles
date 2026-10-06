@@ -1,282 +1,132 @@
 # Copyright (C) 2026 Tyler Laprade. SPDX-License-Identifier: GPL-3.0-only
 from __future__ import annotations
 
-import asyncio
-import contextlib
-import pwd
-import subprocess
-import sys
-import tempfile
+import plistlib
+import re
 import unittest
 from pathlib import Path
-from typing import TYPE_CHECKING, final, override
-from unittest.mock import patch
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
+from typing import final
 
 from scripts.kid_trackpad import (
-    REPOSITORY,
-    SERVICE,
-    SERVICE_PLIST,
-    VirtualMouse,
+    POINTER_EVENT_MASK,
     follow_layers,
+    kanata_address,
     layer_name,
-    main,
     parse_plist,
-    plist_dictionary,
-    prototype_config,
 )
+
+REPOSITORY = Path(__file__).resolve().parents[1]
+KANATA_DAEMON = REPOSITORY / "LaunchDaemons/com.tylerlaprade.kanata.plist"
+KID_AGENT = REPOSITORY / "LaunchAgents/com.tylerlaprade.kid-trackpad.plist"
+KEY_DOWN = 10
+KEY_UP = 11
+FLAGS_CHANGED = 12
+SYSTEM_DEFINED = 14
+
+
+def kid_layer() -> str:
+    source = (REPOSITORY / ".config/kanata/kanata.kbd").read_text()
+    match = re.search(r"\(deflayermap \(kid\)\n(?P<keys>.*?)\n\)", source, re.DOTALL)
+    if match is None:
+        raise AssertionError("The kid layer is missing.")
+    return match["keys"]
+
+
+@final
+class RecordingGate:
+    def __init__(self) -> None:
+        self.states: list[str] = []
+
+    def block(self) -> None:
+        self.states.append("blocked")
+
+    def allow(self) -> None:
+        self.states.append("allowed")
 
 
 @final
 class ConfigTest(unittest.TestCase):
-    def test_current_config_keeps_modifiers_and_function_keys_blocked(self) -> None:
-        source = (REPOSITORY / ".config/kanata/kanata.kbd").read_text()
-        result = prototype_config(source)
-        self.assertNotIn("(macro 120 lalt", result)
-        self.assertIn("  ___ XX", result)
-        self.assertIn("  i i", result)
-        self.assertIn("  m m", result)
-        self.assertIn("  f1 brdn", result)
-        self.assertNotIn("  f3 mctl", result)
+    def test_kid_layer_passes_typing_and_keeps_system_keys_blocked(self) -> None:
+        keys = kid_layer()
+        self.assertIn("q q", keys)
+        self.assertIn("m m", keys)
+        self.assertIn("f1 brdn", keys)
+        self.assertIn("___ XX", keys)
+        self.assertNotIn("mctl", keys)
+        self.assertNotIn("esc", keys)
+        self.assertNotIn("tab", keys)
 
-    def test_changed_toggle_fails_instead_of_leaving_mouse_keys_enabled(self) -> None:
+    def test_kanata_no_longer_toggles_mouse_keys(self) -> None:
         source = (REPOSITORY / ".config/kanata/kanata.kbd").read_text()
-        with self.assertRaisesRegex(ValueError, "toggle changed"):
-            prototype_config(source.replace("macro 120 lalt", "macro 150 lalt"))
+        self.assertNotIn("lalt 70 lalt", source)
 
-    def test_only_layer_events_change_the_mouse(self) -> None:
+    def test_event_tap_never_sees_keyboard_or_media_keys(self) -> None:
+        for event_type in (KEY_DOWN, KEY_UP, FLAGS_CHANGED, SYSTEM_DEFINED):
+            self.assertFalse(POINTER_EVENT_MASK & (1 << event_type))
+
+    def test_agent_finds_the_port_the_kanata_daemon_opens(self) -> None:
+        self.assertEqual(
+            kanata_address(KANATA_DAEMON.read_bytes()), ("127.0.0.1", 41471)
+        )
+
+    def test_kanata_daemon_without_a_port_fails_loudly(self) -> None:
+        daemon = plistlib.dumps({"ProgramArguments": ["kanata", "--cfg", "x"]})
+        with self.assertRaisesRegex(ValueError, "TCP port"):
+            kanata_address(daemon)
+
+    def test_kanata_runs_directly_so_its_own_permissions_apply(self) -> None:
+        daemon = parse_plist(KANATA_DAEMON.read_bytes())
+        if not isinstance(daemon, dict):
+            self.fail("The Kanata daemon is not a property list dictionary.")
+        arguments = daemon["ProgramArguments"]
+        if not isinstance(arguments, list):
+            self.fail("The Kanata daemon has no program arguments.")
+        self.assertEqual(arguments[0], "__HOME__/.local/bin/kanata")
+
+    def test_agent_runs_on_apples_python(self) -> None:
+        agent = parse_plist(KID_AGENT.read_bytes())
+        if not isinstance(agent, dict):
+            self.fail("The kid trackpad agent is not a property list dictionary.")
+        arguments = agent["ProgramArguments"]
+        if not isinstance(arguments, list):
+            self.fail("The kid trackpad agent has no program arguments.")
+        self.assertEqual(arguments[0], "/usr/bin/python3")
+
+
+@final
+class LayerTest(unittest.TestCase):
+    def test_only_layer_changes_move_the_pointer_gate(self) -> None:
         self.assertEqual(layer_name(b'{"LayerChange":{"new":"kid"}}\n'), "kid")
         self.assertIsNone(layer_name(b'{"TapActivated":{"key":"lsft"}}\n'))
+        self.assertIsNone(layer_name(b'{"ConfigFileReload":{"new":"a.kbd"}}\n'))
         with self.assertRaises(ValueError):
-            layer_name(b'{"ConfigFileReload":{"new":"another.kbd"}}\n')
+            layer_name(b'{"Error":{"msg":"unexpected"}}\n')
 
-    def test_failed_prototype_restores_the_normal_service(self) -> None:
-        async def failed_run(_kanata: Path, _client: Path, _config: Path) -> None:
-            raise RuntimeError("driver failed")
-
-        with tempfile.TemporaryDirectory() as temporary:
-            home = Path(temporary)
-            config = home / ".config/kanata/kanata.kbd"
-            config.parent.mkdir(parents=True)
-            config.write_text((REPOSITORY / ".config/kanata/kanata.kbd").read_text())
-            with (
-                patch.object(sys, "argv", ["kid-trackpad", "--home", str(home)]),
-                patch("scripts.kid_trackpad.preflight"),
-                patch("scripts.kid_trackpad.run_prototype", failed_run),
-                patch(
-                    "scripts.kid_trackpad.run_command",
-                    return_value=subprocess.CompletedProcess([], 0),
-                ) as command,
-                self.assertRaisesRegex(RuntimeError, "driver failed"),
-            ):
-                main()
-            self.assertEqual(
-                command.call_args_list[1].args, ("launchctl", "bootout", SERVICE)
-            )
-            self.assertEqual(
-                command.call_args_list[2].args,
-                ("launchctl", "bootstrap", "system", SERVICE_PLIST),
-            )
-
-    def test_failed_automatic_build_keeps_the_normal_service_running(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            home = Path(temporary)
-            config = home / ".config/kanata/kanata.kbd"
-            config.parent.mkdir(parents=True)
-            config.write_text((REPOSITORY / ".config/kanata/kanata.kbd").read_text())
-            kanata = home / ".local/bin/kanata"
-            kanata.parent.mkdir(parents=True)
-            kanata.touch()
-            with (
-                patch.object(sys, "argv", ["kid-trackpad", "--home", str(home)]),
-                patch(
-                    "scripts.kid_trackpad.subprocess.run",
-                    side_effect=subprocess.CalledProcessError(1, "builder"),
-                ) as build,
-                patch("scripts.kid_trackpad.run_command") as service,
-                self.assertRaises(subprocess.CalledProcessError),
-            ):
-                main()
-            build.assert_called_once_with(
-                [
-                    "sudo",
-                    "-u",
-                    pwd.getpwuid(home.stat().st_uid).pw_name,
-                    "/opt/homebrew/bin/python3",
-                    str(REPOSITORY / "scripts/kid-trackpad/build.py"),
-                    "--output",
-                    str(home.resolve() / ".local/bin/kid-trackpad-mouse"),
-                ],
-                check=True,
-            )
-            service.assert_not_called()
-
-    def test_service_does_not_stop_or_restart_its_own_launch_daemon(self) -> None:
-        async def failed_run(_kanata: Path, _client: Path, _config: Path) -> None:
-            raise RuntimeError("driver failed")
-
-        with tempfile.TemporaryDirectory() as temporary:
-            home = Path(temporary)
-            config = home / ".config/kanata/kanata.kbd"
-            config.parent.mkdir(parents=True)
-            config.write_text((REPOSITORY / ".config/kanata/kanata.kbd").read_text())
-            with (
-                patch.object(sys, "argv", ["kanata", "--service", "--home", str(home)]),
-                patch("scripts.kid_trackpad.preflight"),
-                patch("scripts.kid_trackpad.run_prototype", failed_run),
-                patch("scripts.kid_trackpad.run_command") as service,
-                self.assertRaisesRegex(RuntimeError, "driver failed"),
-            ):
-                main()
-            service.assert_not_called()
-
-    def test_installation_check_does_not_start_kanata(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            home = Path(temporary)
-            config = home / ".config/kanata/kanata.kbd"
-            config.parent.mkdir(parents=True)
-            config.write_text((REPOSITORY / ".config/kanata/kanata.kbd").read_text())
-            with (
-                patch.object(sys, "argv", ["kanata", "--check", "--home", str(home)]),
-                patch("scripts.kid_trackpad.preflight") as preflight,
-                patch("scripts.kid_trackpad.run_prototype") as start,
-                patch("scripts.kid_trackpad.run_command") as service,
-            ):
-                main()
-            preflight.assert_called_once()
-            start.assert_not_called()
-            service.assert_not_called()
-
-    def test_installed_daemon_starts_the_controller(self) -> None:
-        data = plist_dictionary(
-            parse_plist(
-                (
-                    REPOSITORY / "LaunchDaemons/com.tylerlaprade.kanata.plist"
-                ).read_bytes()
-            )
-        )
-        self.assertEqual(
-            data["ProgramArguments"],
+    def test_lock_unlock_and_disconnect(self) -> None:
+        gate = RecordingGate()
+        follow_layers(
             [
-                "/opt/homebrew/bin/python3",
-                "__DOTFILES__/scripts/kid_trackpad.py",
-                "--home",
-                "__HOME__",
-                "--service",
+                b'{"LayerChange":{"new":"base"}}\n',
+                b'{"LayerChange":{"new":"kid"}}\n',
+                b'{"TapActivated":{"key":"k"}}\n',
+                b'{"LayerChange":{"new":"base"}}\n',
             ],
+            gate,
         )
+        self.assertEqual(gate.states, ["allowed", "blocked", "allowed", "allowed"])
 
+    def test_disconnection_while_locked_restores_the_pointer(self) -> None:
+        gate = RecordingGate()
+        follow_layers([b'{"LayerChange":{"new":"kid"}}\n'], gate)
+        self.assertEqual(gate.states, ["blocked", "allowed"])
 
-@final
-class ObservedMouse(VirtualMouse):
-    def __init__(self, command: Sequence[str]) -> None:
-        super().__init__(command)
-        self.locked = asyncio.Event()
-        self.unlocked = asyncio.Event()
-
-    @override
-    async def lock(self) -> None:
-        await super().lock()
-        self.locked.set()
-
-    @override
-    async def unlock(self) -> None:
-        await super().unlock()
-        self.unlocked.set()
-
-
-@final
-class LifecycleTest(unittest.IsolatedAsyncioTestCase):
-    @override
-    async def asyncSetUp(self) -> None:
-        self.mouse = ObservedMouse(
-            [
-                sys.executable,
-                "-u",
-                "-c",
-                'import sys; print("READY", flush=True); sys.stdin.read()',
-            ]
-        )
-        self.reader = asyncio.StreamReader()
-
-    @override
-    async def asyncTearDown(self) -> None:
-        await self.mouse.unlock()
-
-    async def test_lock_unlock_and_disconnect_cleanup(self) -> None:
-        watcher = asyncio.create_task(follow_layers(self.reader, self.mouse))
-        self.reader.feed_data(b'{"LayerChange":{"new":"kid"}}\n')
-        async with asyncio.timeout(3):
-            await self.mouse.locked.wait()
-        process = self.mouse.process
-        self.assertIsNotNone(process)
-        self.reader.feed_data(b'{"LayerChange":{"new":"base"}}\n')
-        async with asyncio.timeout(3):
-            await self.mouse.unlocked.wait()
-        self.reader.feed_eof()
-        with self.assertRaises(ConnectionError):
-            await watcher
-        if process is None:
-            self.fail("The mouse client never started.")
-        self.assertEqual(process.returncode, 0)
-
-    async def test_disconnection_while_locked_removes_the_client(self) -> None:
-        watcher = asyncio.create_task(follow_layers(self.reader, self.mouse))
-        self.reader.feed_data(b'{"LayerChange":{"new":"kid"}}\n')
-        async with asyncio.timeout(3):
-            await self.mouse.locked.wait()
-        process = self.mouse.process
-        self.reader.feed_eof()
-        with self.assertRaises(ConnectionError):
-            await watcher
-        self.assertIsNone(self.mouse.process)
-        if process is None:
-            self.fail("The mouse client never started.")
-        self.assertEqual(process.returncode, 0)
-
-    async def test_driver_failure_aborts_without_waiting_for_another_key(self) -> None:
-        self.mouse = ObservedMouse(
-            [
-                sys.executable,
-                "-u",
-                "-c",
-                'import sys; print("READY", flush=True); print("ERROR driver lost", flush=True); sys.stdin.read()',
-            ]
-        )
-        self.reader.feed_data(b'{"LayerChange":{"new":"kid"}}\n')
-        with self.assertRaisesRegex(RuntimeError, "disconnected"):
-            await asyncio.wait_for(follow_layers(self.reader, self.mouse), timeout=3)
-        self.assertIsNone(self.mouse.process)
-
-    async def test_failed_startup_closes_the_client(self) -> None:
-        self.mouse = ObservedMouse(
-            [
-                sys.executable,
-                "-u",
-                "-c",
-                'import sys; print("ERROR wrong driver", flush=True); sys.stdin.read()',
-            ]
-        )
-        self.reader.feed_data(b'{"LayerChange":{"new":"kid"}}\n')
-        with self.assertRaisesRegex(RuntimeError, "wrong driver"):
-            await asyncio.wait_for(follow_layers(self.reader, self.mouse), timeout=3)
-        self.assertIsNone(self.mouse.process)
-
-    async def test_canceling_the_prototype_removes_the_mouse(self) -> None:
-        watcher = asyncio.create_task(follow_layers(self.reader, self.mouse))
-        self.reader.feed_data(b'{"LayerChange":{"new":"kid"}}\n')
-        async with asyncio.timeout(3):
-            await self.mouse.locked.wait()
-        process = self.mouse.process
-        watcher.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await watcher
-        self.assertIsNone(self.mouse.process)
-        if process is None:
-            self.fail("The mouse client never started.")
-        self.assertEqual(process.returncode, 0)
+    def test_unexpected_message_while_locked_restores_the_pointer(self) -> None:
+        gate = RecordingGate()
+        with self.assertRaises(ValueError):
+            follow_layers(
+                [b'{"LayerChange":{"new":"kid"}}\n', b'{"Unknown":{}}\n'], gate
+            )
+        self.assertEqual(gate.states, ["blocked", "allowed"])
 
 
 if __name__ == "__main__":

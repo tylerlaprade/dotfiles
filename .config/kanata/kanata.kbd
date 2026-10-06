@@ -84,11 +84,9 @@
   fn   lctl lalt lmet           spc           rmet ralt
 )
 
-;; One-shot layer change + Mouse Keys toggle (Option ×5).
-;; release-key first so Option taps are not Shift+Option while both shifts
-;; are still held for the trigger.
-;; Requires: Accessibility → Pointer Control →
-;;   "Press the Option key five times to toggle Mouse Keys".
+;; One-shot layer change. release-key first so no modifier stays down while
+;; both shifts are still held for the trigger. scripts/kid_trackpad.py follows
+;; the kid layer over Kanata's TCP port and blocks pointer input while it is on.
 (defvirtualkeys
   vk-kid  (multi
             (release-key lsft)
@@ -102,13 +100,11 @@
             (release-key fn)
             (release-layer fnkeys)
             (release-layer extend)
-            (layer-switch kid)
-            (macro 120 lalt 70 lalt 70 lalt 70 lalt 70 lalt))
+            (layer-switch kid))
   vk-base (multi
             (release-key lsft)
             (release-key rsft)
-            (layer-switch base)
-            (macro 120 lalt 70 lalt 70 lalt 70 lalt 70 lalt))
+            (layer-switch base))
 )
 
 ;; ---------------------------------------------------------------------------
@@ -234,11 +230,16 @@
 )
 
 ;; ---------------------------------------------------------------------------
-;; Kid lock — whitelist train controls, brightness, and volume; everything else dead.
+;; Kid lock — whitelist typing, train controls, brightness, and volume;
+;; modifiers, Fn, system function keys, Escape, Tab, Return, and Backspace dead.
 ;; Unlock: either Shift + K. @kid-k uses (input real …) so physical
 ;; shifts still count even though this layer maps lsft/rsft to XX.
 ;; ---------------------------------------------------------------------------
 (deflayermap (kid)
+  grv grv 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 0 0 - - = =
+  q q w w e e r r t t y y u u i i o o p p [ [ ] ] \ \
+  a a s s d d f f g g h h j j l l ; ; ' '
+  z z x x c c v v b b n n m m , , . . / /
   f1 brdn
   f2 brup
   f10 mute
@@ -316,6 +317,6 @@
   )
   kid-k (switch
     ((or (input real lsft) (input real rsft))) (on-press tap-vkey vk-base) break
-    () XX break
+    () k break
   )
 )
