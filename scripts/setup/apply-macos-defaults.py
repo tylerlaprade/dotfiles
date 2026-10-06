@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Apple's stable python3 on purpose — see sync-macos-defaults.py shebang note.
-"""Apply macOS defaults on a fresh machine.
+"""Apply macOS defaults.
 
-Adopts scripts/setup/macos-defaults/*.json through the sync engine (repo wins
-everywhere, and that becomes the sync base), then applies the settings that
-live outside the defaults domains. Run on a new machine after install.
+Runs the three-way sync: a machine with no recorded base adopts
+scripts/setup/macos-defaults/*.json, and one with a base keeps its live
+changes. Then applies the settings that live outside the defaults domains.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).absolute().parent
 DOMAIN_DIR = SCRIPT_DIR / "macos-defaults"
-SYNC_SCRIPT = SCRIPT_DIR / ".." / "sync" / "sync-macos-defaults.py"
+SYNC_SCRIPT = SCRIPT_DIR.parent / "sync" / "sync-macos-defaults.py"
 
 # pmset lives outside the defaults domains; -c scopes a setting to power adapter.
 POWER_ADAPTER_SETTINGS = [
@@ -39,7 +39,7 @@ def run_defaults(args: list[str]) -> None:
         failed.append((args, result.stderr.strip()))
 
 
-run_defaults([str(SYNC_SCRIPT), "--adopt"])
+run_defaults([str(SYNC_SCRIPT)])
 
 for setting, value in POWER_ADAPTER_SETTINGS:
     run_defaults(["sudo", "pmset", "-c", setting, value])

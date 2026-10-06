@@ -39,8 +39,12 @@ clicks, scrolling, and trackpad gestures, including Spaces and Mission Control
 swipes. Keyboard and media keys never reach the tap. Unlocking turns the tap off,
 and the tap ends with the agent, so a crash cannot leave the trackpad blocked.
 Neither Mouse Keys nor “Ignore built-in trackpad when mouse or wireless trackpad
-is present” is involved. Leave that setting off: the Karabiner-Elements virtual
-pointing device would disable the trackpad all the time.
+is present” is involved. Leave that setting off: any mouse, including a virtual
+one, would then disable the trackpad even while unlocked.
+
+`kanata-setup` installs Homebrew's Kanata with the Karabiner driver package that
+Kanata release supports, without Karabiner-Elements. `install.sh` runs it; run
+it alone after a Kanata upgrade. `kanata-setup --dry-run` shows what it would do.
 
 The tap is an agent, not part of the root Kanata daemon, because macOS 15 does
 not let a launch daemon create it. It runs on Apple's `/usr/bin/python3`, which
@@ -58,10 +62,11 @@ repo carries the configuration; each machine logs in on its own.
 
 1. Clone this repo to `~/Code/dotfiles` and run `install.sh`. It installs the
    tools, links the configs, applies `/etc/hosts` from `scripts/setup/hosts`,
-   loads Kanata and the user agents, and adopts the shared macOS defaults,
-   login items, browser Local State, Helix, and Graphite settings as the sync
-   base. A machine that has no base does not write its own defaults back over
-   the repo. VS Code is not installed. `~/.gitconfig` stays on the machine and
+   loads Kanata and the user agents, and runs the three-way sync for the
+   shared macOS defaults, login items, browser Local State, Helix, and
+   Graphite settings. A machine that has no base adopts the repo and does not
+   write its own defaults back over it; one that has a base keeps its live
+   changes. VS Code is not installed. `~/.gitconfig` stays on the machine and
    includes the shared file, so the CodeRabbit machine id is not shared.
    The daily sync only links config. Run `install.sh` again when the tool
    list changes; steps that are already done stop.

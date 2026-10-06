@@ -35,6 +35,6 @@ while IFS= read -r tap; do
   brew trust --tap "$tap"
 done < <(grep -E '^tap "[^"]+"$' "$BREWFILE" | sed -E 's/^tap "([^"]+)"$/\1/' || true)
 
-brew bundle --file="$BREWFILE"
+brew bundle --no-upgrade --file="$BREWFILE"
 mkdir -p "$(dirname "$STAMP")"
 printf '%s\n' "$hash" > "$STAMP"

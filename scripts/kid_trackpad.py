@@ -101,17 +101,6 @@ graphics.CGEventTapCreate.argtypes = (
     ctypes.c_void_p,
 )
 graphics.CGEventTapEnable.restype = None
-graphics.AXIsProcessTrustedWithOptions.restype = ctypes.c_bool
-graphics.AXIsProcessTrustedWithOptions.argtypes = (ctypes.c_void_p,)
-foundation.CFDictionaryCreate.restype = ctypes.c_void_p
-foundation.CFDictionaryCreate.argtypes = (
-    ctypes.c_void_p,
-    ctypes.POINTER(ctypes.c_void_p),
-    ctypes.POINTER(ctypes.c_void_p),
-    ctypes.c_long,
-    ctypes.c_void_p,
-    ctypes.c_void_p,
-)
 graphics.CGEventTapEnable.argtypes = (ctypes.c_void_p, ctypes.c_bool)
 foundation.CFMachPortCreateRunLoopSource.restype = ctypes.c_void_p
 foundation.CFMachPortCreateRunLoopSource.argtypes = (
@@ -148,19 +137,7 @@ add_run_loop_source: Callable[[int, int, int], None] = foundation.CFRunLoopAddSo
 run_run_loop: Callable[[], None] = foundation.CFRunLoopRun
 stop_run_loop: Callable[[int], None] = foundation.CFRunLoopStop
 release: Callable[[int], None] = foundation.CFRelease
-check_accessibility: Callable[[int], bool] = graphics.AXIsProcessTrustedWithOptions
-create_dictionary: Callable[[None, object, object, int, int, int], int] = (
-    foundation.CFDictionaryCreate
-)
 default_run_loop_mode = ctypes.c_void_p.in_dll(foundation, "kCFRunLoopDefaultMode")
-accessibility_prompt = ctypes.c_void_p.in_dll(graphics, "kAXTrustedCheckOptionPrompt")
-boolean_true = ctypes.c_void_p.in_dll(foundation, "kCFBooleanTrue")
-dictionary_key_callbacks = ctypes.c_byte.in_dll(
-    foundation, "kCFTypeDictionaryKeyCallBacks"
-)
-dictionary_value_callbacks = ctypes.c_byte.in_dll(
-    foundation, "kCFTypeDictionaryValueCallBacks"
-)
 
 
 class PointerGate(Protocol):
@@ -279,26 +256,9 @@ def try_blocking() -> PointerBlocker | None:
         return None
 
 
-def request_accessibility() -> None:
-    options = create_dictionary(
-        None,
-        (ctypes.c_void_p * 1)(accessibility_prompt.value),
-        (ctypes.c_void_p * 1)(boolean_true.value),
-        1,
-        ctypes.addressof(dictionary_key_callbacks),
-        ctypes.addressof(dictionary_value_callbacks),
-    )
-    check_accessibility(options)
-    release(options)
-
-
 def wait_for_permission() -> PointerBlocker:
-    pointer = try_blocking()
-    if pointer is None:
-        request_accessibility()
-    while pointer is None:
+    while (pointer := try_blocking()) is None:
         time.sleep(PERMISSION_RETRY_SECONDS)
-        pointer = try_blocking()
     return pointer
 
 

@@ -7,23 +7,34 @@
   run by a launch agent that follows the root Kanata daemon's TCP port. A launch
   daemon cannot create that tap on macOS 15, and seizing the trackpad's HID
   device has no effect on this Mac. Do not bring back Mouse Keys or “Ignore
-  built-in trackpad”: Karabiner-Elements always presents a virtual mouse, so
-  shared defaults keep that setting off. Dock autohide stays on.
-  `com.zeitalabs.jottleai` is Monologue and remains excluded from synced
-  defaults because it stores account data.
+  built-in trackpad”: any mouse, including a virtual one, then disables the
+  trackpad even while unlocked, so shared defaults keep that setting off.
+- `kanata-setup` (`scripts/bin/kanata-setup.sh`, also run by `install.sh`)
+  installs Homebrew's Kanata with the Karabiner driver package that Kanata
+  release supports, read from the socket the binary expects (v6.2.0 before
+  Kanata 1.13, v8.0.0 after), and removes Karabiner-Elements, whose newer
+  driver and keyboard grabs broke Kanata. `~/.local/bin/kanata` is signed with
+  the Developer ID as `com.tylerlaprade.kanata`, so its Input Monitoring and
+  Accessibility grants survive upgrades.
+- Dock autohide stays on. `com.zeitalabs.jottleai` is Monologue and remains
+  excluded from synced defaults because it stores account data.
 - The `claude()` GPG prewarm already heals a stale keyboxd lock. Diagnose its
   current log and code before changing the wrapper; do not restart
   `gpg-agent` as a first response.
 - The daily sync only links config and merges defaults. It does not install
-  tools. `install.sh` is the one installer, and it is safe to run again:
-  steps that are already done stop. Monologue is the Homebrew cask.
+  tools. `install.sh` is the one installer. On an existing Mac it installs
+  only what is missing: `brew bundle --no-upgrade`, the three-way defaults
+  sync (live settings win), and `kanata-setup`.
+  Before asking Tyler to run it, read what it will do and prefer the one
+  step that needs his password. Monologue is the Homebrew cask.
 - The bidirectional syncs (macOS defaults, browser Local State, Graphite,
   Helix) merge three ways against the last synced state in
   `~/.local/state/dotfiles-sync/`; the live machine wins a conflict. With no
   recorded base, a repo that already has content is adopted and the live
   machine is not exported over it. VS Code is not installed or synced. Every
   write to the live machine is logged in `~/Library/Logs/dotfiles-sync.log`.
-  `sync-macos-defaults.py --dry-run` previews; `--adopt` is for a fresh Mac.
+  `sync-macos-defaults.py --dry-run` previews; `--adopt` forces every repo
+  value over the live machine, and nothing runs it automatically.
 - Python here runs on Homebrew's `/opt/homebrew/bin/python3`, named in each
   shebang and shell caller, and the checkers target its version. The
   exceptions are `sync-macos-defaults.py`, `sync-browser-local-state.py`,

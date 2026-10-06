@@ -206,25 +206,7 @@ echo ""
 echo "Applying macOS defaults..."
 "$DOTFILES/scripts/setup/apply-macos-defaults.py"
 
-kanata_src=/opt/homebrew/bin/kanata
-kanata_dest="$HOME/.local/bin/kanata"
-kanata_plist_dest=/Library/LaunchDaemons/com.tylerlaprade.kanata.plist
-if [[ -x "$kanata_src" ]]; then
-  kanata_changed=0
-  [[ -x "$kanata_dest" ]] && cmp -s "$kanata_src" "$kanata_dest" || kanata_changed=1
-  rendered=$(mktemp)
-  sed "s|__HOME__|$HOME|g" "$DOTFILES/LaunchDaemons/com.tylerlaprade.kanata.plist" > "$rendered"
-  [[ -f "$kanata_plist_dest" ]] && cmp -s "$rendered" "$kanata_plist_dest" || kanata_changed=1
-  if [[ $kanata_changed -eq 1 ]]; then
-    mkdir -p "$HOME/.local/bin"
-    cp "$kanata_src" "$kanata_dest"
-    sudo mkdir -p /usr/local/var/log
-    sudo cp "$rendered" "$kanata_plist_dest"
-    sudo launchctl bootout system "$kanata_plist_dest" 2>/dev/null || true
-    sudo launchctl bootstrap system "$kanata_plist_dest" || failed=1
-  fi
-  rm -f "$rendered"
-fi
+"$DOTFILES/scripts/bin/kanata-setup.sh" || failed=1
 
 launch_domain="gui/$(id -u)"
 for plist in "$HOME/Library/LaunchAgents"/com.tylerlaprade.*.plist; do
@@ -235,8 +217,9 @@ done
 echo ""
 echo "=== Next steps ==="
 echo "  1. Sourcery auth:    sourcery login"
-echo "  2. Kanata:           Grant accessibility permissions in System Preferences"
-echo "  3. Karabiner:        Grant input monitoring permissions in System Preferences"
+echo "  2. Kanata:           Allow ~/.local/bin/kanata in Input Monitoring and Accessibility,"
+echo "                      and the Karabiner driver in Login Items & Extensions → Driver Extensions"
+echo "  3. Kid trackpad lock: Allow python3 (/usr/bin/python3) in Accessibility"
 echo ""
 if [[ $failed -ne 0 ]]; then
   echo "Some install steps failed."
