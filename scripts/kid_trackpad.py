@@ -144,7 +144,14 @@ default_run_loop_mode = ctypes.c_void_p.in_dll(foundation, "kCFRunLoopDefaultMod
 
 
 def play(sound: str) -> None:
-    subprocess.Popen(["/usr/bin/afplay", sound])
+    subprocess.Popen(
+        [
+            "/bin/sh",
+            "-c",
+            'for _ in 1 2 3; do /usr/bin/afplay "$0"; sleep 0.1; done',
+            sound,
+        ]
+    )
 
 
 class PointerGate(Protocol):
