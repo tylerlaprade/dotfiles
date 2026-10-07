@@ -144,11 +144,13 @@ default_run_loop_mode = ctypes.c_void_p.in_dll(foundation, "kCFRunLoopDefaultMod
 
 
 def play(sound: str) -> None:
+    # Idle audio hardware swallows the start of the first sound, so a silent
+    # play wakes it before the three audible ones.
     subprocess.Popen(
         [
             "/bin/sh",
             "-c",
-            'for _ in 1 2 3; do /usr/bin/afplay "$0"; sleep 0.1; done',
+            '/usr/bin/afplay -v 0 -t 0.3 "$0"; for _ in 1 2 3; do /usr/bin/afplay "$0"; sleep 0.1; done',
             sound,
         ]
     )
