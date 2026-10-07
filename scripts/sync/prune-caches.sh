@@ -22,6 +22,33 @@ if command -v xcrun >/dev/null; then
   xcrun simctl delete unavailable || true
 fi
 
+# Xcode rewrites each project's info.plist whenever it opens the project.
+derived="$HOME/Library/Developer/Xcode/DerivedData"
+if [[ -d "$derived" ]]; then
+  stale_after=$(( $(date +%s) - 14 * 86400 ))
+  for project in "$derived"/*/; do
+    [[ -d "$project" ]] || continue
+    opened=$(stat -f %m "$project/info.plist" 2>/dev/null || echo 0)
+    if (( opened < stale_after )); then
+      rm -rf "$project"
+      echo "Removed DerivedData $(basename "$project")"
+    fi
+  done
+fi
+
+# Chrome and Brave copy themselves here when they update while running, and a
+# copy outlives the browser that used it. The running browser keeps files
+# open in its own copy, so a copy nothing has open is a leftover.
+clones="$(getconf DARWIN_USER_TEMP_DIR)../X"
+for clone in "$clones"/*.code_sign_clone/code_sign_clone.*; do
+  [[ -d "$clone" ]] || continue
+  open_files=$(lsof +D "$clone" 2>/dev/null) || true
+  if [[ -z "$open_files" ]]; then
+    rm -rf "$clone"
+    echo "Removed browser update copy $clone"
+  fi
+done
+
 if command -v rustup >/dev/null; then
   rustup set profile minimal >/dev/null
   rustup component remove rust-docs >/dev/null 2>&1 || true
