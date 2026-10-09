@@ -3,6 +3,9 @@
 - For Claude Code flags, model settings, or hook behavior, check current official
   docs and the installed bundle under `~/.local/share/claude/versions/` before
   editing. Version-specific memory and old presets are not current evidence.
+- `docs/claude-code-context-and-cache.md` explains the compaction, idle, and
+  cache settings in `.claude/settings.json`, the options left off, and a
+  keepalive design that was measured but not built.
 - Kid mode blocks pointer input with an event tap in `scripts/kid_trackpad.py`,
   run by a launch agent that follows the root Kanata daemon's TCP port. A launch
   daemon cannot create that tap on macOS 15, and seizing the trackpad's HID
