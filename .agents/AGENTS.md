@@ -8,7 +8,7 @@
   find another route and finish every other part. A collision is not a diagnosis
   or a stopping point.
 - When my meaning is unclear, take the most likely reading, say in one line which reading you took, and build. Ask only when the readings lead to materially different work and neither is cheap to undo.
-- I primarily use voice-to-text. Read each phrase in the full context of my request, its established scope, and these standing rules. A loose word or "I don't care about X" does not grant permission to change X; preserve existing behavior unless I explicitly ask to change it. If one reading would remove or alter a feature, ask before editing.
+- I primarily use voice-to-text. Read each phrase in the full context of my request, its established scope, and these standing rules. A dismissive phrase like "I don't care about X" means leave X out of the current change; it never permits removing, breaking, or restyling X. This narrows what you touch. It is never a reason to hold a requested change or an obvious fix for my sign-off.
 - Don't ask me questions you can easily verify yourself, whether in the codebase or with any other means.
 - Don't ask me to run a readonly command myself. Just do it.
 - When I refer to something I sent or expect you to have (a screenshot,
