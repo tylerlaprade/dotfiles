@@ -3,6 +3,7 @@
 - Never do a "belt-and-suspenders" approach.
 - I use Ghostty, managing many Claude/Codex/Grok sessions in many workspaces in many tabs at once.
 - Concurrent sessions often share one working tree. Another session's presence, a dirty file, or an unrelated build failure does not block the repo or task as a whole. Continue every non-conflicting part, preserve other sessions' edits, and use focused checks when broad checks fail for unrelated reasons. Incoherent work blocks only the exact overlapping lines. Do not ask me to pause or coordinate another session; report only a narrow remainder after exhausting safe ways around it.
+- When several sessions run at once, one owns each investigation. If a thread already has an owner, take another lane instead of probing it too.
 - If requested behavior regresses during concurrent work, pursue the fix without
   discarding the other edits. If the exact overlapping lines are incoherent,
   find another route and finish every other part. A collision is not a diagnosis
@@ -51,8 +52,10 @@
   paired upstream gate and downstream resolver together.
 - Do not hand work back to me because it is awkward or because a subagent failed. Exhaust what you can do, then explain any true user-only action in plain words with a recommended default. A subagent or workflow does not have a separate capacity. If you are back online, it is too.
 - When I name problems, fix them; do not agree that they exist and schedule them for later. When nothing waits on me, keep working down the queue; never close with "say go" for work that is already yours.
+- Never defer a build with an effort estimate ("a day of work") or a cheaper first step. Say whether the idea is right, then build all of it.
 - While a decision of mine is pending, restate it in full, with the evidence and options, in every report until I answer; a later message must never bury it under replies to background notifications.
 - Never end a turn just to wait on a background job (a build, an upload, a review queue, a poll). Each wake-up re-reads the whole context and costs me tokens. Give the report now, name what the job will do on its own and where its log is, and on its notification reply in one line, or not at all unless it failed.
+- Keep one waiter per job. A call the harness moved to the background is still running; never start a second poll for the same job.
 - Do not pressure an iteration toward closure with phrases such as "last call" or "one more and we're done." I decide when the work is finished.
 - Show visual comparisons in one combined view or image. When subjective work keeps missing the mark, get independent critiques with distinct aims. Always inspect the result yourself before presenting it.
 - For user-facing copy (app text, notifications, store and site lines), draft a batch of distinct candidates at once and choose among them. A single line polished alone drifts toward clever and stiff; a batch keeps the voice plain and lets the lines be compared.
@@ -69,6 +72,10 @@
 - Never commit with `--no-verify` unless I ask. If a hook fails, report the exact failure and leave the staged changes intact.
 - Never work in a second copy of a project — a git worktree, a fresh clone, a copy under /tmp, or anything else — for sessions, subagents, helpers or builds, unless I ask for that workflow.
 - For external platforms, inspect the live configuration and native options before proposing custom machinery.
+- Never suggest a mail filter that archives or hides mail I don't want; name the sender's own off switch.
+- Sign up for services with the address in my git config. Use the alias tyler@tylerlaprade.com only where other people will see the address: store listings, policy pages, site contacts.
+- Before checkout in a Porkbun cart, find the current $1-off coupon and apply it.
+- To spawn a peer Claude session, pass `claude` itself as the terminal's command. A wrapper script makes it a subprocess, which turns its transcript off. A Remote Control spawn starts in my home folder, so its first instruction is the `cd`.
 - When I say to whitelist a repo the read guard asked about, run `read-guard allow <this repo> <other repo>` (the two read each other) or, if I say every repo, `read-guard share <other repo>`; then retry.
 - Never use my private email or strings derived from it as test data. "Tyler" is
   fine as a sample name.
@@ -84,6 +91,7 @@
 - Do not invent a tradeoff to make options look balanced. Name real costs,
   expose hidden assumptions, and keep independent decisions separate.
 - Present the evidence and tradeoffs before asking me to choose.
+- A proposal says, in plain words, the problem it solves, what the user would see, and the one question you need answered.
 - When you ask me to choose through a question dialog or a Plan Mode plan, put the evidence and tradeoffs inside the dialog or plan. It covers my screen, so text you wrote just before it is hidden.
 - My surname is `Laprade`, with a lowercase `p`.
 - Use GPL-3.0-only for my published projects unless a project says otherwise.
@@ -102,6 +110,7 @@
   that replacement. Never recover by calling `/usr/bin/du`, `/usr/bin/find`,
   or `/bin/ps`. Grok overrides `find` to POSIX find; still type `fd`.
 - Your success is measured by the quality of my final decision, not my satisfaction with your response. Verify claims — mine or yours — against actual sources before building on them, and flag what you can't verify as an unverified assumption instead of forcing a conclusion. If something is wrong, say so directly without softening it; if I push back, re-verify and update your position only where the evidence supports it.
+- When I ask what you think of my ideas, grade each against the person who will actually meet it, check any checkable fact (a name's availability, an app's existence) before stating it, and give each a plain yes or no with its real costs. Honest, not a machine built to say no.
 - We use difft. For a raw unified diff, use `git diff --no-ext-diff`. Don't touch `diff.external`.
 - If you push, monitor CI for failures.
 - Linters: use the standard tool for the language (SwiftLint, Ruff, Clippy, ESLint), never a bespoke one-issue script. Enable every rule, opt-in and pedantic included, then disable only rules that are pure style opinion, each with a one-line reason in the config. Line length is the formatter's job, so line-length rules stay off in every language. Warnings are errors and block the build; keep each finding's original severity visible in reports.
