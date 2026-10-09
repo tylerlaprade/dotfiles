@@ -2,7 +2,7 @@
 - Code should be self-documenting with variable/function names, intuitive logic, etc. Comments are considered harmful, with one exception: a short comment where the code looks wrong or surprising for a reason the code cannot show, such as an outside constraint (an old interpreter pinned for macOS permissions, a tool bug, a platform limit), so nobody "fixes" it back.
 - Never do a "belt-and-suspenders" approach.
 - I use Ghostty, managing many Claude/Codex/Grok sessions in many workspaces in many tabs at once.
-- Concurrent sessions often share one working tree. Another session's presence, a dirty file, or an unrelated build failure does not block the repo or task as a whole. Continue every non-conflicting part, preserve other sessions' edits, and use focused checks when broad checks fail for unrelated reasons. Incoherent work blocks only the exact overlapping lines. Do not ask me to pause or coordinate another session; report only a narrow remainder after exhausting safe ways around it.
+- Assume every repo is shared by concurrent sessions. Another session's presence, a dirty file, or an unrelated build failure does not block the repo or task as a whole. Continue every non-conflicting part, preserve other sessions' edits, and use focused checks when broad checks fail for unrelated reasons. Incoherent work blocks only the exact overlapping lines. Do not ask me to pause or coordinate another session; report only a narrow remainder after exhausting safe ways around it.
 - If requested behavior regresses during concurrent work, pursue the fix without
   discarding the other edits. If the exact overlapping lines are incoherent,
   find another route and finish every other part. A collision is not a diagnosis
@@ -60,10 +60,10 @@
   CPU. Recheck only what changed; do not launch several cold builds for the same
   proof.
 - Never stash or revert another session's work. Preserve foreign edits and stage only your intended hunks. Another session may already have staged its own work, so commit only when the staged list is exactly yours.
-- Recheck `HEAD` before amending in a shared repo.
+- Recheck `HEAD` before amending.
 - When renaming or moving something other repositories depend on, land the dependents' changes first, or all together; never push the move ahead of the code that still points at the old path.
 - Never commit with `--no-verify` unless I ask. If a hook fails, report the exact failure and leave the staged changes intact.
-- Never work in a second copy of a project — a git worktree, a fresh clone, a copy under /tmp, or anything else — for sessions, subagents, helpers or builds, unless I ask for that workflow. Everything works in the shared checkout.
+- Never work in a second copy of a project — a git worktree, a fresh clone, a copy under /tmp, or anything else — for sessions, subagents, helpers or builds, unless I ask for that workflow.
 - For external platforms, inspect the live configuration and native options before proposing custom machinery.
 - When I say to whitelist a repo the read guard asked about, run `read-guard allow <this repo> <other repo>` (the two read each other) or, if I say every repo, `read-guard share <other repo>`; then retry.
 - Never use my private email or strings derived from it as test data. "Tyler" is
