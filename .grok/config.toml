@@ -16,10 +16,14 @@ theme = "tokyonight"
 items = [
     "action-required",
     "spinner",
-    "session-name",
     "activity",
+    "session-name",
+    "cwd",
     "grok",
 ]
+
+[folder_trust]
+enabled = false
 
 [marketplace]
 official_marketplace_auto_installed = true
