@@ -5,7 +5,7 @@
   },
   "Assistant Enabled": {
     "type": "bool",
-    "value": true
+    "value": false
   },
   "Dictation Enabled": {
     "type": "bool",

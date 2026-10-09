@@ -5,6 +5,10 @@
   },
   "StatusMenuVisible": {
     "type": "bool",
-    "value": true
+    "value": false
+  },
+  "VoiceTriggerUserEnabled": {
+    "type": "bool",
+    "value": false
   }
 }
