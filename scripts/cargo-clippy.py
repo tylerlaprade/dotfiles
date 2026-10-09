@@ -110,18 +110,27 @@ def policy_args(clippy_driver: str) -> list[str]:
     return args
 
 
+FEATURE_SELECTION_FLAGS = {"--all-features", "--features", "--no-default-features"}
+
+
+def selects_features(arg: str) -> bool:
+    return arg.split("=", 1)[0] in FEATURE_SELECTION_FLAGS or arg.startswith("-F")
+
+
 def clippy_args(args: list[str], policy: list[str]) -> list[str]:
     cargo_args = args[: args.index("--")] if "--" in args else args
     selects_targets = any(
         arg.split("=", 1)[0] in TARGET_SELECTION_FLAGS for arg in cargo_args
     )
     every_target = [] if selects_targets else ["--all-targets"]
+    every_feature = [] if any(map(selects_features, cargo_args)) else ["--all-features"]
+    selection = [*every_target, *every_feature]
     if "--" in args:
         split = args.index("--")
         # Personal policy goes last so a caller cannot turn it off by
         # appending an easier lint level to an ordinary cargo command.
-        return [*args[:split], *every_target, *args[split:], *policy]
-    return [*args, *every_target, "--", *policy]
+        return [*args[:split], *selection, *args[split:], *policy]
+    return [*args, *selection, "--", *policy]
 
 
 def main() -> int:

@@ -55,12 +55,14 @@ class ClippyArgsTest(unittest.TestCase):
         return arguments[: arguments.index("--")]
 
     def test_a_plain_run_lints_every_target(self) -> None:
-        self.assertEqual(self.cargo_args("clippy"), ["clippy", "--all-targets"])
+        self.assertEqual(
+            self.cargo_args("clippy"), ["clippy", "--all-targets", "--all-features"]
+        )
 
     def test_every_target_goes_before_the_callers_lint_flags(self) -> None:
         self.assertEqual(
             self.cargo_args("clippy", "-p", "castle-game", "--", "-Dwarnings"),
-            ["clippy", "-p", "castle-game", "--all-targets"],
+            ["clippy", "-p", "castle-game", "--all-targets", "--all-features"],
         )
 
     def test_a_caller_who_picks_targets_keeps_them(self) -> None:
@@ -72,12 +74,28 @@ class ClippyArgsTest(unittest.TestCase):
         ):
             with self.subTest(selection=selection):
                 self.assertEqual(
-                    self.cargo_args("clippy", *selection), ["clippy", *selection]
+                    self.cargo_args("clippy", *selection),
+                    ["clippy", *selection, "--all-features"],
+                )
+
+    def test_a_caller_who_picks_features_keeps_them(self) -> None:
+        for selection in (
+            ["--features", "jev insane"],
+            ["--features=jev"],
+            ["-Fjev"],
+            ["--no-default-features"],
+            ["--all-features"],
+        ):
+            with self.subTest(selection=selection):
+                self.assertEqual(
+                    self.cargo_args("clippy", *selection),
+                    ["clippy", *selection, "--all-targets"],
                 )
 
     def test_a_target_name_after_the_separator_is_not_a_selection(self) -> None:
         self.assertEqual(
-            self.cargo_args("clippy", "--", "--lib"), ["clippy", "--all-targets"]
+            self.cargo_args("clippy", "--", "--lib"),
+            ["clippy", "--all-targets", "--all-features"],
         )
 
 
