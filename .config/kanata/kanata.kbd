@@ -80,7 +80,7 @@
 
 ;; ---------------------------------------------------------------------------
 ;; Kid lock — whitelist typing, train controls, brightness, and volume;
-;; modifiers, Fn, system function keys, Escape, Tab, Return, and Backspace dead.
+;; modifiers, Fn, system function keys, Escape, and Tab dead.
 ;; Unlock: either Shift + K. @kid-k uses (input real …) so physical
 ;; shifts still count even though this layer maps lsft/rsft to XX.
 ;; ---------------------------------------------------------------------------
@@ -102,6 +102,8 @@
   left left
   rght rght
   spc spc
+  ret ret
+  bspc @kid-bspc
   k @kid-k
   ___ XX
 )
@@ -125,5 +127,9 @@
   kid-k (switch
     ((or (input real lsft) (input real rsft))) (on-press tap-vkey vk-base) break
     () k break
+  )
+  kid-bspc (switch
+    ((or (input real lmet) (input real rmet))) M-bspc break
+    () bspc break
   )
 )
