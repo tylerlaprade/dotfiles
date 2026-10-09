@@ -31,8 +31,13 @@ the cache lifetime, about 54 minutes after the last request, and only when the
 cache uses the one-hour TTL, is still warm, no newer request exists, the
 context is at least this size, and the account is not near its usage limit.
 The default minimum is 200k and the floor is 100k. Its compaction records say
-`"trigger":"auto"` like threshold compaction; they stand out only by firing
-about 55 minutes after the last reply and below the threshold. Its summaries
+`"trigger":"manual"` or `"trigger":"auto"`, depending on the version; they
+stand out only by firing about 55 minutes after the last reply and below the
+threshold. Claude Code reads the `env` block when a process starts, so a
+running session keeps the value it launched with: on October 9, three sessions
+launched October 2 still idle-compacted at 318k to 397k tokens, below the 500k
+minimum committed on October 7. Restart a session to pick up a changed
+minimum, hint threshold, or floor. Its summaries
 capture the session at the moment it handed back to the user, so they tend to
 read as "report and wait," and the resumed session can seem forgetful and keen
 to wait for approval. `"idleCompaction": false` turns it off entirely.
