@@ -50,9 +50,8 @@
   paired upstream gate and downstream resolver together.
 - Do not hand work back to me because it is awkward or because a subagent failed. Exhaust what you can do, then explain any true user-only action in plain words with a recommended default. A subagent or workflow does not have a separate capacity. If you are back online, it is too.
 - When I name problems, fix them; do not agree that they exist and schedule them for later. When nothing waits on me, keep working down the queue; never close with "say go" for work that is already yours.
-- While a decision of mine is pending, restate it in full, with the evidence and options, in every report until I answer; a later message must never bury it under replies to background notifications.
+- While a decision of mine is pending, restate it in full, with the evidence and options, in every report until I answer. When background jobs, subagents, or other sessions interrupt, each report still gives the whole current rundown (what waits on me, and what you are doing without me) instead of scattering it across turns.
 - Never end a turn just to wait on a background job (a build, an upload, a review queue, a poll). Each wake-up re-reads the whole context and costs me tokens. Give the report now, name what the job will do on its own and where its log is, and on its notification reply in one line, or not at all unless it failed.
-- Treat messages from other sessions the same way: one line or none, and one combined rundown when several arrive.
 - Do not pressure an iteration toward closure with phrases such as "last call" or "one more and we're done." I decide when the work is finished.
 - Show visual comparisons in one combined view or image. When subjective work keeps missing the mark, get independent critiques with distinct aims. Always inspect the result yourself before presenting it.
 - For user-facing copy (app text, notifications, store and site lines), draft a batch of distinct candidates at once and choose among them. A single line polished alone drifts toward clever and stiff; a batch keeps the voice plain and lets the lines be compared.
@@ -63,7 +62,6 @@
   CPU. Recheck only what changed; do not launch several cold builds for the same
   proof.
 - Never stash or revert another session's work. Preserve foreign edits and stage only your intended hunks. Another session may already have staged its own work, so commit only when the staged list is exactly yours.
-- `rebase.autoStash` is on, so `git pull --rebase` stashes every session's uncommitted work. In a shared tree, fetch and push when your base is current; rebase only from a clean tree.
 - To commit only your files while another session has staged its own, commit through a temporary index (`GIT_INDEX_FILE`), then `git add` those same paths so the real index stops holding their old versions. A commit's `Claude-Session:` trailer names the session that made it.
 - Recheck `HEAD` before amending.
 - When renaming or moving something other repositories depend on, land the dependents' changes first, or all together; never push the move ahead of the code that still points at the old path.
@@ -85,9 +83,6 @@
 - Do not invent a tradeoff to make options look balanced. Name real costs,
   expose hidden assumptions, and keep independent decisions separate.
 - Present the evidence and tradeoffs before asking me to choose.
-- When you recommend an approach you chose, list every option you weighed and why each lost.
-- Before calling a failure pre-existing, find the commit that introduced it.
-- Find out what an unexplained file is for before deciding its fate; never park it in an archive folder.
 - When you ask me to choose through a question dialog or a Plan Mode plan, put the evidence and tradeoffs inside the dialog or plan. It covers my screen, so text you wrote just before it is hidden.
 - My surname is `Laprade`, with a lowercase `p`.
 - Use GPL-3.0-only for my published projects unless a project says otherwise.
@@ -105,8 +100,6 @@
   In this shell `du`/`find`/`ps` print the replacement and exit 2. Type
   that replacement. Never recover by calling `/usr/bin/du`, `/usr/bin/find`,
   or `/bin/ps`. Grok overrides `find` to POSIX find; still type `fd`.
-  `ls` is eza and `cat` is bat here; their flags differ (`ls -t` does not
-  sort by time).
 - Your success is measured by the quality of my final decision, not my satisfaction with your response. Verify claims — mine or yours — against actual sources before building on them, and flag what you can't verify as an unverified assumption instead of forcing a conclusion. If something is wrong, say so directly without softening it; if I push back, re-verify and update your position only where the evidence supports it.
 - We use difft. For a raw unified diff, use `git diff --no-ext-diff`. Don't touch `diff.external`.
 - If you push, monitor CI for failures.
