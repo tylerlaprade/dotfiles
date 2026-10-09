@@ -37,6 +37,19 @@ HELP_ONLY_RUSTC_LINTS = {"malformed-diagnostic-filters", "tail-call-track-caller
 
 MIN_DEFAULT_RUSTC_WARNINGS = 20
 
+TARGET_SELECTION_FLAGS = {
+    "--all-targets",
+    "--bench",
+    "--benches",
+    "--bin",
+    "--bins",
+    "--example",
+    "--examples",
+    "--lib",
+    "--test",
+    "--tests",
+}
+
 
 def rustup_binary(name: str) -> str:
     result = subprocess.run(
@@ -97,6 +110,20 @@ def policy_args(clippy_driver: str) -> list[str]:
     return args
 
 
+def clippy_args(args: list[str], policy: list[str]) -> list[str]:
+    cargo_args = args[: args.index("--")] if "--" in args else args
+    selects_targets = any(
+        arg.split("=", 1)[0] in TARGET_SELECTION_FLAGS for arg in cargo_args
+    )
+    every_target = [] if selects_targets else ["--all-targets"]
+    if "--" in args:
+        split = args.index("--")
+        # Personal policy goes last so a caller cannot turn it off by
+        # appending an easier lint level to an ordinary cargo command.
+        return [*args[:split], *every_target, *args[split:], *policy]
+    return [*args, *every_target, "--", *policy]
+
+
 def main() -> int:
     try:
         real_clippy = rustup_binary("cargo-clippy")
@@ -107,13 +134,7 @@ def main() -> int:
 
         clippy_driver = rustup_binary("clippy-driver")
         policy = policy_args(clippy_driver)
-        if "--" in args:
-            # Personal policy goes last so a caller cannot turn it off by
-            # appending an easier lint level to an ordinary cargo command.
-            args.extend(policy)
-        else:
-            args.extend(["--", *policy])
-        os.execv(real_clippy, [real_clippy, *args])
+        os.execv(real_clippy, [real_clippy, *clippy_args(args, policy)])
     except (OSError, RuntimeError) as error:
         print(f"cargo-clippy: {error}", file=sys.stderr)
         return 1
