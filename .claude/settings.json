@@ -259,6 +259,7 @@
       "autoUpdate": true
     }
   },
+  "feedbackDrafts": "quiet",
   "alwaysThinkingEnabled": true,
   "modelSettings": {
     "claude-opus-5-5": {
@@ -267,19 +268,29 @@
   },
   "promptSuggestionEnabled": false,
   "showClearContextOnPlanAccept": true,
+  "dialogExpiry": "never",
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "theme": "auto",
   "preferredNotifChannel": "terminal_bell",
   "autoCompactEnabled": true,
   "switchModelsOnFlag": false,
+  "teammateMode": "in-process",
   "remoteControlAtStartup": true,
-  "inputNeededNotifEnabled": false,
+  "crossSessionInbound": "accept",
+  "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "useAutoModeDuringPlan": true,
   "voiceEnabled": true,
   "feedbackSurveyState": {
     "lastShownTime": 9999999999999
+  },
+  "pluginConfigs": {
+    "cc-plugin-agents-md@builtin": {
+      "options": {
+        "instructionFiles": "claude-md-and-agents-md"
+      }
+    }
   }
 }
