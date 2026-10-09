@@ -121,6 +121,11 @@ test_foreign_project_with_dotfiles_cwd() {
   expect_ask
 }
 
+test_trusted_session_guard_reads_foreign_repo() {
+  run_hook "$HOME/Code/session-guard" "$(pre s1 "$HOME/Code/session-guard" "$(bash_input "cat ~/Code/BrainDump/README.md")")"
+  expect_allow
+}
+
 test_dotfiles_prefix_repo() {
   run_hook "$HOME/Code/dotfiles-copy" "$(pre s1 "$HOME/Code/dotfiles-copy" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
   expect_ask
@@ -340,6 +345,7 @@ test_reason_names_repos_and_path() {
   expect_reason_has "The agent in flint wants to read another repo, BrainDump (~/Code/BrainDump/App.swift)."
   expect_reason_has '`read-guard allow flint BrainDump` (flint and BrainDump read each other)'
   expect_reason_has '`read-guard share BrainDump` (every repo reads BrainDump)'
+  expect_reason_has '`read-guard trust flint` (flint reads every repo)'
 }
 
 test_bash_reason_names_paths_not_command() {
@@ -362,6 +368,7 @@ test_reason_outside_code_offers_share_only() {
   run_hook "$HOME/Documents" "$(pre s1 "$HOME/Documents" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
   expect_ask
   [[ "$(reason)" != *"read-guard allow"* ]] || fail "offered a pair without a project: $(reason)"
+  [[ "$(reason)" != *"read-guard trust"* ]] || fail "offered trust without a project: $(reason)"
   expect_reason_has "read-guard share BrainDump"
 }
 
@@ -399,6 +406,17 @@ test_whitelist_share() {
   expect_allow
 }
 
+test_whitelist_trust() {
+  "$hook" trust flint >/dev/null || fail "trust exited $?"
+  grep -qxF 'TRUSTED=("dotfiles" "session-guard" "flint")' "${hook:A}" || fail "TRUSTED not extended"
+  run_hook "$HOME/Code/flint" "$(pre wl "$HOME/Code/flint" "$(bash_input "ls ~/Code/swarm-forge")")"
+  expect_allow
+  run_hook "$HOME/Code/BrainDump" "$(pre wl "$HOME/Code/BrainDump" "$(read_input "$HOME/Code/flint/main.rs")")"
+  expect_ask
+  "$hook" trust flint >/dev/null || fail "repeat trust exited $?"
+  [[ "$(grep -c '"flint"' "${hook:A}")" -eq 1 ]] || fail "repeat trust added a duplicate"
+}
+
 test_whitelist_rejects_bad_names() {
   local before
   before="$(<"${hook:A}")"
@@ -406,6 +424,8 @@ test_whitelist_rejects_bad_names() {
   [[ $? -eq 2 ]] || fail "bad repo name was not rejected"
   "$hook" share 2>/dev/null
   [[ $? -eq 2 ]] || fail "share without a repo was not rejected"
+  "$hook" trust ../flint 2>/dev/null
+  [[ $? -eq 2 ]] || fail "bad trusted name was not rejected"
   [[ "$(<"${hook:A}")" == "$before" ]] || fail "rejected whitelist changed the file"
 }
 
@@ -425,6 +445,7 @@ run_case "dotfiles bash reads multiple foreign repos" test_dotfiles_bash_foreign
 run_case "dotfiles subdir session reads foreign repos" test_dotfiles_subdir_session
 run_case "dotfiles cwd fallback reads foreign repos" test_dotfiles_cwd_fallback
 run_case "foreign project with dotfiles cwd still asks" test_foreign_project_with_dotfiles_cwd
+run_case "trusted session-guard reads foreign repos" test_trusted_session_guard_reads_foreign_repo
 run_case "dotfiles prefix repo still asks" test_dotfiles_prefix_repo
 run_case "dotfiles access does not record approvals" test_dotfiles_post_does_not_record_approval
 run_case "grep without path is allowed" test_grep_without_path
@@ -465,6 +486,7 @@ run_case "reason names the subagent and nested project" test_reason_names_subage
 run_case "reason outside ~/Code offers share only" test_reason_outside_code_offers_share_only
 run_case "allow pairs repos in ASSOCIATED" with_hook_copy test_whitelist_allow
 run_case "share adds a repo to SHARED" with_hook_copy test_whitelist_share
+run_case "trust adds a repo to TRUSTED" with_hook_copy test_whitelist_trust
 run_case "whitelist rejects bad names" with_hook_copy test_whitelist_rejects_bad_names
 
 if (( failures > 0 )); then

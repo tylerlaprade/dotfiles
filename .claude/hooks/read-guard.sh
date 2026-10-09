@@ -16,10 +16,13 @@
 # for good. It appends to the lists below, in the dotfiles copy of this file:
 #   read-guard allow <project> <repo>...  pair each repo with <project> in ASSOCIATED
 #   read-guard share <repo>...            add each repo to SHARED
+#   read-guard trust <repo>...            add each repo to TRUSTED
 
 # Top-level repos under ~/Code that every session may read (standing rule:
 # sessions consult dotfiles/scripts/bin before writing new helpers).
 SHARED=("dotfiles")
+# Top-level repos whose sessions may read every repo.
+TRUSTED=("dotfiles" "session-guard")
 # Groups of top-level repos that may read each other, one space-separated
 # group per entry.
 ASSOCIATED=("Fondly scrollfondly.com")
@@ -36,8 +39,16 @@ in_group() {
   return 1
 }
 
+trusted_repo() {
+  local t
+  for t in "${TRUSTED[@]}"; do
+    [[ "$1" = "$t" ]] && return 0
+  done
+  return 1
+}
+
 allowed_repo() {
-  [[ "$project_top" = "dotfiles" ]] && return 0
+  trusted_repo "$project_top" && return 0
   [[ "$1" = "$project_top" ]] && return 0
   local s group
   for s in "${SHARED[@]}"; do
@@ -50,11 +61,11 @@ allowed_repo() {
 }
 
 usage() {
-  echo "usage: read-guard allow <project> <repo>... | read-guard share <repo>..." >&2
+  echo "usage: read-guard allow <project> <repo>... | read-guard share <repo>... | read-guard trust <repo>..." >&2
   exit 2
 }
 
-# add_entry <SHARED|ASSOCIATED> <entry>: append to that list's line in this
+# add_entry <SHARED|TRUSTED|ASSOCIATED> <entry>: append to that list's line in this
 # file, through the ~/.claude symlink to the dotfiles copy. The rename leaves
 # hooks running in other sessions on the old file: bash reads a script as it
 # goes, so an in-place rewrite would shift what they read next.
@@ -80,7 +91,7 @@ whitelist() {
   shift
   case "$kind" in
     allow) [[ $# -ge 2 ]] || usage; project_top="$1"; shift ;;
-    share) [[ $# -ge 1 ]] || usage; project_top="" ;;
+    share|trust) [[ $# -ge 1 ]] || usage; project_top="" ;;
     *) usage ;;
   esac
   for name in ${project_top:+"$project_top"} "$@"; do
@@ -90,7 +101,15 @@ whitelist() {
     fi
   done
   for repo in "$@"; do
-    if allowed_repo "$repo"; then
+    if [[ "$kind" = "trust" ]]; then
+      if trusted_repo "$repo"; then
+        echo "read-guard: $repo may already read every repo"
+      else
+        add_entry TRUSTED "$repo" || exit 1
+        TRUSTED+=("$repo")
+        echo "read-guard: $repo may now read every repo"
+      fi
+    elif allowed_repo "$repo"; then
       echo "read-guard: $repo is already allowed${project_top:+ from $project_top}"
     elif [[ "$kind" = "share" ]]; then
       add_entry SHARED "$repo" || exit 1
@@ -177,7 +196,7 @@ join() {
 }
 
 ask() {
-  local verb="$1" targets="$2" actor kind here repos reason
+  local verb="$1" targets="$2" actor kind here repos reason pair
   shift 2
   kind=$(subagent_kind)
   actor="The agent"
@@ -193,12 +212,12 @@ ask() {
     reason="$actor in $here wants to $verb other repos, $repos ($targets)."
   fi
   reason="$reason Yes allows $repos for the rest of this session. To always allow, run"
-  if [[ -n "$project_top" && $# -eq 1 ]]; then
-    reason="$reason \`read-guard allow $project_top $1\` ($project_top and $1 read each other) or"
-  elif [[ -n "$project_top" ]]; then
-    reason="$reason \`read-guard allow $project_top $*\` ($project_top and each of them read each other) or"
+  if [[ -n "$project_top" ]]; then
+    pair="$project_top and each of them read each other"
+    [[ $# -eq 1 ]] && pair="$project_top and $1 read each other"
+    reason="$reason \`read-guard allow $project_top $*\` ($pair), \`read-guard trust $project_top\` ($project_top reads every repo), or"
   fi
-  reason="$reason \`read-guard share $*\` (every repo reads $repos), or answer No and tell the agent which."
+  reason="$reason \`read-guard share $*\` (every repo reads $repos); or answer No and tell the agent which."
   jq -n --arg reason "$reason" '
     {hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: $reason}}'
   exit 0
