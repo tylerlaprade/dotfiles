@@ -289,7 +289,7 @@
   "theme": "auto",
   "preferredNotifChannel": "terminal_bell",
   "autoCompactEnabled": true,
-  "autoCompactWindow": 835000,
+  "autoCompactWindow": 833000,
   "switchModelsOnFlag": false,
   "teammateMode": "in-process",
   "remoteControlAtStartup": true,
