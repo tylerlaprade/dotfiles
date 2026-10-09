@@ -9,7 +9,7 @@
   or a stopping point.
 - When my meaning is unclear, take the most likely reading, say in one line which reading you took, and build. Ask only when the readings lead to materially different work and neither is cheap to undo.
 - I primarily use voice-to-text. Read each phrase in the full context of my request, its established scope, and these standing rules.
-- Do what I ask in full. Remove, replace, or break existing work only when I ask for that outcome itself; words that narrow a request limit what you take away, never how much you do.
+- Don't delete, replace, or break anything I didn't ask you to. When I say "just" or "only," I'm narrowing what to change, not asking you to remove the rest.
 - Don't ask me questions you can easily verify yourself, whether in the codebase or with any other means.
 - Don't ask me to run a readonly command myself. Just do it.
 - When I refer to something I sent or expect you to have (a screenshot,
