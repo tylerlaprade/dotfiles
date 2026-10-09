@@ -23,8 +23,8 @@ if TYPE_CHECKING:
 
 KANATA_PLIST = Path("/Library/LaunchDaemons/com.tylerlaprade.kanata.plist")
 KID_LAYER = "kid"
-LOCK_SOUND = "/System/Library/Sounds/Tink.aiff"
-UNLOCK_SOUND = "/System/Library/Sounds/Pop.aiff"
+LOCK_SOUND = "/System/Library/Components/CoreAudio.component/Contents/SharedSupport/SystemSounds/accessibility/Mouse Keys ON.aif"
+UNLOCK_SOUND = "/System/Library/Components/CoreAudio.component/Contents/SharedSupport/SystemSounds/accessibility/Mouse Keys OFF.aif"
 IGNORED_MESSAGES = frozenset(
     {"TapActivated", "HoldActivated", "ConfigFileReload", "MessagePush"}
 )
@@ -150,7 +150,7 @@ def play(sound: str) -> None:
         [
             "/bin/sh",
             "-c",
-            '/usr/bin/afplay -v 0 -t 0.3 "$0"; for _ in 1 2 3; do /usr/bin/afplay "$0"; sleep 0.1; done',
+            '/usr/bin/afplay -v 0 -t 0.3 "$0"; for _ in 1 2 3; do /usr/bin/afplay "$0"; sleep 0.35; done',
             sound,
         ]
     )
