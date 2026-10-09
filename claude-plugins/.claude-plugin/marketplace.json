@@ -1,0 +1,16 @@
+{
+  "name": "dotfiles",
+  "owner": {
+    "name": "Tyler Laprade"
+  },
+  "plugins": [
+    {
+      "name": "rust-analyzer-shared",
+      "version": "1.0.0",
+      "source": "./rust-analyzer-shared",
+      "description": "One rust-analyzer per Cargo workspace, shared by every session through lspmux",
+      "category": "development",
+      "tags": ["rust", "lsp", "rust-analyzer", "lspmux"]
+    }
+  ]
+}

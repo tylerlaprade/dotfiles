@@ -231,6 +231,7 @@
     "pr-review-toolkit@claude-plugins-official": false,
     "ralph-loop@claude-plugins-official": false,
     "rust-analyzer-lsp@claude-plugins-official": false,
+    "rust-analyzer-shared@dotfiles": false,
     "skill-creator@claude-plugins-official": false,
     "swift-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
@@ -257,6 +258,12 @@
         "repo": "openai/codex-plugin-cc"
       },
       "autoUpdate": true
+    },
+    "dotfiles": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/tyler/Code/dotfiles/claude-plugins"
+      }
     }
   },
   "feedbackDrafts": "quiet",
@@ -269,6 +276,13 @@
   "promptSuggestionEnabled": false,
   "showClearContextOnPlanAccept": true,
   "dialogExpiry": "never",
+  "pluginConfigs": {
+    "cc-plugin-agents-md@builtin": {
+      "options": {
+        "instructionFiles": "claude-md-and-agents-md"
+      }
+    }
+  },
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "theme": "auto",
@@ -285,12 +299,5 @@
   "voiceEnabled": true,
   "feedbackSurveyState": {
     "lastShownTime": 9999999999999
-  },
-  "pluginConfigs": {
-    "cc-plugin-agents-md@builtin": {
-      "options": {
-        "instructionFiles": "claude-md-and-agents-md"
-      }
-    }
   }
 }

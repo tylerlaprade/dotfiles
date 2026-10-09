@@ -226,6 +226,9 @@ link "$DOTFILES/scripts/sync/sync-dotfiles.sh" "$HOME/.local/bin/sync-dotfiles"
 # replaces only rustup's cargo-clippy proxy, not Clippy itself.
 link "$DOTFILES/scripts/cargo-clippy.py" "$HOME/.cargo/bin/cargo-clippy"
 
+# The rust-analyzer-shared Claude plugin starts this by name.
+link "$DOTFILES/scripts/ra-agent-shim.py" "$HOME/.local/bin/ra-agent-shim"
+
 # Links whose repo file was removed or renamed
 find "$HOME" "$HOME/Library/LaunchAgents" "$HOME/Library/KeyBindings" -maxdepth 5 \
   \( -path "$HOME/Library" -o -path "$HOME/Code" -o -path "$HOME/.Trash" -o -path "$HOME/.cache" -o -path "$HOME/.rustup" -o -path "$HOME/.cargo/registry" \) -prune \

@@ -1,0 +1,8 @@
+{
+  "rust": {
+    "command": "ra-agent-shim",
+    "extensionToLanguage": {
+      ".rs": "rust"
+    }
+  }
+}

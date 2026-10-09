@@ -1,0 +1,11 @@
+{
+  "name": "rust-analyzer-shared",
+  "version": "1.0.0",
+  "description": "One rust-analyzer per Cargo workspace, shared by every session through lspmux",
+  "author": {
+    "name": "Tyler Laprade"
+  },
+  "license": "GPL-3.0-only",
+  "keywords": ["rust", "lsp", "rust-analyzer", "lspmux"],
+  "lspServers": "./.lsp.json"
+}

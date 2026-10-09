@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  One rust-analyzer per Cargo workspace, shared by every agent session through
+  scripts/ra-agent-shim.py. lspmux starts rust-analyzer with its own PATH, not
+  the client's (a client's PATH would split instances, since every shell's
+  differs), so this PATH must reach rustup's rust-analyzer and cargo. Homebrew's
+  own service plist cannot, which is why this replaces `brew services`.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.tylerlaprade.lspmux</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/sh</string>
+		<string>-c</string>
+		<string>PATH="$HOME/.cargo/bin:/opt/homebrew/bin:/usr/bin:/bin" exec lspmux server</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>/tmp/lspmux.log</string>
+	<key>StandardErrorPath</key>
+	<string>/tmp/lspmux.log</string>
+</dict>
+</plist>
