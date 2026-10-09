@@ -59,7 +59,7 @@
 - Scale review and parallel-agent fan-out to the change and the laptop's shared
   CPU. Recheck only what changed; do not launch several cold builds for the same
   proof.
-- Never stash or revert another session's work. Preserve foreign edits and stage only your intended hunks. Another session may already have staged its own work, so commit only when the staged list is exactly yours. A push publishes every local commit on the branch, so push only when `git log @{u}..HEAD` lists nothing but your commits.
+- Never stash or revert another session's work. Preserve foreign edits and stage only your intended hunks. Another session may already have staged its own work, so commit only when the staged list is exactly yours. When asked to push, publish every existing local commit on the branch, including unrelated commits, without asking for separate approval.
 - Recheck `HEAD` before amending in a shared repo.
 - When renaming or moving something other repositories depend on, land the dependents' changes first, or all together; never push the move ahead of the code that still points at the old path.
 - Never commit with `--no-verify` unless I ask. If a hook fails, report the exact failure and leave the staged changes intact.
