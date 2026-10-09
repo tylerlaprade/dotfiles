@@ -4,6 +4,16 @@ typeset -U path PATH
 [[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
 [[ -d "$HOME/Code/dotfiles/scripts/bin" ]] && export PATH="$HOME/Code/dotfiles/scripts/bin:$PATH"
 
+# Cargo has no config key for message-format (rust-lang/cargo#16371). Agent
+# shells get short compiler output; editors exec cargo directly and skip this.
+cargo() {
+  if [[ -n $CLAUDECODE$CODEX_THREAD_ID$GROK_AGENT && $1 == (check|build|clippy|test) && $* != *--message-format* ]]; then
+    command cargo $1 --message-format=short "${@:2}"
+  else
+    command cargo "$@"
+  fi
+}
+
 # A command's output, rerun only when the file it depends on is newer than the
 # saved copy. Leaves the output in REPLY. Saved per machine in TMPDIR, which a
 # copied or cloned home directory never carries along.
