@@ -113,6 +113,7 @@ for item in "$DOTFILES"/.codex/skills/*; do
   [[ -e "$item" || -L "$item" ]] || continue
   link "$item" "$HOME/.codex/skills/$(basename "$item")"
 done
+link "$DOTFILES/.codex/hooks.json" "$HOME/.codex/hooks.json"
 
 # Antigravity CLI (agy) global context. It took over the old
 # Gemini CLI home at ~/.gemini and still reads GEMINI.md there.
@@ -126,6 +127,8 @@ link "$DOTFILES/.gemini/settings.json" "$HOME/.gemini/settings.json"
 mkdir -p "$HOME/.grok/rules"
 link "$DOTFILES/.agents/AGENTS.md" "$HOME/.grok/rules/agents.md"
 link "$DOTFILES/.grok/config.toml" "$HOME/.grok/config.toml"
+mkdir -p "$HOME/.grok/hooks"
+link "$DOTFILES/.grok/hooks/git-signing-guard.json" "$HOME/.grok/hooks/git-signing-guard.json"
 
 # Agent Skills (agentskills.io standard) — symlink each skill folder as a whole
 # so the dir stays a single link instead of a per-file mirror.

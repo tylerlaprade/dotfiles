@@ -72,6 +72,15 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/git-signing-guard.sh"
+          }
+        ]
+      },
+      {
         "matcher": "Agent|Workflow",
         "hooks": [
           {
