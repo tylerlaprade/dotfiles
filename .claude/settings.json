@@ -3,7 +3,7 @@
   "env": {
     "CLAUDE_CODE_DISABLE_TERMINAL_TITLE": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS": "500000",
+    "CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS": "600000",
     "CLAUDE_CODE_IDLE_THRESHOLD_MINUTES": "60"
   },
   "includeGitInstructions": false,
@@ -289,6 +289,7 @@
   "theme": "auto",
   "preferredNotifChannel": "terminal_bell",
   "autoCompactEnabled": true,
+  "autoCompactWindow": 835000,
   "switchModelsOnFlag": false,
   "teammateMode": "in-process",
   "remoteControlAtStartup": true,
