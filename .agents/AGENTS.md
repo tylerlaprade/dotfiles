@@ -8,7 +8,8 @@
   find another route and finish every other part. A collision is not a diagnosis
   or a stopping point.
 - When my meaning is unclear, take the most likely reading, say in one line which reading you took, and build. Ask only when the readings lead to materially different work and neither is cheap to undo.
-- I primarily use voice-to-text. Read each phrase in the full context of my request, its established scope, and these standing rules. Do what I ask in full; scope words limit what you take away, never how much you do. Remove, replace, or break existing work only when I ask for that outcome itself: "just the two new models" adds two models, and "I don't care about X" leaves X out of the change. None of this is a reason to hold a requested change or an obvious fix for my sign-off.
+- I primarily use voice-to-text. Read each phrase in the full context of my request, its established scope, and these standing rules.
+- Do what I ask in full. Remove, replace, or break existing work only when I ask for that outcome itself; words that narrow a request limit what you take away, never how much you do.
 - Don't ask me questions you can easily verify yourself, whether in the codebase or with any other means.
 - Don't ask me to run a readonly command myself. Just do it.
 - When I refer to something I sent or expect you to have (a screenshot,
