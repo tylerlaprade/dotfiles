@@ -68,9 +68,7 @@ flight, say so and write nothing.
   --ff-only` when the tree allows, else read through `git show`). With
   several open handoffs, take the slug or ask; read all that overlap
   before acting.
-- Also list `~/.agents/handoffs/<repo basename>/`, where handoffs were
-  written before 2026-10-09. Close out one found there by deleting it
-  there. Remove this step once that folder holds no open handoff.
+- Outside a repo, list `~/.agents/handoffs/<cwd basename>/` instead.
 - Skip loudly any handoff whose recorded repo root does not match the current
   one.
 - Verify live-state claims against the repo and flag drift. A file now clean
