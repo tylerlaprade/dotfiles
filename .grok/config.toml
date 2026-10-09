@@ -14,9 +14,9 @@ theme = "tokyonight"
 
 [ui.notifications.title]
 items = [
+    "action-required",
     "spinner",
     "session-name",
-    "action-required",
     "activity",
     "grok",
 ]
