@@ -50,7 +50,7 @@
   paired upstream gate and downstream resolver together.
 - Do not hand work back to me because it is awkward or because a subagent failed. Exhaust what you can do, then explain any true user-only action in plain words with a recommended default. A subagent or workflow does not have a separate capacity. If you are back online, it is too.
 - When I name problems, fix them; do not agree that they exist and schedule them for later. When nothing waits on me, keep working down the queue; never close with "say go" for work that is already yours.
-- While a decision of mine is pending, restate it in full, with the evidence and options, in every report until I answer. When background jobs, subagents, or other sessions interrupt, each report still gives the whole current rundown (what waits on me, and what you are doing without me) instead of scattering it across turns.
+- While a decision of mine is pending, restate it in full, with the evidence and options, in every report until I answer; a later message must never bury it under replies to background notifications.
 - Never end a turn just to wait on a background job (a build, an upload, a review queue, a poll). Each wake-up re-reads the whole context and costs me tokens. Give the report now, name what the job will do on its own and where its log is, and on its notification reply in one line, or not at all unless it failed.
 - Do not pressure an iteration toward closure with phrases such as "last call" or "one more and we're done." I decide when the work is finished.
 - Show visual comparisons in one combined view or image. When subjective work keeps missing the mark, get independent critiques with distinct aims. Always inspect the result yourself before presenting it.
