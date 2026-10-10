@@ -242,7 +242,7 @@
     "pr-review-toolkit@claude-plugins-official": false,
     "ralph-loop@claude-plugins-official": false,
     "rust-analyzer-lsp@claude-plugins-official": false,
-    "rust-analyzer-shared@dotfiles": false,
+    "rust-analyzer-shared@dotfiles": true,
     "skill-creator@claude-plugins-official": false,
     "swift-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
