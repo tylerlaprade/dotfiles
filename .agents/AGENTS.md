@@ -4,7 +4,7 @@
 - I use Ghostty, managing many Claude/Codex/Grok sessions in many workspaces in many tabs at once.
 - When you script an agent CLI (Codex, Grok, Claude), take any update it offers and rerun, and trust hooks from my own configs or dotfiles when it asks; third-party hooks still need my review. Before launching Grok from a script, confirm `grok models` reports a sign-in, because a signed-out launch opens a browser sign-in.
 - Concurrent sessions often share one working tree. Another session's presence, a dirty file, or an unrelated build failure does not block the repo or task as a whole. Continue every non-conflicting part, preserve other sessions' edits, and use focused checks when broad checks fail for unrelated reasons. Incoherent work blocks only the exact overlapping lines. Do not ask me to pause or coordinate another session; report only a narrow remainder after exhausting safe ways around it.
-- When several sessions run at once, one owns each investigation. If a thread already has an owner, take another lane instead of probing it too.
+- When several sessions run at once, one owns each investigation. If a thread already has an owner, take another lane instead of probing it too. A fact another session already established is used, not checked again, unless its source has changed since.
 - If requested behavior regresses during concurrent work, pursue the fix without
   discarding the other edits. If the exact overlapping lines are incoherent,
   find another route and finish every other part. A collision is not a diagnosis
@@ -65,6 +65,7 @@
 - When I spitball in a design conversation, I am exploring, not committing. Label what is decided, leaning, or open; never restate an idea as the settled design, and never use a term as agreed vocabulary unless I said it or we agreed on it. Push back when an idea lands, not only after I object.
 - When I float a design idea, explore it in mockups: sweep the levers yourself, critique the results, and bring back only candidates you think are good, with your pick. No tests or commits until I choose.
 - Show visual comparisons in one combined view or image. When subjective work keeps missing the mark, get independent critiques with distinct aims. Always inspect the result yourself before presenting it.
+- Review replies in my name are short and casual, with no winking or cute emoji, and never commit me to more work: no new issue, no promised follow-up, no offer to change it later. A point outside the PR gets a plain "out of scope for this PR." A thread whose only reply would be "done" is resolved without a reply.
 - For user-facing copy (app text, notifications, store and site lines), draft a batch of distinct candidates at once and choose among them. A single line polished alone drifts toward clever and stiff; a batch keeps the voice plain and lets the lines be compared.
 - When I mark up specific lines of a draft or plan, change only those lines and keep the rest word for word.
 - Keep a visual artifact available until I have reviewed it; do not delete a shared temporary file in the same turn.
@@ -120,7 +121,7 @@
 - When I ask what you think of my ideas, grade each against the person who will actually meet it, check any checkable fact (a name's availability, an app's existence) before stating it, and give each a plain yes or no with its real costs. Honest, not a machine built to say no.
 - We use difft. For a raw unified diff, use `git diff --no-ext-diff`. Don't touch `diff.external`.
 - If you push, monitor CI for failures.
-- Linters: use the standard tool for the language (SwiftLint, Ruff, Clippy, ESLint), never a bespoke one-issue script. Enable every rule, opt-in and pedantic included, then disable only rules that are pure style opinion, each with a one-line reason in the config. Line length is the formatter's job, so line-length rules stay off in every language. Warnings are errors and block the build; keep each finding's original severity visible in reports.
+- Linters: use the standard tool for the language (SwiftLint, Ruff, Clippy, Biome; never ESLint), never a bespoke one-issue script. Enable every rule, opt-in and pedantic included, then disable only rules that are pure style opinion, each with a one-line reason in the config. Line length is the formatter's job, so line-length rules stay off in every language. Warnings are errors and block the build; keep each finding's original severity visible in reports.
 - One lint policy per tool lives in dotfiles and applies everywhere, locally and in CI; a project config adds only its own paths. Never bypass it with flags, alternate binaries, or a looser project config. Run the same current version of each linter locally and in CI, so neither finds what the other misses.
 - Treat a lint finding as a lead to a better design, not an obstacle. Fix every finding your work causes or exposes, errors before warnings. Never suppress one in the code; if the fix breaks the code, rethink the approach.
 - Make every switch exhaustive. Turn on the compiler or linter check where one exists, enumerate every case, and make an unavoidable catch-all fail loudly instead of silently absorbing a case you forgot.

@@ -18,3 +18,16 @@ repo. Every harness, Claude Code included, reads `AGENTS.md` on its own; no
 Comments do not hide anything. Claude Code strips `<!-- ... -->` out of these
 files, but Codex, Grok, Antigravity, and opencode all pass it straight to the
 model.
+
+`.agents/AGENTS.md` names no harness's models, tools, or settings: Codex has
+its own model tiers, and a Claude model name there misleads every other
+agent. Rules that only Claude can follow live in `.claude/rules/claude-code.md`,
+which Claude Code loads from `~/.claude/rules/`.
+
+No instruction file sets a policy for which model or effort a subagent gets.
+The invoking agent picks per task and says what it picked; a written default,
+even a minimal one, biases choices nobody can see. The hard limits are hooks,
+not prose: `subagent-model-guard.sh` makes every Agent call and workflow
+agent name its model and keeps Fable off workflow fan-out. e8a602f removed the
+`CLAUDE_CODE_SUBAGENT_MODEL` pin for the same reason; that variable overrides
+every per-call choice.

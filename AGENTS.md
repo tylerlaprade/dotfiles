@@ -12,6 +12,13 @@
   device has no effect on this Mac. Do not bring back Mouse Keys or “Ignore
   built-in trackpad”: any mouse, including a virtual one, then disables the
   trackpad even while unlocked, so shared defaults keep that setting off.
+- Before asking Tyler for an Accessibility or Input Monitoring grant, say which
+  entry will appear in Privacy & Security and what it is for. An entry he cannot
+  identify reads as malware, and he removes it ("I think it's probably a major
+  design smell," 2026-10-05, after removing three). Apple's `/usr/bin/python3`
+  holds one on purpose, for `kid_trackpad.py`; if it disappears, ask again with
+  that reason. Never ask for `/bin/bash`, and never run a probe that makes macOS
+  prompt for a shell or interpreter: a grant to one covers every script it runs.
 - `kanata-setup` (`scripts/bin/kanata-setup.sh`, also run by `install.sh`)
   installs Homebrew's Kanata with the Karabiner driver package that Kanata
   release supports, read from the socket the binary expects (v6.2.0 before
