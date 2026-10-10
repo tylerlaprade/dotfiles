@@ -196,28 +196,18 @@ join() {
 }
 
 ask() {
-  local verb="$1" targets="$2" actor kind here repos reason pair
-  shift 2
+  local verb="$1" kind subject them="it" reason
+  shift
   kind=$(subagent_kind)
-  actor="The agent"
-  [[ -n "$kind" ]] && actor="A $kind subagent"
-  case "$root" in
-    "$HOME/Code"/*) here="${root#"$HOME"/Code/}" ;;
-    *) here=$(tilde "$root") ;;
-  esac
-  repos=$(join "$@")
-  if [[ $# -eq 1 ]]; then
-    reason="$actor in $here wants to $verb another repo, $repos ($targets)."
+  if [[ -n "$kind" ]]; then
+    subject="A $kind subagent in ${project_top:-$(tilde "$root")}"
+  elif [[ -n "$project_top" ]]; then
+    subject="$project_top"
   else
-    reason="$actor in $here wants to $verb other repos, $repos ($targets)."
+    subject="The agent in $(tilde "$root")"
   fi
-  reason="$reason Yes allows $repos for the rest of this session. To always allow, run"
-  if [[ -n "$project_top" ]]; then
-    pair="$project_top and each of them read each other"
-    [[ $# -eq 1 ]] && pair="$project_top and $1 read each other"
-    reason="$reason \`read-guard allow $project_top $*\` ($pair), \`read-guard trust $project_top\` ($project_top reads every repo), or"
-  fi
-  reason="$reason \`read-guard share $*\` (every repo reads $repos); or answer No and tell the agent which."
+  [[ $# -gt 1 ]] && them="them"
+  reason="$subject wants to $verb $(join "$@"). Yes allows $them for the rest of this session. To stop asking, tell an agent to whitelist $them."
   jq -n --arg reason "$reason" '
     {hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: $reason}}'
   exit 0
@@ -243,18 +233,7 @@ if [[ -n "$command" ]]; then
   done <<< "$repos"
   [[ "$event" = "PostToolUse" ]] && exit 0
   [[ ${#need[@]} -eq 0 ]] && exit 0
-  # The prompt names the paths reached in those repos; the raw command is noise.
-  paths=$(printf '%s' "$command" \
-    | grep -oE "$code_re$repo_re(/[A-Za-z0-9._+@%,:=/-]*[A-Za-z0-9_+@%=/-])?" \
-    | awk '!seen[$0]++')
-  shown=()
-  while IFS= read -r p; do
-    rest="${p#*/Code/}"
-    in_group "${rest%%/*}" "${need[*]}" && shown+=('~'"/Code/$rest")
-  done <<< "$paths"
-  targets=$(join "${shown[@]:0:3}")
-  [[ ${#shown[@]} -gt 3 ]] && targets="$targets and $(( ${#shown[@]} - 3 )) more"
-  ask "run a command on" "$targets" "${need[@]}"
+  ask "run a command in" "${need[@]}"
 fi
 
 # File tools. No path: Grep/Glob default to the session cwd, always allowed.
@@ -296,5 +275,4 @@ case "$tool" in
   Glob) verb="list files in" ;;
   *) verb="use ${tool:-a tool} on" ;;
 esac
-target=$(tilde "$path")
-ask "$verb" "$target" "$path_top"
+ask "$verb" "$path_top"

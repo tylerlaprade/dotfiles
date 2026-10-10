@@ -339,37 +339,32 @@ test_general_purpose_approval_reaches_main() {
   expect_allow
 }
 
-test_reason_names_repos_and_path() {
+test_reason_names_both_repos() {
   run_hook "$HOME/Code/flint" "$(pre s1 "$HOME/Code/flint" "$(read_input "$HOME/Code/BrainDump/App.swift")" '"tool_name":"Read"')"
   expect_ask
-  expect_reason_has "The agent in flint wants to read another repo, BrainDump (~/Code/BrainDump/App.swift)."
-  expect_reason_has '`read-guard allow flint BrainDump` (flint and BrainDump read each other)'
-  expect_reason_has '`read-guard share BrainDump` (every repo reads BrainDump)'
-  expect_reason_has '`read-guard trust flint` (flint reads every repo)'
+  [[ "$(reason)" == "flint wants to read BrainDump. Yes allows it for the rest of this session. To stop asking, tell an agent to whitelist it." ]] \
+    || fail "unexpected reason: $(reason)"
 }
 
-test_bash_reason_names_paths_not_command() {
+test_bash_reason_names_repos_not_command() {
   run_hook "$HOME/Code/flint" \
     "$(pre s1 "$HOME/Code/flint" "$(bash_input "git -C ~/Code/BrainDump log -5 | head; cat ~/Code/swarm-forge/src/main.rs ~/Code/dotfiles/x")")"
   expect_ask
-  expect_reason_has "wants to run a command on other repos, BrainDump and swarm-forge (~/Code/BrainDump and ~/Code/swarm-forge/src/main.rs)."
-  expect_reason_has "(flint and each of them read each other)"
+  expect_reason_has "flint wants to run a command in BrainDump and swarm-forge. Yes allows them for the rest of this session."
+  expect_reason_has "tell an agent to whitelist them."
   [[ "$(reason)" != *"git -C"* ]] || fail "reason repeats the command: $(reason)"
 }
 
-test_reason_names_subagent_and_nested_project() {
+test_reason_names_subagent_and_project() {
   local proj="$HOME/Code/QueenspawnGames/castle-game"
   run_hook "$proj" "$(pre s1 "$proj" '{"pattern":"x","path":"../../BrainDump"}' '"tool_name":"Grep","agent_id":"a","agent_type":"general-purpose"')"
-  expect_reason_has "A general-purpose subagent in QueenspawnGames/castle-game wants to search another repo, BrainDump (~/Code/BrainDump)."
-  expect_reason_has "read-guard allow QueenspawnGames BrainDump"
+  expect_reason_has "A general-purpose subagent in QueenspawnGames wants to search BrainDump."
 }
 
-test_reason_outside_code_offers_share_only() {
-  run_hook "$HOME/Documents" "$(pre s1 "$HOME/Documents" "$(read_input "$HOME/Code/BrainDump/App.swift")")"
+test_reason_outside_code_names_the_folder() {
+  run_hook "$HOME/Documents" "$(pre s1 "$HOME/Documents" "$(read_input "$HOME/Code/BrainDump/App.swift")" '"tool_name":"Read"')"
   expect_ask
-  [[ "$(reason)" != *"read-guard allow"* ]] || fail "offered a pair without a project: $(reason)"
-  [[ "$(reason)" != *"read-guard trust"* ]] || fail "offered trust without a project: $(reason)"
-  expect_reason_has "read-guard share BrainDump"
+  expect_reason_has "The agent in ~/Documents wants to read BrainDump."
 }
 
 # Whitelist tests edit a copy reached through a symlink, like ~/.claude/hooks.
@@ -480,10 +475,10 @@ run_case "gemini investigator does not approve the main agent" test_gemini_inves
 run_case "main session started as Explore still asks" test_main_started_as_explore_still_asks
 run_case "general-purpose subagent still asks" test_general_purpose_still_asks
 run_case "general-purpose approval reaches the main agent" test_general_purpose_approval_reaches_main
-run_case "reason names both repos and the path" test_reason_names_repos_and_path
-run_case "bash reason names paths, not the command" test_bash_reason_names_paths_not_command
-run_case "reason names the subagent and nested project" test_reason_names_subagent_and_nested_project
-run_case "reason outside ~/Code offers share only" test_reason_outside_code_offers_share_only
+run_case "reason names both repos" test_reason_names_both_repos
+run_case "bash reason names repos, not the command" test_bash_reason_names_repos_not_command
+run_case "reason names the subagent and its project" test_reason_names_subagent_and_project
+run_case "reason outside ~/Code names the folder" test_reason_outside_code_names_the_folder
 run_case "allow pairs repos in ASSOCIATED" with_hook_copy test_whitelist_allow
 run_case "share adds a repo to SHARED" with_hook_copy test_whitelist_share
 run_case "trust adds a repo to TRUSTED" with_hook_copy test_whitelist_trust
