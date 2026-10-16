@@ -1,0 +1,119 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "a11y": "on",
+      "complexity": "on",
+      "correctness": "on",
+      "nursery": "on",
+      "performance": "on",
+      "security": "on",
+      "style": "on",
+      "suspicious": "on"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            // Qwik-only rule that misreads plain closures; a Qwik project turns it back on.
+            "useQwikValidLexicalScope": "off"
+          },
+          "nursery": {
+            // Function declarations versus arrow functions is pure style.
+            "useConsistentFunctionStyle": "off"
+          },
+          "style": {
+            // Which literals deserve a name is a style call; drawing coordinates and data tables read best inline.
+            "noMagicNumbers": "off",
+            // Writing ++ versus += 1 is pure style.
+            "noIncrementDecrement": "off",
+            // A ternary versus an if/else is pure style.
+            "noTernary": "off",
+            // Skipping the rest of a loop body with continue versus nesting it is pure style.
+            "noContinue": "off",
+            // Where exports sit in a file is pure style.
+            "useExportsLast": "off",
+            // Hex versus rgb(), hsl() or oklch() notation for the same color is pure style.
+            "noHexColors": "off"
+          }
+        }
+      }
+    },
+    {
+      // Test-suite rules key on calls named test, it and describe, so they apply only inside test files.
+      "includes": ["**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveNestedTestSuites": "off"
+          },
+          "nursery": {
+            "noIdenticalTestTitle": "off",
+            "useConsistentTestIt": "off",
+            "usePlaywrightValidDescribeCallback": "off",
+            "useTestHooksInOrder": "off",
+            "useTestHooksOnTop": "off",
+            "useValidTestTitle": "off"
+          },
+          "suspicious": {
+            "noDuplicateTestHooks": "off",
+            "noExportsInTest": "off",
+            "noFocusedTests": "off",
+            "noSkippedTests": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/tests/**", "**/e2e/**", "**/*.test.*", "**/*.spec.*"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveNestedTestSuites": "on"
+          },
+          "nursery": {
+            "noIdenticalTestTitle": "on",
+            "useConsistentTestIt": "on",
+            "usePlaywrightValidDescribeCallback": "on",
+            "useTestHooksInOrder": "on",
+            "useTestHooksOnTop": "on",
+            "useValidTestTitle": "on"
+          },
+          "suspicious": {
+            "noDuplicateTestHooks": "on",
+            "noExportsInTest": "on",
+            "noFocusedTests": "on",
+            "noSkippedTests": "on"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/tests/**", "**/scripts/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            // Tests and scripts run under Node or Bun, so the runtime's builtins are their tools.
+            "noNodejsModules": "off"
+          },
+          "nursery": {
+            // Same reason as noNodejsModules, for scripts that run under Bun.
+            "noBunModules": "off"
+          },
+          "suspicious": {
+            // Scripts are command-line tools, so console output is their output.
+            "noConsole": "off"
+          }
+        }
+      }
+    }
+  ]
+}
