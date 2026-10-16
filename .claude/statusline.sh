@@ -51,9 +51,9 @@ input_fields=$(
   ] | join("\u001f")' <<< "$input"
 )
 IFS=$'\037' read -r rate_5h rate_7d resets_5h resets_7d model_name effort_level session_id raw_cost cost_cents <<< "$input_fields"
-clock_fields=$(TZ="America/New_York" date '+%s %Y%j %u %H %M %S %-I:%M %p')
+clock_fields=$(date '+%s %Y%j %u %H %M %S %-I:%M %p')
 read -r now today clock_weekday clock_hour clock_minute clock_second current_time <<< "$clock_fields"
-tomorrow=$(TZ="America/New_York" date -v+1d +"%Y%j")
+tomorrow=$(date -v+1d +"%Y%j")
 
 format_tokens() {
   local tokens=$1
@@ -134,7 +134,7 @@ rate_usage_gradient() {
   fi
 }
 
-# Time-of-day color for the clock (weekdays 4:30-6:45pm, every day 9:30pm-1am ET).
+# Time-of-day color for the clock (weekdays 4:30-6:45pm, every day 9:30pm-1am local).
 # White outside the windows; LERPs white→green→yellow→bright-red (nighttime inserts an
 # extra white→blue pre-phase so the green-fade starts from blue). Bold kicks in at the
 # yellow→red phase onward. Final phase of each window also toggles reverse video —
@@ -307,7 +307,7 @@ format_rate() {
     pace_gradient "$pct" "$resets" "$window_secs"
     local time_color reset_fields reset_str reset_day reset_time reset_weekday_time
     printf -v time_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
-    reset_fields=$(TZ="America/New_York" date -r "$resets" +"%Y%j|%-I:%M %p|%a %-I:%M %p" 2>/dev/null)
+    reset_fields=$(date -r "$resets" +"%Y%j|%-I:%M %p|%a %-I:%M %p" 2>/dev/null)
     IFS='|' read -r reset_day reset_time reset_weekday_time <<< "$reset_fields"
     if [[ "$reset_day" = "$today" ]]; then
       reset_str=$reset_time

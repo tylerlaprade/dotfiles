@@ -210,6 +210,7 @@ class StatuslineTest(unittest.TestCase):
             'HOME': str(self.home),
             'PATH': f'{self.bin}:{Path(jq).parent}:/usr/bin:/bin',
             'FAKE_GIT': PLAIN_GIT,
+            'TZ': EASTERN.key,
         }
 
     def install(self, name: str, source: str) -> None:
@@ -384,6 +385,12 @@ class StatuslineTest(unittest.TestCase):
                     self.assertEqual(visible(lines[1]), expected)
                 else:
                     self.assertEqual(visible(lines[1]), cases['today'][1])
+
+    def test_clock_and_resets_follow_the_local_time_zone(self) -> None:
+        now = at(15, 0)
+        lines = self.render(self.payload(Session(rates=self.rates(now))), Fakes(now=now, claude_environment={'TZ': 'Asia/Kathmandu'}))
+        self.assert_context_line(lines[0], ContextLine(29, '50k/167k', '1:45 AM'))
+        self.assertEqual(visible(lines[1]), 'Usage · 5h 6% (resets in 2h 0m at 3:45 AM) · 7d 3% (resets in 6d 15h at Wed 4:45 PM) · Fable 4%')
 
     def test_exhausted_five_hour_window_shows_cost(self) -> None:
         now = at(15, 0)
