@@ -9,6 +9,14 @@ hook="$repo_root/.claude/hooks/read-guard.sh"
 state_dir="$(mktemp -d "${TMPDIR:-/tmp}/read-guard-tests.XXXXXX")" || exit 1
 trap 'rm -rf "$state_dir"' EXIT
 export READ_GUARD_STATE_DIR="$state_dir"
+export READ_GUARD_JUDGE_LOG="$state_dir/judge.log"
+export READ_GUARD_JUDGE_BIN="$state_dir/judge-stub"
+export JUDGE_STUB_PROMPT="$state_dir/judge-prompt"
+print -r -- '#!/bin/sh
+cat > "$JUDGE_STUB_PROMPT"
+printf "%s\n" "$JUDGE_STUB_ANSWER"
+exit "${JUDGE_STUB_EXIT:-0}"' > "$READ_GUARD_JUDGE_BIN"
+chmod 755 "$READ_GUARD_JUDGE_BIN"
 
 failures=0
 current_test=""
@@ -367,6 +375,99 @@ test_reason_outside_code_names_the_folder() {
   expect_reason_has "The agent in ~/Documents wants to read BrainDump."
 }
 
+transcript="$state_dir/transcript.jsonl"
+print -rl -- \
+  '{"type":"user","message":{"role":"user","content":"Move the flint memories into the BrainDump docs."}}' \
+  '{"type":"user","message":{"role":"user","content":"<task-notification><summary>helper finished</summary></task-notification>"}}' \
+  '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"TOOL OUTPUT"}]}}' \
+  '{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"ASSISTANT CHATTER"}]}}' \
+  > "$transcript"
+
+# perm <session> <cwd> <tool_input-json> <tool_name>
+perm() {
+  print -r -- '{"hook_event_name":"PermissionRequest","session_id":"'"$1"'","cwd":"'"$2"'","tool_name":"'"$4"'","tool_input":'"$3"',"transcript_path":"'"$transcript"'"}'
+}
+
+decision() {
+  print -r -- "$last_stdout" | jq -r '.hookSpecificOutput.decision.behavior' 2>/dev/null
+}
+
+judge_foreign_read() {
+  rm -f "$JUDGE_STUB_PROMPT"
+  run_hook "$HOME/Code/flint" "$(perm jd "$HOME/Code/flint" "$(read_input "$HOME/Code/BrainDump/App.swift")" Read)"
+}
+
+test_judge_allow() {
+  local -x JUDGE_STUB_ANSWER=$'ALLOW\nThe task names BrainDump.'
+  judge_foreign_read
+  [[ "$(decision)" == "allow" ]] || fail "expected allow, got: $last_stdout"
+  grep -qF "ALLOW flint -> BrainDump (Read) The task names BrainDump." "$READ_GUARD_JUDGE_LOG" \
+    || fail "judgment not logged: $(<"$READ_GUARD_JUDGE_LOG")"
+}
+
+test_judge_deny_tells_the_agent_why() {
+  local -x JUDGE_STUB_ANSWER=$'DENY\nBrainDump has nothing to do with a flint lint fix.'
+  judge_foreign_read
+  [[ "$(decision)" == "deny" ]] || fail "expected deny, got: $last_stdout"
+  local message
+  message="$(print -r -- "$last_stdout" | jq -r '.hookSpecificOutput.decision.message')"
+  [[ "$message" == *"BrainDump has nothing to do with a flint lint fix."* ]] || fail "message lacks the reason: $message"
+  [[ "$message" == *"ask Tyler in your reply"* ]] || fail "message lacks the next step: $message"
+}
+
+test_judge_unsure_leaves_the_prompt() {
+  local -x JUDGE_STUB_ANSWER=$'UNSURE\nThe messages do not say.'
+  judge_foreign_read
+  expect_allow
+}
+
+test_judge_failure_leaves_the_prompt() {
+  local -x JUDGE_STUB_ANSWER="" JUDGE_STUB_EXIT=1
+  judge_foreign_read
+  expect_allow
+  grep -qF "NONE flint -> BrainDump" "$READ_GUARD_JUDGE_LOG" || fail "failed judgment not logged"
+}
+
+test_judge_reads_lowercase_verdicts() {
+  local -x JUDGE_STUB_ANSWER=$'**Allow**\nFits the task.'
+  judge_foreign_read
+  [[ "$(decision)" == "allow" ]] || fail "expected allow, got: $last_stdout"
+}
+
+test_judge_prompt_holds_the_task_not_tool_output() {
+  local -x JUDGE_STUB_ANSWER=$'UNSURE\nx'
+  judge_foreign_read
+  local prompt
+  prompt="$(<"$JUDGE_STUB_PROMPT")"
+  [[ "$prompt" == *"flint wants to read BrainDump, outside its own repo, flint."* ]] || fail "prompt lacks the access: $prompt"
+  [[ "$prompt" == *"- Move the flint memories into the BrainDump docs."* ]] || fail "prompt lacks the task: $prompt"
+  [[ "$prompt" != *"helper finished"* ]] || fail "prompt includes a harness notice"
+  [[ "$prompt" != *"TOOL OUTPUT"* ]] || fail "prompt includes tool output"
+  [[ "$prompt" != *"ASSISTANT CHATTER"* ]] || fail "prompt includes the agent's own text"
+}
+
+test_judge_skips_allowed_access() {
+  local -x JUDGE_STUB_ANSWER=$'DENY\nx'
+  rm -f "$JUDGE_STUB_PROMPT"
+  run_hook "$HOME/Code/flint" "$(perm jd "$HOME/Code/flint" "$(read_input "$HOME/Code/flint/main.rs")" Read)"
+  expect_allow
+  [[ ! -e "$JUDGE_STUB_PROMPT" ]] || fail "judged a read of the session's own repo"
+}
+
+test_judge_mode_switches() {
+  local -x JUDGE_STUB_ANSWER=$'ALLOW\nx'
+  "$hook" judge off >/dev/null || fail "judge off exited $?"
+  grep -qxF 'JUDGE="off"' "${hook:A}" || fail "JUDGE not switched off"
+  [[ -L "$hook" ]] || fail "judge off replaced the symlink"
+  judge_foreign_read
+  expect_allow
+  [[ ! -e "$JUDGE_STUB_PROMPT" ]] || fail "judged while off"
+  "$hook" judge on >/dev/null || fail "judge on exited $?"
+  grep -qxF 'JUDGE="on"' "${hook:A}" || fail "JUDGE not switched on"
+  "$hook" judge maybe 2>/dev/null
+  [[ $? -eq 2 ]] || fail "bad judge mode was not rejected"
+}
+
 # Whitelist tests edit a copy reached through a symlink, like ~/.claude/hooks.
 with_hook_copy() {
   local hook_dir="$state_dir/hook-copy"
@@ -483,6 +584,14 @@ run_case "allow pairs repos in ASSOCIATED" with_hook_copy test_whitelist_allow
 run_case "share adds a repo to SHARED" with_hook_copy test_whitelist_share
 run_case "trust adds a repo to TRUSTED" with_hook_copy test_whitelist_trust
 run_case "whitelist rejects bad names" with_hook_copy test_whitelist_rejects_bad_names
+run_case "judge allows access that fits the task" test_judge_allow
+run_case "judge refusal tells the agent why" test_judge_deny_tells_the_agent_why
+run_case "unsure judge leaves the prompt" test_judge_unsure_leaves_the_prompt
+run_case "failed judge leaves the prompt" test_judge_failure_leaves_the_prompt
+run_case "judge reads lowercase verdicts" test_judge_reads_lowercase_verdicts
+run_case "judge prompt holds the task, not tool output" test_judge_prompt_holds_the_task_not_tool_output
+run_case "judge skips allowed access" test_judge_skips_allowed_access
+run_case "judge mode switches on and off" with_hook_copy test_judge_mode_switches
 
 if (( failures > 0 )); then
   print -u2 -- "$failures failure(s)"
