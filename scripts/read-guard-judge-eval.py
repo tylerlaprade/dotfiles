@@ -134,9 +134,28 @@ def order(seed: int, text: str) -> str:
     return hashlib.sha256(f"{seed}:{text}".encode()).hexdigest()
 
 
-def build_cases(positives: int, negatives: int, seed: int) -> list[JSON]:
+def said_anything_matching(path: Path, pattern: re.Pattern[str]) -> bool:
+    for row in rows_of(path):
+        message = row.get("message")
+        content = (
+            cast("JSON", message).get("content") if isinstance(message, dict) else None
+        )
+        if (
+            row.get("type") == "user"
+            and isinstance(content, str)
+            and pattern.search(content)
+        ):
+            return True
+    return False
+
+
+def build_cases(
+    positives: int, negatives: int, seed: int, skip: re.Pattern[str] | None
+) -> list[JSON]:
     by_session: dict[str, list[JSON]] = {}
     for path in (HOME / ".claude/projects").glob("-Users-tyler-Code-*/*.jsonl"):
+        if skip and said_anything_matching(path, skip):
+            continue
         for case in accesses(path):
             by_session.setdefault(str(case["session"]), []).append(case)
     pool = sorted(
@@ -313,6 +332,7 @@ class Args(argparse.Namespace):
     positives: int = 24
     negatives: int = 12
     seed: int = 7
+    skip: str = ""
     out: str = str(Path(tempfile.gettempdir()) / "read-guard-judge-eval.json")
 
 
@@ -325,10 +345,14 @@ def main() -> int:
     _ = parser.add_argument("--positives", type=int)
     _ = parser.add_argument("--negatives", type=int)
     _ = parser.add_argument("--seed", type=int)
+    _ = parser.add_argument(
+        "--skip", help="leave out sessions with any message matching this regex"
+    )
     _ = parser.add_argument("--out", help="where to write per-case results")
     args = parser.parse_args(namespace=Args())
     judges = args.judges.split(",")
-    cases = build_cases(args.positives, args.negatives, args.seed)
+    skip = re.compile(args.skip) if args.skip else None
+    cases = build_cases(args.positives, args.negatives, args.seed, skip)
     key = jev_key() if "jev" in judges else None
 
     def judge_one(case: JSON) -> JSON:
