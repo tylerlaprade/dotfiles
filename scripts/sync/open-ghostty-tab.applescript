@@ -1,4 +1,7 @@
 on run {commandPath, logPath}
+	-- A tab opened while Screen Time has Ghostty locked out crashes Ghostty when the lockout lifts.
+	do shell script quoted form of (POSIX path of (path to home folder) & ".cargo/bin/session-guard") & " lockout --wait"
+
 	tell application "System Events"
 		set previousApp to name of first application process whose frontmost is true
 	end tell
