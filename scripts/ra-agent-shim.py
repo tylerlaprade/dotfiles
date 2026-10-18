@@ -96,9 +96,15 @@ def forward_client(server: subprocess.Popen[bytes]) -> None:
 
 
 def main() -> int:
-    server = subprocess.Popen(
-        ["lspmux", "client"], stdin=subprocess.PIPE, stdout=subprocess.PIPE
-    )
+    try:
+        server = subprocess.Popen(
+            ["lspmux", "client"], stdin=subprocess.PIPE, stdout=subprocess.PIPE
+        )
+    except FileNotFoundError:
+        _ = sys.stderr.write(
+            "ra-agent-shim: lspmux is not installed; run ~/Code/dotfiles/install.sh\n"
+        )
+        return 1
     threading.Thread(target=forward_client, args=(server,), daemon=True).start()
     server_output = cast("IO[bytes]", server.stdout)
     while (message := read_message(server_output)) is not None:

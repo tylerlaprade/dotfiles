@@ -180,6 +180,23 @@ class ProcessTest(unittest.TestCase):
         )
         self.assertEqual(parse_frames(received.read_bytes())[1]["id"], 3)
 
+    def test_missing_lspmux_names_the_installer(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        result = subprocess.run(
+            [str(SHIM)],
+            input=b"",
+            capture_output=True,
+            env={**os.environ, "PATH": directory.name},
+            check=False,
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(
+            result.stderr,
+            b"ra-agent-shim: lspmux is not installed; run ~/Code/dotfiles/install.sh\n",
+        )
+
 
 if __name__ == "__main__":
     _ = unittest.main()
