@@ -42,7 +42,9 @@
             // Where exports sit in a file is pure style.
             "useExportsLast": "off",
             // Hex versus rgb(), hsl() or oklch() notation for the same color is pure style.
-            "noHexColors": "off"
+            "noHexColors": "off",
+            // Named versus default exports is a team preference, and plugin and config hosts such as OpenCode require a default export.
+            "noDefaultExport": "off"
           }
         }
       }
