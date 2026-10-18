@@ -266,6 +266,7 @@
       "effortLevel": "high"
     }
   },
+  "autoCompactWindow": 833000,
   "promptSuggestionEnabled": false,
   "showClearContextOnPlanAccept": true,
   "dialogExpiry": "never",
@@ -281,7 +282,6 @@
   "theme": "auto",
   "preferredNotifChannel": "terminal_bell",
   "autoCompactEnabled": true,
-  "autoCompactWindow": 833000,
   "switchModelsOnFlag": false,
   "teammateMode": "in-process",
   "remoteControlAtStartup": true,

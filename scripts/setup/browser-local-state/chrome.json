@@ -1,6 +1,6 @@
 {
   "performance_tuning.high_efficiency_mode": {
-    "aggressiveness": 2,
+    "aggressiveness": 1,
     "state": 2
   }
 }
