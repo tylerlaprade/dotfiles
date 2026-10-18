@@ -44,15 +44,6 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Read|Grep|Glob|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/read-guard.sh"
-          }
-        ]
-      },
-      {
         "hooks": [
           {
             "type": "command",
@@ -62,15 +53,6 @@
       }
     ],
     "PreToolUse": [
-      {
-        "matcher": "Read|Grep|Glob|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/read-guard.sh"
-          }
-        ]
-      },
       {
         "matcher": "Bash",
         "hooks": [
@@ -165,16 +147,6 @@
       }
     ],
     "PermissionRequest": [
-      {
-        "matcher": "Read|Grep|Glob|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/read-guard.sh",
-            "timeout": 30
-          }
-        ]
-      },
       {
         "hooks": [
           {
