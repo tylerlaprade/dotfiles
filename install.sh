@@ -159,14 +159,6 @@ if ! command -v grok >/dev/null 2>&1; then
   curl -fsSL https://x.ai/cli/install.sh | bash || failed=1
 fi
 
-if command -v fnm >/dev/null 2>&1; then
-  eval "$(fnm env)" 2>/dev/null || true
-  if ! fnm list 2>/dev/null | grep -q default; then
-    echo "Installing Node LTS..."
-    fnm install --lts && fnm default lts-latest || failed=1
-  fi
-fi
-
 if ! command -v codex >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
   echo "Installing Codex CLI..."
   npm i -g @openai/codex || failed=1

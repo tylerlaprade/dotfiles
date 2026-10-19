@@ -66,8 +66,10 @@ if [[ -d "$versions" ]]; then
   fi
 fi
 
-# fnm is the Node manager; leftover nvm trees do not come back unless reinstalled.
-if command -v fnm >/dev/null && [[ -d "$HOME/.nvm" ]]; then
-  rm -rf "$HOME/.nvm"
-  echo "Removed leftover ~/.nvm"
-fi
+# Homebrew's node is the only Node; leftover nvm and fnm trees do not come back unless reinstalled.
+for node_manager_dir in "$HOME/.nvm" "$HOME/.local/share/fnm" "$HOME/.local/state/fnm_multishells"; do
+  if [[ -d "$node_manager_dir" ]]; then
+    rm -rf "$node_manager_dir"
+    echo "Removed leftover $node_manager_dir"
+  fi
+done

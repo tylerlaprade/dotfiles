@@ -31,9 +31,6 @@ bindkey '^[[Z' reverse-menu-complete # Shift-Tab
 # Mac sends Ctrl+U when Cmd+Backspace is pressed
 bindkey '^U' backward-kill-line
 
-# fnm - fast node manager
-eval "$(fnm env --use-on-cd)"
-
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
