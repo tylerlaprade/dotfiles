@@ -24,7 +24,25 @@
         "rules": {
           "correctness": {
             // Qwik-only rule that misreads plain closures; a Qwik project turns it back on.
-            "useQwikValidLexicalScope": "off"
+            "useQwikValidLexicalScope": "off",
+            // __dirname and __filename do not exist in ES modules, so using them throws.
+            "noGlobalDirnameFilename": "warn",
+            // A JSON import without `with { type: "json" }` fails to load in browsers and Node.
+            "useJsonImportAttributes": "warn",
+            // parseInt without a radix misreads strings with a leading zero or 0x.
+            "useParseIntRadix": "warn",
+            // Assigning to a React prop mutates state React owns and is lost on the next render.
+            "noReactPropAssignments": "warn",
+            // Destructuring Solid props reads them once and drops their reactivity.
+            "noSolidDestructuredProps": "warn"
+          },
+          "suspicious": {
+            // A comparison or logical expression whose result never changes is a logic bug.
+            "noConstantBinaryExpressions": "warn",
+            // A variable that is read but never assigned is always undefined.
+            "noUnassignedVariables": "warn",
+            // A GraphQL field requested twice in one selection is a copy or merge mistake.
+            "noDuplicateFields": "warn"
           },
           "nursery": {
             // Function declarations versus arrow functions is pure style.
