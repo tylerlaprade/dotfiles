@@ -105,8 +105,11 @@ def policy_args(clippy_driver: str) -> list[str]:
     args = ["-Dclippy::all"]
     args.extend(f"-D{lint}" for lint in rustc_default_warnings(clippy_driver))
     args.extend(f"-Dclippy::{lint}" for lint in sorted(EXTRA_DENY))
-    args.append("-Wclippy::pedantic")
-    args.extend(f"-Aclippy::{lint}" for lint in sorted(PEDANTIC_WHITELIST))
+    # Pedantic is advice: it warns locally and never blocks, and CI, where
+    # nobody reads warnings, leaves it out (Tyler, 2026-10-26).
+    if os.environ.get("CI") != "true":
+        args.append("-Wclippy::pedantic")
+        args.extend(f"-Aclippy::{lint}" for lint in sorted(PEDANTIC_WHITELIST))
     return args
 
 

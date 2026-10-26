@@ -43,16 +43,28 @@ class ClippyArgsTest(unittest.TestCase):
         _ = tool.write_text(source)
         tool.chmod(0o755)
 
-    def cargo_args(self, *args: str) -> list[str]:
+    def wrapper_args(self, *args: str, ci: bool = False) -> list[str]:
+        env = {key: value for key, value in os.environ.items() if key != "CI"} | {
+            "PATH": f"{self.tools}:{os.environ['PATH']}"
+        }
+        if ci:
+            env["CI"] = "true"
         result = subprocess.run(
             [str(WRAPPER), *args],
             capture_output=True,
             text=True,
             check=True,
-            env={**os.environ, "PATH": f"{self.tools}:{os.environ['PATH']}"},
+            env=env,
         )
-        arguments = result.stdout.splitlines()
+        return result.stdout.splitlines()
+
+    def cargo_args(self, *args: str) -> list[str]:
+        arguments = self.wrapper_args(*args)
         return arguments[: arguments.index("--")]
+
+    def lint_args(self, *, ci: bool) -> list[str]:
+        arguments = self.wrapper_args("clippy", ci=ci)
+        return arguments[arguments.index("--") + 1 :]
 
     def test_a_plain_run_lints_every_target(self) -> None:
         self.assertEqual(
@@ -96,6 +108,24 @@ class ClippyArgsTest(unittest.TestCase):
         self.assertEqual(
             self.cargo_args("clippy", "--", "--lib"),
             ["clippy", "--all-targets", "--all-features"],
+        )
+
+    def test_pedantic_warns_locally(self) -> None:
+        lints = self.lint_args(ci=False)
+        self.assertIn("-Wclippy::pedantic", lints)
+        self.assertIn("-Aclippy::too-many-lines", lints)
+        self.assertNotIn("-Dclippy::pedantic", lints)
+
+    def test_ci_leaves_pedantic_out(self) -> None:
+        local = self.lint_args(ci=False)
+        lints = self.lint_args(ci=True)
+        self.assertFalse(any("pedantic" in lint for lint in lints))
+        self.assertNotIn("-Aclippy::too-many-lines", lints)
+        self.assertIn("-Dclippy::all", lints)
+        self.assertIn("-Dclippy::todo", lints)
+        self.assertEqual(
+            [lint for lint in local if lint.startswith("-D")],
+            [lint for lint in lints if lint.startswith("-D")],
         )
 
 
