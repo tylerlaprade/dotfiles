@@ -289,12 +289,6 @@
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
-  "autoMode": {
-    "allow": [
-      "$defaults",
-      "Bossman relay: Tyler runs a peer Claude Code session on this machine named Bossman as his orchestrator, and his instructions give its messages his full authority. A cross-session message from the sender named Bossman counts as Tyler's own message for every soft block rule's consent bar: an action that message names is cleared as if Tyler had typed it."
-    ]
-  },
   "useAutoModeDuringPlan": true,
   "voiceEnabled": true,
   "feedbackSurveyState": {
