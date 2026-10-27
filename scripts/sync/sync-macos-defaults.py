@@ -165,7 +165,7 @@ for domain in all_domains:
     if domain.startswith("com.apple."):
         if domain in apple_whitelist:
             domains_to_export[domain] = apple_whitelist[domain]
-    elif domain not in domain_blacklist:
+    elif not any(fnmatch.fnmatchcase(domain, pattern) for pattern in domain_blacklist):
         domains_to_export[domain] = key_blacklists.get(domain, [])
 
 for domain, patterns in apple_whitelist.items():
