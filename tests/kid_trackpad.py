@@ -14,12 +14,14 @@ from scripts.kid_trackpad import (
     follow_layers,
     kanata_address,
     layer_name,
+    parse_json,
     parse_plist,
 )
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 KANATA_DAEMON = REPOSITORY / "LaunchDaemons/com.tylerlaprade.kanata.plist"
 KID_AGENT = REPOSITORY / "LaunchAgents/com.tylerlaprade.kid-trackpad.plist"
+DEFAULTS = REPOSITORY / "scripts/setup/macos-defaults"
 KEY_DOWN = 10
 KEY_UP = 11
 FLAGS_CHANGED = 12
@@ -61,6 +63,25 @@ class ConfigTest(unittest.TestCase):
     def test_kanata_no_longer_toggles_mouse_keys(self) -> None:
         source = (REPOSITORY / ".config/kanata/kanata.kbd").read_text()
         self.assertNotIn("lalt 70 lalt", source)
+
+    def test_synced_defaults_keep_mouse_keys_from_disabling_the_trackpad(self) -> None:
+        bool_off = {"type": "bool", "value": False}
+        int_off = {"type": "int", "value": 0}
+        expected = {
+            ("com.apple.universalaccess", "useMouseKeysShortcutKeys"): bool_off,
+            ("com.apple.universalaccess", "mouseDriverIgnoreTrackpad"): bool_off,
+            ("com.apple.AppleMultitouchTrackpad", "USBMouseStopsTrackpad"): int_off,
+            (
+                "com.apple.driver.AppleBluetoothMultitouch.trackpad",
+                "USBMouseStopsTrackpad",
+            ): int_off,
+        }
+        for (domain, key), entry in expected.items():
+            snapshot = parse_json((DEFAULTS / f"{domain}.json").read_bytes())
+            with self.subTest(domain=domain, key=key):
+                self.assertEqual(
+                    snapshot.get(key) if isinstance(snapshot, dict) else None, entry
+                )
 
     def test_event_tap_never_sees_keyboard_or_media_keys(self) -> None:
         for event_type in (KEY_DOWN, KEY_UP, FLAGS_CHANGED, SYSTEM_DEFINED):

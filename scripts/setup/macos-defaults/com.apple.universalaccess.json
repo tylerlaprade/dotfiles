@@ -9,7 +9,7 @@
   },
   "mouseDriverIgnoreTrackpad": {
     "type": "bool",
-    "value": true
+    "value": false
   },
   "mouseDriverInitialDelay": {
     "type": "float",
@@ -25,6 +25,6 @@
   },
   "useMouseKeysShortcutKeys": {
     "type": "bool",
-    "value": true
+    "value": false
   }
 }
