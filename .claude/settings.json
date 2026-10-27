@@ -59,6 +59,10 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/git-signing-guard.sh"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/git-autostash-guard.sh"
           }
         ]
       },
