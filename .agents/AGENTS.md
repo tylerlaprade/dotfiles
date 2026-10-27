@@ -66,6 +66,7 @@
 - When I float a design idea, explore it in mockups: sweep the levers yourself, critique the results, and bring back only candidates you think are good, with your pick. No tests or commits until I choose.
 - Show visual comparisons in one combined view or image. When subjective work keeps missing the mark, get independent critiques with distinct aims. Always inspect the result yourself before presenting it.
 - Review replies in my name are short and casual, with no winking or cute emoji, and never commit me to more work: no new issue, no promised follow-up, no offer to change it later. A point outside the PR gets a plain "out of scope for this PR." A thread whose only reply would be "done" is resolved without a reply.
+- Write to me and in my name in full sentences. Every sentence has its subject and keeps its articles, prepositions and connecting words; never fall into the clipped style of commit logs and code comments. For prose in my voice, follow `~/Code/QueenspawnGames/voice/voice.md`, which collects my rulings on wording.
 - For user-facing copy (app text, notifications, store and site lines), draft a batch of distinct candidates at once and choose among them. A single line polished alone drifts toward clever and stiff; a batch keeps the voice plain and lets the lines be compared.
 - When I mark up specific lines of a draft or plan, change only those lines and keep the rest word for word.
 - Keep a visual artifact available until I have reviewed it; do not delete a shared temporary file in the same turn.
