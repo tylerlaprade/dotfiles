@@ -148,6 +148,15 @@
             "command": "/opt/homebrew/bin/claude-title hook"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/date",
+            "args": ["+{\"systemMessage\":\"Sent %-I:%M %p\"}"]
+          }
+        ]
       }
     ],
     "PermissionRequest": [
