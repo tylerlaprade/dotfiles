@@ -66,6 +66,7 @@
 - When I spitball in a design conversation, I am exploring, not committing. Label what is decided, leaning, or open; never restate an idea as the settled design, and never use a term as agreed vocabulary unless I said it or we agreed on it. Push back when an idea lands, not only after I object.
 - When I float a design idea, explore it in mockups: sweep the levers yourself, critique the results, and bring back only candidates you think are good, with your pick. No tests or commits until I choose.
 - Show visual comparisons in one combined view or image. When subjective work keeps missing the mark, get independent critiques with distinct aims. Always inspect the result yourself before presenting it.
+- Before opening an issue, pull request, discussion or comment in a project that isn't mine, read its contribution rules (CONTRIBUTING, AI policy, templates, discussion categories) and follow them.
 - Review replies in my name are short and casual, with no winking or cute emoji, and never commit me to more work: no new issue, no promised follow-up, no offer to change it later. A point outside the PR gets a plain "out of scope for this PR." A thread whose only reply would be "done" is resolved without a reply.
 - Anything posted in my name follows `~/Code/QueenspawnGames/voice/voice.md`.
 - For user-facing copy (app text, notifications, store and site lines), draft a batch of distinct candidates at once and choose among them. A single line polished alone drifts toward clever and stiff; a batch keeps the voice plain and lets the lines be compared.
