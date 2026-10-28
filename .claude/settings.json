@@ -274,8 +274,8 @@
     },
     "limbic": {
       "source": {
-        "source": "directory",
-        "path": "/Users/tyler/Code/limbic"
+        "source": "github",
+        "repo": "tylerlaprade/limbic"
       }
     }
   },
