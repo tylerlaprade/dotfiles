@@ -233,7 +233,7 @@
     "swift-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "cc-plugin-you-should-know@builtin": true,
-    "limbic@limbic": true,
+    "limbic@limbic": false,
     "sent-time@dotfiles": true
   },
   "extraKnownMarketplaces": {
