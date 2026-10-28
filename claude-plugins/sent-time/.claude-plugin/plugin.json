@@ -1,0 +1,8 @@
+{
+  "name": "sent-time",
+  "version": "0.1.0",
+  "description": "Shows the time each of your own messages was sent, dim, under the message",
+  "author": { "name": "Tyler Laprade" },
+  "license": "GPL-3.0-only",
+  "types": "./types/index.d.ts"
+}

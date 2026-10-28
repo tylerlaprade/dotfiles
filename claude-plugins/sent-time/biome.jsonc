@@ -1,0 +1,14 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "extends": ["../../.config/biome/biome.jsonc"],
+  "files": {
+    "includes": [
+      "hooks/**",
+      "tests/**",
+      "types/**",
+      "*.jsonc",
+      "*.json",
+      ".claude-plugin/*.json"
+    ]
+  }
+}

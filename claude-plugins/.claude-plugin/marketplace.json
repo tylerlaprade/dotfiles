@@ -11,6 +11,14 @@
       "description": "One rust-analyzer per Cargo workspace, shared by every session through lspmux",
       "category": "development",
       "tags": ["rust", "lsp", "rust-analyzer", "lspmux"]
+    },
+    {
+      "name": "sent-time",
+      "version": "0.1.0",
+      "source": "./sent-time",
+      "description": "Shows the time each of your own messages was sent, dim, under the message",
+      "category": "productivity",
+      "tags": ["timestamp", "messages"]
     }
   ]
 }
