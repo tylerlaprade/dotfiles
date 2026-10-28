@@ -26,10 +26,13 @@ on run {workDir, commandLine, fullPath}
     repeat with candidateWindow in windows
       if (count of tabs of candidateWindow) > (count of tabs of mainWindow) then set mainWindow to candidateWindow
     end repeat
-    -- A live "selected tab" reference follows the selection to the new tab, so keep the id.
+    -- Live "selected tab" and "front window" references follow the change, so keep ids.
+    set ghosttyWasFrontmost to frontmost
+    set previousFrontId to id of front window
     set previousId to id of selected tab of mainWindow
     set t to new tab in mainWindow with configuration cfg
     if selected of t then select tab (first tab of mainWindow whose id is previousId)
+    if ghosttyWasFrontmost and id of front window is not previousFrontId then activate window (window id previousFrontId)
     return id of t
   end tell
 end run
