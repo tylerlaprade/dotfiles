@@ -1,6 +1,9 @@
 on run {commandPath, logPath}
-	-- A tab opened while Screen Time has Ghostty locked out crashes Ghostty when the lockout lifts.
-	do shell script quoted form of (POSIX path of (path to home folder) & ".cargo/bin/session-guard") & " lockout --wait"
+	-- A tab opened while Screen Time has Ghostty locked out crashes Ghostty when the lockout lifts,
+	-- and one opened in kid mode can pull a child out of her game.
+	set guard to quoted form of (POSIX path of (path to home folder) & ".cargo/bin/session-guard")
+	set kidLock to quoted form of (POSIX path of (path to home folder) & ".local/bin/kid-lock")
+	do shell script "until " & guard & " lockout && " & kidLock & "; do " & guard & " lockout --wait && " & kidLock & " --wait || exit 1; done"
 
 	tell application "System Events"
 		set previousApp to name of first application process whose frontmost is true
