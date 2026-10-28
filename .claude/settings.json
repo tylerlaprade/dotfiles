@@ -241,7 +241,8 @@
     "skill-creator@claude-plugins-official": false,
     "swift-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
-    "cc-plugin-you-should-know@builtin": true
+    "cc-plugin-you-should-know@builtin": true,
+    "limbic@limbic": true
   },
   "extraKnownMarketplaces": {
     "basedpyright-lsp": {
@@ -269,6 +270,12 @@
       "source": {
         "source": "directory",
         "path": "/Users/tyler/Code/dotfiles/claude-plugins"
+      }
+    },
+    "limbic": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/tyler/Code/limbic"
       }
     }
   },
