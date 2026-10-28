@@ -153,8 +153,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/bin/date",
-            "args": ["+{\"systemMessage\":\"Sent %-I:%M %p\"}"]
+            "command": "/bin/zsh",
+            "args": [
+              "-fc",
+              "input=$(</dev/stdin)\n[[ $input == *'\"prompt\":\"'('<cross-session-message '|'<agent-message '|'<task-notification>'|'[Cross-session ')* ]] || print -rP '{\"systemMessage\":\"%D{%-I:%M %p}\"}'"
+            ]
           }
         ]
       }
