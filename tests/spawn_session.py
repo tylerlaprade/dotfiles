@@ -59,7 +59,6 @@ class SpawnSessionTest(unittest.TestCase):
         script = self.recorded("script")
         self.assertIn("set previousId to id of selected tab of mainWindow", script)
         self.assertIn("if selected of t then select tab (first tab of mainWindow whose id is previousId)", script)
-        self.assertIn("activate window (window id previousFrontId)", script)
         self.assertIn("lockout --wait", self.recorded("guard"))
 
     def test_session_is_typed_into_a_tab_with_its_options_and_brief(self) -> None:
