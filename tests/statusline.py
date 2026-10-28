@@ -446,7 +446,16 @@ class StatuslineTest(unittest.TestCase):
                 self.assertEqual(visible(lines[2]), expected)
                 self.assertEqual(lines[2], git)
         lines = self.render(self.payload(), Fakes(git=''))
-        self.assertEqual(len(lines), 2)
+        self.assertEqual(len(lines), MAX_LINES)
+        self.assertEqual(visible(lines[2]), str(self.workspace))
+
+    def test_folder_outside_git_abbreviates_home(self) -> None:
+        folder = self.home / 'Code'
+        folder.mkdir()
+        payload = self.payload()
+        payload['workspace'] = {'current_dir': str(folder)}
+        lines = self.render(payload, Fakes(git=''))
+        self.assertEqual(visible(lines[2]), '~/Code')
 
 
 if __name__ == '__main__':

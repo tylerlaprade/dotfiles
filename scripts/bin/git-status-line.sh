@@ -95,8 +95,15 @@ else
   branch_color="38;5;242"
 fi
 
+# Subfolder below the repo root, found with builtins so a render starts no process
+repo_root=$PWD
+while [[ -n "$repo_root" && ! -e "$repo_root/.git" ]]; do
+  repo_root=${repo_root%/*}
+done
+location=$repo_name${repo_root:+${PWD#"$repo_root"}}
+
 # Output with ANSI colors
-printf "\e[37m%s\e[0m " "$repo_name"
+printf "\e[37m%s\e[0m " "$location"
 if [[ -n "$pr_num" ]]; then
   printf "\e]8;;%s\e\\\\" "$gt_url"
   printf "\e[${pr_color}m#%s\e[0m" "$pr_num"

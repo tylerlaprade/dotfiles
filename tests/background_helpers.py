@@ -295,6 +295,23 @@ class BackgroundHelpersTest(unittest.TestCase):
         self.assertNotIn('#!', result.stdout)
         self.assertNotIn('https://', result.stdout)
 
+    def test_git_status_shows_the_subfolder_below_the_repo_root(self) -> None:
+        for name, body in {
+            'git-meta': 'printf "example\\texample/project\\tmaster\\n"',
+            'gh-pr-lookup': 'exit 0',
+            'gt-status': 'exit 0',
+            'git': 'if [[ "$1" = rev-parse ]]; then exit 1; fi',
+        }.items():
+            self.install(name, '#!/bin/bash\n' + body + '\n')
+        repository = self.root / 'example'
+        (repository / '.git').mkdir(parents=True)
+        (repository / 'scripts/bin').mkdir(parents=True)
+        for folder, location in ((repository, 'example'), (repository / 'scripts/bin', 'example/scripts/bin')):
+            with self.subTest(folder=str(folder)):
+                result = subprocess.run([str(self.bin / 'git-status-line')], env=self.environment, cwd=folder,
+                                        text=True, capture_output=True, timeout=5, check=False)
+                self.assertTrue(result.stdout.startswith(f'\x1b[37m{location}\x1b[0m '), repr(result.stdout))
+
     def run_statusline(self, usage_json: str, payload: JSONValue) -> str:
         self.install('claude-usage', '#!/bin/bash\nprintf \'%s\\n\' \'' + usage_json + '\'\n')
         source = (REPOSITORY / '.claude/statusline.sh').read_text()

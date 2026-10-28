@@ -472,7 +472,11 @@ if (( ${#rate_parts[@]} )); then
   echo -e "${DIM}Usage${RESET} · $usage_line"
 fi
 
-# Git info
+# Location: the git line inside a repo, the ~ path outside one
 if [[ -n "$git_status" ]]; then
   echo -e "$git_status"
+else
+  folder=$current_dir
+  [[ "$folder" == "$HOME" || "$folder" == "$HOME"/* ]] && folder="~${folder#"$HOME"}"
+  printf '\033[37m%s\033[0m\n' "$folder"
 fi
