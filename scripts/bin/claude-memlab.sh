@@ -38,4 +38,5 @@ export CLAUDE_SECURESTORAGE_CONFIG_DIR=
 # Claude Code reads the edited flag cache only with telemetry off; with it on, the server's flags replace the cache.
 export DISABLE_TELEMETRY=1
 export CLAUDE_CODE_GB_DISK_CACHE_WHEN_TELEMETRY_OFF=1
-exec claude "$@"
+# Limbic stays off here so the lab shows Anthropic's memory alone.
+exec claude --settings '{"enabledPlugins": {"limbic@limbic": false}}' "$@"
