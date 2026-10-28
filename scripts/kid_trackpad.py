@@ -143,17 +143,19 @@ release: Callable[[int], None] = foundation.CFRelease
 default_run_loop_mode = ctypes.c_void_p.in_dll(foundation, "kCFRunLoopDefaultMode")
 
 
-def play(sound: str) -> None:
+def chime_command(sound: str) -> list[str]:
     # Idle audio hardware swallows the start of the first sound, so a silent
-    # play wakes it before the three audible ones.
-    subprocess.Popen(
-        [
-            "/bin/sh",
-            "-c",
-            '/usr/bin/afplay -v 0 -t 0.3 "$0"; for _ in 1 2 3; do /usr/bin/afplay "$0"; sleep 0.35; done',
-            sound,
-        ]
-    )
+    # play wakes it before the audible one.
+    return [
+        "/bin/sh",
+        "-c",
+        '/usr/bin/afplay -v 0 -t 0.3 "$0"; /usr/bin/afplay "$0"',
+        sound,
+    ]
+
+
+def play(sound: str) -> None:
+    subprocess.Popen(chime_command(sound))
 
 
 class PointerGate(Protocol):

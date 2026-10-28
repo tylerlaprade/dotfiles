@@ -11,6 +11,7 @@ from scripts.kid_trackpad import (
     LOCK_SOUND,
     POINTER_EVENT_MASK,
     UNLOCK_SOUND,
+    chime_command,
     follow_layers,
     kanata_address,
     layer_name,
@@ -91,6 +92,12 @@ class ConfigTest(unittest.TestCase):
         self.assertTrue(Path(LOCK_SOUND).is_file())
         self.assertTrue(Path(UNLOCK_SOUND).is_file())
         self.assertNotEqual(LOCK_SOUND, UNLOCK_SOUND)
+
+    def test_each_chime_plays_its_sound_once_after_a_silent_warm_up(self) -> None:
+        command = chime_command(LOCK_SOUND)
+        self.assertEqual(command[-1], LOCK_SOUND)
+        self.assertEqual(command[2].count("/usr/bin/afplay -v 0"), 1)
+        self.assertEqual(command[2].count('/usr/bin/afplay "$0"'), 1)
 
     def test_agent_finds_the_port_the_kanata_daemon_opens(self) -> None:
         self.assertEqual(
