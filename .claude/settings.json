@@ -156,6 +156,10 @@
           {
             "type": "command",
             "command": "/opt/homebrew/bin/claude-title hook"
+          },
+          {
+            "type": "command",
+            "command": "{ cat; echo; } >> \"$TMPDIR/claude-permission-prompts.jsonl\""
           }
         ]
       }
@@ -207,6 +211,10 @@
           {
             "type": "command",
             "command": "/opt/homebrew/bin/claude-title hook"
+          },
+          {
+            "type": "command",
+            "command": "{ cat; echo; } >> \"$TMPDIR/claude-permission-prompts.jsonl\""
           }
         ]
       }
