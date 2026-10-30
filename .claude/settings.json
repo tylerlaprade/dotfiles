@@ -159,7 +159,8 @@
           },
           {
             "type": "command",
-            "command": "{ cat; echo; } >> \"$TMPDIR/claude-permission-prompts.jsonl\""
+            "command": "$HOME/.local/bin/claude-prompt-broker",
+            "timeout": 86400
           }
         ]
       }
@@ -211,10 +212,6 @@
           {
             "type": "command",
             "command": "/opt/homebrew/bin/claude-title hook"
-          },
-          {
-            "type": "command",
-            "command": "{ cat; echo; } >> \"$TMPDIR/claude-permission-prompts.jsonl\""
           }
         ]
       },
