@@ -30,9 +30,9 @@ _cached_output() {
   REPLY=$(<$cache)
 }
 
-# Claude Code reads this switch before it applies settings.json's env block,
-# so it has to come from the shell. It stops the 2-minute auto-deny on safety
-# prompts; Tyler wants no prompt answered automatically.
+# Set in the shell because settings.json's env block doesn't reach this switch
+# (tested Oct 30). It stops Claude Code's 2-minute auto-deny on safety prompts;
+# Tyler wants no prompt answered automatically.
 export CLAUDE_CODE_DISABLE_DANGEROUS_RM_TIMEOUT=1
 
 _cached_output cpu-count /usr/sbin/sysctl /usr/sbin/sysctl -n hw.ncpu &&
