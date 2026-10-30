@@ -29,6 +29,7 @@ exec 3<&-
 rm -f $fifo $dir/$id.json
 
 case $answer in
+  allow) jq -cn '{hookSpecificOutput: {hookEventName: "PermissionRequest", decision: {behavior: "allow"}}}' ;;
   deny\ *) jq -cn --arg message "${answer#deny }" '{hookSpecificOutput: {hookEventName: "PermissionRequest", decision: {behavior: "deny", message: $message}}}' ;;
   ask|"") ;;
   *) print -u2 "claude-prompt-broker: unknown answer: $answer"; exit 1 ;;
