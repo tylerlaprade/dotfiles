@@ -29,8 +29,14 @@ class SpawnSessionTest(unittest.TestCase):
         self.brief.write_text("Do the thing.\n")
         for name in ("ghostty-tab", "spawn-session"):
             (self.bin / name).symlink_to(REPOSITORY / f"scripts/bin/{name}.sh")
-        self.install(self.bin / "osascript", 'cat > "$CALLS.script"\nprintf "%s\\n" "$@" > "$CALLS.osascript"\necho tab-7\n')
-        self.install(self.bin / "claude", 'printf "%s\\n" "$@" > "$CALLS.claude"\necho "backgrounded · 4f2a · use claude attach"\n')
+        self.install(
+            self.bin / "osascript",
+            'cat > "$CALLS.script"\nprintf "%s\\n" "$@" > "$CALLS.osascript"\necho tab-7\n',
+        )
+        self.install(
+            self.bin / "claude",
+            'printf "%s\\n" "$@" > "$CALLS.claude"\nprintf "Starting background service…\\nbackgrounded · 4f2a\\n  claude attach 4f2a    open in this terminal\\n"\n',
+        )
         self.lockout(0)
 
     def install(self, path: Path, body: str) -> None:
@@ -44,8 +50,19 @@ class SpawnSessionTest(unittest.TestCase):
         )
 
     def run_command(self, *arguments: str) -> subprocess.CompletedProcess[str]:
-        environment = {"HOME": str(self.home), "PATH": f"{self.bin}:/usr/bin:/bin", "CALLS": str(self.calls)}
-        return subprocess.run(arguments, env=environment, text=True, capture_output=True, timeout=10, check=False)
+        environment = {
+            "HOME": str(self.home),
+            "PATH": f"{self.bin}:/usr/bin:/bin",
+            "CALLS": str(self.calls),
+        }
+        return subprocess.run(
+            arguments,
+            env=environment,
+            text=True,
+            capture_output=True,
+            timeout=10,
+            check=False,
+        )
 
     def recorded(self, kind: str) -> str:
         return Path(f"{self.calls}.{kind}").read_text()
@@ -58,28 +75,43 @@ class SpawnSessionTest(unittest.TestCase):
         self.assertEqual(arguments[1:3], [str(self.folder), "make test"])
         script = self.recorded("script")
         self.assertIn("set previousId to id of selected tab of mainWindow", script)
-        self.assertIn("if selected of t then select tab (first tab of mainWindow whose id is previousId)", script)
+        self.assertIn(
+            "if selected of t then select tab (first tab of mainWindow whose id is previousId)",
+            script,
+        )
         self.assertIn("lockout --wait", self.recorded("guard"))
 
     def test_session_is_typed_into_a_tab_with_its_options_and_brief(self) -> None:
-        result = self.run_command("spawn-session", str(self.folder), str(self.brief), "--name", "Kid tabs")
+        result = self.run_command(
+            "spawn-session", str(self.folder), str(self.brief), "--name", "Kid tabs"
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "tab-7\n")
         typed = self.recorded("osascript").splitlines()[2]
-        self.assertEqual(typed, f'claude --name Kid\\ tabs "$(cat {str(self.brief).replace(" ", "\\ ")})"')
+        self.assertEqual(
+            typed,
+            f'claude --name Kid\\ tabs "$(cat {str(self.brief).replace(" ", "\\ ")})"',
+        )
         self.assertFalse(Path(f"{self.calls}.claude").exists())
 
     def test_session_starts_in_the_background_during_a_lockout(self) -> None:
         self.lockout(LOCKED_OUT)
-        result = self.run_command("spawn-session", str(self.folder), str(self.brief), "--name", "Kid tabs")
+        result = self.run_command(
+            "spawn-session", str(self.folder), str(self.brief), "--name", "Kid tabs"
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "background 4f2a\n")
-        self.assertEqual(self.recorded("claude").splitlines(), ["--bg", "--name", "Kid tabs", "Do the thing."])
+        self.assertEqual(
+            self.recorded("claude").splitlines(),
+            ["--bg", "--name", "Kid tabs", "Do the thing."],
+        )
         self.assertIn("attach-after-lockout 4f2a", self.recorded("guard"))
         self.assertFalse(Path(f"{self.calls}.osascript").exists())
 
     def test_unreadable_brief_fails_before_anything_starts(self) -> None:
-        result = self.run_command("spawn-session", str(self.folder), str(self.root / "missing.md"))
+        result = self.run_command(
+            "spawn-session", str(self.folder), str(self.root / "missing.md")
+        )
         self.assertEqual(result.returncode, 1)
         self.assertIn("cannot read", result.stderr)
         self.assertFalse(Path(f"{self.calls}.osascript").exists())

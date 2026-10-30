@@ -16,7 +16,7 @@ shift 2
 guard="$HOME/.cargo/bin/session-guard"
 if ! "$guard" lockout >/dev/null 2>&1; then
   started=$(cd "$folder" && claude --bg "$@" "$(<"$brief")")
-  backgrounded='backgrounded · ([0-9a-f]+) ·'
+  backgrounded='backgrounded · ([0-9a-f]+)'
   if [[ ! "$started" =~ $backgrounded ]]; then
     printf 'spawn-session: claude --bg printed no id:\n%s\n' "$started" >&2
     exit 1
