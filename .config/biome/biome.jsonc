@@ -1,5 +1,6 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "root": false,
+  "$schema": "https://biomejs.dev/schemas/2.6.4/schema.json",
   "formatter": {
     "indentStyle": "space",
     "indentWidth": 2
@@ -76,18 +77,22 @@
             "noExcessiveNestedTestSuites": "off"
           },
           "nursery": {
-            "noIdenticalTestTitle": "off",
-            "useConsistentTestIt": "off",
-            "usePlaywrightValidDescribeCallback": "off",
-            "useTestHooksInOrder": "off",
-            "useTestHooksOnTop": "off",
             "useValidTestTitle": "off"
           },
           "suspicious": {
             "noDuplicateTestHooks": "off",
             "noExportsInTest": "off",
             "noFocusedTests": "off",
-            "noSkippedTests": "off"
+            "noSkippedTests": "off",
+            "noIdenticalTestTitle": "off"
+          },
+          "style": {
+            "useConsistentTestIt": "off",
+            "useTestHooksInOrder": "off",
+            "useTestHooksOnTop": "off"
+          },
+          "correctness": {
+            "usePlaywrightValidDescribeCallback": "off"
           }
         }
       }
@@ -100,18 +105,22 @@
             "noExcessiveNestedTestSuites": "on"
           },
           "nursery": {
-            "noIdenticalTestTitle": "on",
-            "useConsistentTestIt": "on",
-            "usePlaywrightValidDescribeCallback": "on",
-            "useTestHooksInOrder": "on",
-            "useTestHooksOnTop": "on",
             "useValidTestTitle": "on"
           },
           "suspicious": {
             "noDuplicateTestHooks": "on",
             "noExportsInTest": "on",
             "noFocusedTests": "on",
-            "noSkippedTests": "on"
+            "noSkippedTests": "on",
+            "noIdenticalTestTitle": "on"
+          },
+          "style": {
+            "useConsistentTestIt": "on",
+            "useTestHooksInOrder": "on",
+            "useTestHooksOnTop": "on"
+          },
+          "correctness": {
+            "usePlaywrightValidDescribeCallback": "on"
           }
         }
       }
