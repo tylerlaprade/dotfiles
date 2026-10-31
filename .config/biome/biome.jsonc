@@ -1,5 +1,4 @@
 {
-  "root": false,
   "$schema": "https://biomejs.dev/schemas/2.6.4/schema.json",
   "formatter": {
     "indentStyle": "space",
@@ -47,7 +46,69 @@
           },
           "nursery": {
             // Function declarations versus arrow functions is pure style.
-            "useConsistentFunctionStyle": "off"
+            "useConsistentFunctionStyle": "off",
+            // A leading or trailing underscore on a name is pure style.
+            "noDanglingUnderscore": "off",
+            // A template literal inside another versus a variable is pure style.
+            "noNestedTemplateLiterals": "off",
+            // null versus undefined is pure style, and DOM and JSON APIs speak null.
+            "noNull": "off",
+            // Object() versus {} builds the same object.
+            "noObjectConstructor": "off",
+            // Which for...of source counts as too complex to read is a style call.
+            "noUnreadableForOfExpression": "off",
+            // Wrapping an arrow function's body in parentheses is pure style.
+            "noUnreadableIife": "off",
+            // A switch inside a switch versus a helper is pure style.
+            "noNestedSwitch": "off",
+            // 1.0 and 1 are the same number.
+            "noZeroFractions": "off",
+            // 0px and 0 are the same length.
+            "noZeroLengthUnit": "off",
+            // BigInt(1) and 1n are the same value.
+            "useBigintLiterals": "off",
+            // An IIFE versus a block for a private scope is pure style.
+            "useBlockStatementOverIife": "off",
+            // Capitalizing constructor names is a naming convention.
+            "useCapitalizedConstructors": "off",
+            // Which lightness notation a color uses is pure style.
+            "useConsistentLightnessNotation": "off",
+            // How a file is read before JSON.parse is pure style.
+            "useConsistentJsonFileRead": "off",
+            // toContain() versus another matcher for the same check is pure style.
+            "useExpectToContain": "off",
+            // Iterator.zip() versus indexing several arrays is pure style, and older runtimes lack Iterator.zip.
+            "useIteratorZip": "off",
+            // The case of a test title's first letter is pure style.
+            "useLowercaseTestTitle": "off",
+            // Whether a function's own name matches the variable it is assigned to is pure style.
+            "useMatchingFunctionName": "off",
+            // Math.abs() versus the same comparison written out is pure style.
+            "useMathAbs": "off",
+            // A named versus an anonymous function expression is pure style.
+            "useNamedFunction": "off",
+            // Returning a condition versus if/return true/false is pure style.
+            "useSimplifiedBooleanReturn": "off",
+            // -x versus x * -1 is pure style.
+            "useUnaryMinus": "off",
+            // Ending a loop in its while condition versus with a break is pure style.
+            "useWhileLoopCondition": "off",
+            // Like noMagicNumbers, which depth deserves a name is a style call.
+            "noMagicArrayFlatDepth": "off",
+            // Tailwind class order is pure style.
+            "useTailwindSortedClasses": "off",
+            // Svelte's shorthand versus long directive syntax is pure style.
+            "useSvelteShorthandDirective": "off",
+            // Which script and style languages Vue and Svelte blocks use is a project choice.
+            "useConsistentBlockLang": "off",
+            // Hyphenating Vue event names is pure style.
+            "useVueConsistentEventHyphenation": "off",
+            // Destructuring Vue props versus reading them off an object is pure style.
+            "useVueDefinePropsDestructuring": "off",
+            // A Vue component's name versus its file name is a naming convention.
+            "useVueMatchingComponentFileName": "off",
+            // v-model versus the prop and update: listener it stands for is pure style.
+            "useVueVModel": "off"
           },
           "style": {
             // Which literals deserve a name is a style call; drawing coordinates and data tables read best inline.
