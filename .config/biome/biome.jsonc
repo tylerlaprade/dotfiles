@@ -130,6 +130,18 @@
       }
     },
     {
+      // tsc checks every TypeScript import, including modules a host supplies at run time, such as Claude Code's
+      // claude-code, which Biome cannot find on disk.
+      "includes": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnresolvedImports": "off"
+          }
+        }
+      }
+    },
+    {
       // Test-suite rules key on calls named test, it and describe, so they apply only inside test files.
       "includes": ["**"],
       "linter": {
