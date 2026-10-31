@@ -57,7 +57,7 @@ class BackgroundHelpersTest(unittest.TestCase):
         self.bin.mkdir(parents=True)
         self.home = self.root / 'home'
         self.home.mkdir()
-        self.environment = dict(os.environ, HOME=str(self.home), PATH=f'{self.bin}:{os.environ["PATH"]}')
+        self.environment = dict(os.environ, HOME=str(self.home), USER='tyler', PATH=f'{self.bin}:{os.environ["PATH"]}')
         for name in ['GH_TOKEN', 'GITHUB_TOKEN', 'GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN']:
             self.environment.pop(name, None)
         (self.root / 'scripts/keychain-unlocked.py').write_text(
@@ -174,7 +174,7 @@ class BackgroundHelpersTest(unittest.TestCase):
         self.environment['FAKE_KEYCHAIN_STATUS'] = '0'
         result = self.run_helper('claude-usage', '--fresh')
         self.assertEqual(usage_report(result.stdout)['error'], 'no login')
-        self.assertEqual(self.calls.read_text(), 'security find-generic-password -s Claude Code-credentials -w\n')
+        self.assertEqual(self.calls.read_text(), 'security find-generic-password -a tyler -s Claude Code-credentials -w\n')
 
     def test_unresponsive_credential_read_stops(self) -> None:
         self.environment['FAKE_SECURITY_DELAY'] = '30'
@@ -241,7 +241,7 @@ class BackgroundHelpersTest(unittest.TestCase):
         result = self.run_helper('claude-usage')
         self.assertEqual(result.returncode, 1)
         self.assertEqual(usage_report(result.stdout)['error'], 'token expired')
-        self.assertEqual(self.calls.read_text(), 'security find-generic-password -s Claude Code-credentials -w\n')
+        self.assertEqual(self.calls.read_text(), 'security find-generic-password -a tyler -s Claude Code-credentials -w\n')
 
     def test_usage_failure_persists_and_returns_failure_on_cached_read(self) -> None:
         self.cache.write_text(json.dumps({'ok': True, 'fable': 23, 'fetched_at': 0}))
@@ -382,7 +382,7 @@ class BackgroundHelpersTest(unittest.TestCase):
         log = self.home / '.claude/acl-events.log'
         self.assertTrue(log.exists())
         self.assertIn('security exit=36', log.read_text().splitlines()[-1])
-        self.assertEqual(self.calls.read_text(), 'security find-generic-password -s Claude Code-credentials -w\n')
+        self.assertEqual(self.calls.read_text(), 'security find-generic-password -a tyler -s Claude Code-credentials -w\n')
 
     def test_statusline_labels_rate_limit_distinctly(self) -> None:
         payload: JSONValue = {'workspace': {'current_dir': str(self.root)}, 'context_window': {'total_input_tokens': 1000, 'context_window_size': 200000},
