@@ -1,7 +1,7 @@
 import type { On, PromptOrigin, Register } from "claude-code";
 import { atom, read, update } from "claude-code";
 
-import type { SentTimes } from "../types";
+import type { SentTimes } from "../types/index.js";
 
 const noTimes: SentTimes = {};
 const sentAt = atom({ plugin: "sent-time", key: "sentAt" } as const, noTimes);
