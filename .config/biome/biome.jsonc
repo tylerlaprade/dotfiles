@@ -95,6 +95,8 @@
             "useWhileLoopCondition": "off",
             // Like noMagicNumbers, which depth deserves a name is a style call.
             "noMagicArrayFlatDepth": "off",
+            // How many statements a function may hold is a style call; noExcessiveCognitiveComplexity catches the hard ones.
+            "noExcessiveStatementsPerFunction": "off",
             // Tailwind class order is pure style.
             "useTailwindSortedClasses": "off",
             // Svelte's shorthand versus long directive syntax is pure style.
