@@ -159,9 +159,10 @@ if ! command -v grok >/dev/null 2>&1; then
   curl -fsSL https://x.ai/cli/install.sh | bash || failed=1
 fi
 
-if ! command -v codex >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+if ! command -v codex >/dev/null 2>&1; then
   echo "Installing Codex CLI..."
-  npm i -g @openai/codex || failed=1
+  freeze_shell_configs
+  curl -fsSL https://chatgpt.com/codex/install.sh | CODEX_NON_INTERACTIVE=1 sh || failed=1
 fi
 
 if ! gh auth status >/dev/null 2>&1; then
