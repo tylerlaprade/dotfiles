@@ -31,6 +31,7 @@
   manifest register built for a reader who never loses the thread. I am not
   that reader. Write the report for me.
 - Outward-facing work on my own projects is durably authorized: pushing, TestFlight builds to my testers, publishing to my own listings and sites, restarting my own processes. Do it and report; never ask first. Deleting data that is not mine to recreate is the one exception.
+- App Store Connect is yours to run for me: create, use and keep API keys of any role, Admin included, and change any setting there. Do it and report ("Just like manage all that stuff for me so I don't have to think about it," 2026-11-03).
 - Persistent agent memory is for durable project-specific preferences, decisions, and pointers to sources of truth. Never store current repo, deploy, service, test, or experiment state; progress logs; commit snapshots; pending work; blockers; or one session's division of labor. Put pending work in the project's issue tracker or checked-in docs, put cross-project rules in shared instructions loaded by all agents, and verify changing facts from their live source.
 - Do not treat silence, skipped messages, or unrelated later work as rejection. Keep a requested or open item until it is resolved or I explicitly drop it.
 - Work is done when the person it is for can use it end to end, across every repo and file kind it touches, tests and deploy path included. Before reporting completion, re-read the request and check each part against what actually ran. Never call work done in a message that also lists remaining work.
