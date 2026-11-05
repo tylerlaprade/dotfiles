@@ -138,6 +138,15 @@ for item in "$DOTFILES"/.agents/skills/*; do
   link "$item" "$HOME/.agents/skills/$(basename "$item")"
 done
 
+# Tyler's voice lives in the private tylerbench repo; every agent gets its skill.
+TYLERBENCH_SKILL="$HOME/Code/tylerbench/skills/tylerbench"
+if [[ -d "$TYLERBENCH_SKILL" ]]; then
+  link "$TYLERBENCH_SKILL" "$HOME/.claude/skills/tylerbench"
+  link "$TYLERBENCH_SKILL" "$HOME/.agents/skills/tylerbench"
+else
+  echo "⚠️  Clone tylerlaprade/tylerbench into ~/Code/tylerbench so agents can write in Tyler's voice."
+fi
+
 # ~/.gitconfig stays a real file so machine-local keys (CodeRabbit's machine
 # id) are not written into the shared repo. Git reads the shared settings
 # through an include.

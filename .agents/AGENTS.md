@@ -69,7 +69,7 @@
 - Show visual comparisons in one combined view or image. When subjective work keeps missing the mark, get independent critiques with distinct aims. Always inspect the result yourself before presenting it.
 - Before opening an issue, pull request, discussion or comment in a project that isn't mine, read its contribution rules (CONTRIBUTING, AI policy, templates, discussion categories) and follow them.
 - Review replies in my name are short and casual, with no winking or cute emoji, and never commit me to more work: no new issue, no promised follow-up, no offer to change it later. A point outside the PR gets a plain "out of scope for this PR." A thread whose only reply would be "done" is resolved without a reply.
-- Anything written in my name follows `~/Code/QueenspawnGames/voice/core.md`, plus the rules for its surface (`voice.md` beside it for Queenspawn surfaces).
+- Anything written in my name follows `~/Code/tylerbench/core.md` (the `tylerbench` skill loads it), plus the rules for its surface, such as `~/Code/QueenspawnGames/voice/voice.md` for Queenspawn surfaces.
 - For user-facing copy (app text, notifications, store and site lines), draft a batch of distinct candidates at once and choose among them. A single line polished alone drifts toward clever and stiff; a batch keeps the voice plain and lets the lines be compared.
 - When I mark up specific lines of a draft or plan, change only those lines and keep the rest word for word.
 - Keep a visual artifact available until I have reviewed it; do not delete a shared temporary file in the same turn.
