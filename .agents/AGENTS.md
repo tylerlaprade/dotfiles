@@ -77,6 +77,14 @@
 - Scale review and parallel-agent fan-out to the change and the laptop's shared
   CPU. Recheck only what changed; do not launch several cold builds for the same
   proof.
+- Many agents share this one machine, so a tool that by default uses every
+  core, or one worker per core (`node --test`, pytest-xdist `-n auto`, cargo
+  and make jobs, Jest and Vitest workers, Bun, Gradle, Maven, `go test -p`,
+  Swift parallel testing), assumes it runs alone, an outdated assumption.
+  Set its worker count to fit beside everything else running, in every
+  language and test framework, and keep browser-driving tests to a couple at
+  once. On Nov 5, `node --test` with 7 Playwright files at once got killed on
+  the 8 GB Mac; 4 at a time, with 2 for browser tests, peaked at 1.24 GB.
 - Never stash or revert another session's work. Preserve foreign edits and stage only your intended hunks. Another session may already have staged its own work, so commit only when the staged list is exactly yours.
 - To commit only your files while another session has staged its own, commit through a temporary index (`GIT_INDEX_FILE`), then `git add` those same paths so the real index stops holding their old versions. A commit's `Claude-Session:` trailer names the session that made it.
 - Recheck `HEAD` before amending.
