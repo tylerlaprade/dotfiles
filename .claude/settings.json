@@ -248,7 +248,8 @@
     "typescript-lsp@claude-plugins-official": true,
     "cc-plugin-you-should-know@builtin": true,
     "limbic@limbic": false,
-    "sent-time@dotfiles": true
+    "sent-time@dotfiles": true,
+    "tool-colors@claude-tool-colors": true
   },
   "extraKnownMarketplaces": {
     "basedpyright-lsp": {
@@ -282,6 +283,12 @@
       "source": {
         "source": "github",
         "repo": "tylerlaprade/limbic"
+      }
+    },
+    "claude-tool-colors": {
+      "source": {
+        "source": "github",
+        "repo": "tylerlaprade/claude-tool-colors"
       }
     }
   },
