@@ -27,7 +27,7 @@ LOCK_SOUND = "/System/Library/Components/CoreAudio.component/Contents/SharedSupp
 UNLOCK_SOUND = "/System/Library/Components/CoreAudio.component/Contents/SharedSupport/SystemSounds/accessibility/Mouse Keys OFF.aif"
 DROPPED_CLICK_SOUND = "/System/Library/Sounds/Basso.aiff"
 DROPPED_CLICK_VOLUME = 0.2
-DROPPED_CLICK_COOLDOWN_SECONDS = 10
+READ_SOUND_INTO_MEMORY = False
 IGNORED_MESSAGES = frozenset(
     {"TapActivated", "HoldActivated", "ConfigFileReload", "MessagePush"}
 )
@@ -152,22 +152,47 @@ stop_run_loop: Callable[[int], None] = foundation.CFRunLoopStop
 release: Callable[[int], None] = foundation.CFRelease
 default_run_loop_mode = ctypes.c_void_p.in_dll(foundation, "kCFRunLoopDefaultMode")
 
-
-# Idle audio hardware swallows the start of the first sound, so a silent
-# play wakes it before the audible one.
-AUDIO_WARM_UP = '/usr/bin/afplay -v 0 -t 0.3 "$0"'
+objective_c = ctypes.CDLL("/usr/lib/libobjc.A.dylib")
+# Loading AppKit is what registers NSSound with the Objective-C runtime.
+ctypes.CDLL("/System/Library/Frameworks/AppKit.framework/AppKit")
+objective_c.objc_getClass.restype = ctypes.c_void_p
+objective_c.objc_getClass.argtypes = (ctypes.c_char_p,)
+objective_c.sel_registerName.restype = ctypes.c_void_p
+objective_c.sel_registerName.argtypes = (ctypes.c_char_p,)
+objective_c.objc_autoreleasePoolPush.restype = ctypes.c_void_p
+objective_c.objc_autoreleasePoolPush.argtypes = ()
+objective_c.objc_autoreleasePoolPop.restype = None
+objective_c.objc_autoreleasePoolPop.argtypes = (ctypes.c_void_p,)
+get_class: Callable[[bytes], int] = objective_c.objc_getClass
+selector: Callable[[bytes], int] = objective_c.sel_registerName
+push_autorelease_pool: Callable[[], int] = objective_c.objc_autoreleasePoolPush
+pop_autorelease_pool: Callable[[int], None] = objective_c.objc_autoreleasePoolPop
+send_message = ("objc_msgSend", objective_c)
+alloc_object: Callable[[int, int], int] = ctypes.CFUNCTYPE(
+    ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p
+)(send_message)
+make_string: Callable[[int, int, bytes], int | None] = ctypes.CFUNCTYPE(
+    ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_char_p
+)(send_message)
+init_sound: Callable[[int, int, int, bool], int | None] = ctypes.CFUNCTYPE(
+    ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_bool
+)(send_message)
+set_volume: Callable[[int, int, float], None] = ctypes.CFUNCTYPE(
+    None, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_float
+)(send_message)
+send_returning_bool: Callable[[int, int], bool] = ctypes.CFUNCTYPE(
+    ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p
+)(send_message)
 
 
 def chime_command(sound: str) -> list[str]:
-    return ["/bin/sh", "-c", f'{AUDIO_WARM_UP}; /usr/bin/afplay "$0"', sound]
-
-
-def dropped_click_command() -> list[str]:
+    # Idle audio hardware swallows the start of the first sound, so a silent
+    # play wakes it before the audible one.
     return [
         "/bin/sh",
         "-c",
-        f'{AUDIO_WARM_UP}; /usr/bin/afplay -v {DROPPED_CLICK_VOLUME} "$0"',
-        DROPPED_CLICK_SOUND,
+        '/usr/bin/afplay -v 0 -t 0.3 "$0"; /usr/bin/afplay "$0"',
+        sound,
     ]
 
 
@@ -175,33 +200,41 @@ def play(sound: str) -> None:
     subprocess.Popen(chime_command(sound))
 
 
-def play_dropped_click() -> None:
-    subprocess.Popen(dropped_click_command())
-
-
 class DroppedClickSound:
-    def __init__(
-        self,
-        start_sound: Callable[[], None] = play_dropped_click,
-        now: Callable[[], float] = time.monotonic,
-    ) -> None:
-        self.start_sound: Callable[[], None] = start_sound
-        self.now: Callable[[], float] = now
-        self.last_played: float | None = None
+    # In-process because afplay alone takes about 400 ms to start. No silent
+    # warm-up here: holding the speakers awake stops the Mac sleeping while locked.
+    def __init__(self, volume: float = DROPPED_CLICK_VOLUME) -> None:
+        pool = push_autorelease_pool()
+        path = make_string(
+            get_class(b"NSString"),
+            selector(b"stringWithUTF8String:"),
+            DROPPED_CLICK_SOUND.encode(),
+        )
+        sound = init_sound(
+            alloc_object(get_class(b"NSSound"), selector(b"alloc")),
+            selector(b"initWithContentsOfFile:byReference:"),
+            path or 0,
+            READ_SOUND_INTO_MEMORY,
+        )
+        pop_autorelease_pool(pool)
+        if sound is None:
+            raise OSError(f"Could not load {DROPPED_CLICK_SOUND}.")
+        self.sound: int = sound
+        self.stop_selector: int = selector(b"stop")
+        self.play_selector: int = selector(b"play")
+        set_volume(self.sound, selector(b"setVolume:"), volume)
 
-    def notice(self, event_type: int) -> None:
-        if event_type not in CLICK_EVENTS:
-            return
-        moment = self.now()
-        if (
-            self.last_played is not None
-            and moment - self.last_played < DROPPED_CLICK_COOLDOWN_SECONDS
-        ):
-            return
-        self.last_played = moment
-        # macOS disables an event tap whose callback responds slowly, and
-        # starting a process waits for its exec.
-        threading.Thread(target=self.start_sound, daemon=True).start()
+    def play(self) -> None:
+        pool = push_autorelease_pool()
+        send_returning_bool(self.sound, self.stop_selector)
+        played = send_returning_bool(self.sound, self.play_selector)
+        pop_autorelease_pool(pool)
+        if not played:
+            print(f"Could not play {DROPPED_CLICK_SOUND}.", flush=True)
+
+
+class ClickSound(Protocol):
+    def play(self) -> None: ...
 
 
 class PointerGate(Protocol):
@@ -213,7 +246,7 @@ class PointerGate(Protocol):
 class PointerBlocker:
     def __init__(self) -> None:
         self.blocking: bool = False
-        self.dropped_click: DroppedClickSound = DroppedClickSound()
+        self.dropped_click: ClickSound = DroppedClickSound()
         self.callback: object = TapCallback(self.filter)
         tap = create_event_tap(
             SESSION_EVENT_TAP,
@@ -255,7 +288,8 @@ class PointerBlocker:
             return event
         if not self.blocking:
             return event
-        self.dropped_click.notice(event_type)
+        if event_type in CLICK_EVENTS:
+            self.dropped_click.play()
         return None
 
     def block(self) -> None:

@@ -3,23 +3,22 @@ from __future__ import annotations
 
 import plistlib
 import re
-import threading
+import time
 import unittest
 from pathlib import Path
 from typing import final
 
 from scripts.kid_trackpad import (
     CLICK_EVENTS,
-    DROPPED_CLICK_COOLDOWN_SECONDS,
     DROPPED_CLICK_SOUND,
     LOCK_SOUND,
     POINTER_EVENT_MASK,
+    TAP_DISABLED,
     UNLOCK_SOUND,
     DroppedClickSound,
     EventType,
     PointerBlocker,
     chime_command,
-    dropped_click_command,
     follow_layers,
     kanata_address,
     layer_name,
@@ -173,93 +172,60 @@ class LayerTest(unittest.TestCase):
 
 
 @final
-class FakeClock:
+class CountingSound:
     def __init__(self) -> None:
-        self.seconds: float = 1000.0
+        self.plays: int = 0
 
-    def __call__(self) -> float:
-        return self.seconds
+    def play(self) -> None:
+        self.plays += 1
 
 
-@final
-class DroppedClickRig:
-    def __init__(self) -> None:
-        self.clock = FakeClock()
-        self.started = threading.Semaphore(0)
-        self.sound = DroppedClickSound(self.started.release, self.clock)
-
-    def played(self) -> bool:
-        return self.started.acquire(timeout=5)
-
-    def stayed_silent(self) -> bool:
-        return not self.started.acquire(timeout=0.05)
-
-    def blocker(self, *, blocking: bool) -> PointerBlocker:
-        blocker = PointerBlocker.__new__(PointerBlocker)
-        blocker.blocking = blocking
-        blocker.dropped_click = self.sound
-        return blocker
+def blocker_with(sound: CountingSound, *, blocking: bool) -> PointerBlocker:
+    blocker = PointerBlocker.__new__(PointerBlocker)
+    blocker.blocking = blocking
+    blocker.dropped_click = sound
+    return blocker
 
 
 @final
 class DroppedClickTest(unittest.TestCase):
-    def test_every_button_down_plays(self) -> None:
-        rig = DroppedClickRig()
+    def test_every_locked_button_down_is_dropped_and_plays(self) -> None:
+        sound = CountingSound()
+        blocker = blocker_with(sound, blocking=True)
         for event_type in CLICK_EVENTS:
-            with self.subTest(event_type=event_type):
-                rig.clock.seconds += DROPPED_CLICK_COOLDOWN_SECONDS
-                rig.sound.notice(event_type)
-                self.assertTrue(rig.played())
+            self.assertIsNone(blocker.filter(None, event_type, 1234, None))
+        self.assertEqual(sound.plays, len(CLICK_EVENTS))
+
+    def test_repeat_clicks_each_play(self) -> None:
+        sound = CountingSound()
+        blocker = blocker_with(sound, blocking=True)
+        for _ in range(3):
+            _ = blocker.filter(None, EventType.LEFT_MOUSE_DOWN, 1234, None)
+        self.assertEqual(sound.plays, 3)
 
     def test_nothing_but_a_button_down_plays(self) -> None:
-        rig = DroppedClickRig()
+        sound = CountingSound()
+        blocker = blocker_with(sound, blocking=True)
         for event_type in EventType:
-            if event_type not in CLICK_EVENTS:
-                rig.sound.notice(event_type)
-        self.assertTrue(rig.stayed_silent())
-
-    def test_repeat_clicks_stay_quiet_until_the_cooldown_ends(self) -> None:
-        rig = DroppedClickRig()
-        rig.sound.notice(EventType.LEFT_MOUSE_DOWN)
-        self.assertTrue(rig.played())
-        rig.clock.seconds += DROPPED_CLICK_COOLDOWN_SECONDS - 0.1
-        rig.sound.notice(EventType.LEFT_MOUSE_DOWN)
-        self.assertTrue(rig.stayed_silent())
-        rig.clock.seconds += 0.1
-        rig.sound.notice(EventType.LEFT_MOUSE_DOWN)
-        self.assertTrue(rig.played())
-
-    def test_a_locked_click_is_dropped_and_plays(self) -> None:
-        rig = DroppedClickRig()
-        result = rig.blocker(blocking=True).filter(
-            None, EventType.LEFT_MOUSE_DOWN, 1234, None
-        )
-        self.assertIsNone(result)
-        self.assertTrue(rig.played())
-
-    def test_locked_movement_is_dropped_in_silence(self) -> None:
-        rig = DroppedClickRig()
-        result = rig.blocker(blocking=True).filter(
-            None, EventType.MOUSE_MOVED, 1234, None
-        )
-        self.assertIsNone(result)
-        self.assertTrue(rig.stayed_silent())
+            if event_type not in CLICK_EVENTS and event_type not in TAP_DISABLED:
+                self.assertIsNone(blocker.filter(None, event_type, 1234, None))
+        self.assertEqual(sound.plays, 0)
 
     def test_an_unlocked_click_passes_in_silence(self) -> None:
-        rig = DroppedClickRig()
+        sound = CountingSound()
         event = 1234
-        result = rig.blocker(blocking=False).filter(
+        result = blocker_with(sound, blocking=False).filter(
             None, EventType.LEFT_MOUSE_DOWN, event, None
         )
         self.assertEqual(result, event)
-        self.assertTrue(rig.stayed_silent())
+        self.assertEqual(sound.plays, 0)
 
-    def test_the_sound_is_a_quiet_system_sound_after_the_warm_up(self) -> None:
-        command = dropped_click_command()
+    def test_the_real_sound_loads_and_starts_fast_at_zero_volume(self) -> None:
         self.assertTrue(Path(DROPPED_CLICK_SOUND).is_file())
-        self.assertEqual(command[-1], DROPPED_CLICK_SOUND)
-        self.assertEqual(command[2].count("/usr/bin/afplay -v 0 -t 0.3"), 1)
-        self.assertIn('/usr/bin/afplay -v 0.2 "$0"', command[2])
+        sound = DroppedClickSound(volume=0)
+        started = time.perf_counter()
+        sound.play()
+        self.assertLess(time.perf_counter() - started, 0.5)
 
     def test_lock_chimes_keep_their_exact_command(self) -> None:
         self.assertEqual(
