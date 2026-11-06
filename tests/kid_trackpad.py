@@ -182,17 +182,17 @@ class FakeClock:
 
 
 @final
-class DroppedClickTest(unittest.TestCase):
-    def setUp(self) -> None:
+class DroppedClickRig:
+    def __init__(self) -> None:
         self.clock = FakeClock()
         self.started = threading.Semaphore(0)
         self.sound = DroppedClickSound(self.started.release, self.clock)
 
-    def assert_plays(self) -> None:
-        self.assertTrue(self.started.acquire(timeout=5))
+    def played(self) -> bool:
+        return self.started.acquire(timeout=5)
 
-    def assert_silent(self) -> None:
-        self.assertFalse(self.started.acquire(timeout=0.05))
+    def stayed_silent(self) -> bool:
+        return not self.started.acquire(timeout=0.05)
 
     def blocker(self, *, blocking: bool) -> PointerBlocker:
         blocker = PointerBlocker.__new__(PointerBlocker)
@@ -200,54 +200,59 @@ class DroppedClickTest(unittest.TestCase):
         blocker.dropped_click = self.sound
         return blocker
 
+
+@final
+class DroppedClickTest(unittest.TestCase):
     def test_every_button_down_plays(self) -> None:
+        rig = DroppedClickRig()
         for event_type in CLICK_EVENTS:
             with self.subTest(event_type=event_type):
-                self.clock.seconds += DROPPED_CLICK_COOLDOWN_SECONDS
-                self.sound.notice(event_type)
-                self.assert_plays()
+                rig.clock.seconds += DROPPED_CLICK_COOLDOWN_SECONDS
+                rig.sound.notice(event_type)
+                self.assertTrue(rig.played())
 
     def test_nothing_but_a_button_down_plays(self) -> None:
+        rig = DroppedClickRig()
         for event_type in EventType:
-            if event_type in CLICK_EVENTS:
-                continue
-            with self.subTest(event_type=event_type):
-                self.sound.notice(event_type)
-        self.assert_silent()
+            if event_type not in CLICK_EVENTS:
+                rig.sound.notice(event_type)
+        self.assertTrue(rig.stayed_silent())
 
     def test_repeat_clicks_stay_quiet_until_the_cooldown_ends(self) -> None:
-        self.sound.notice(EventType.LEFT_MOUSE_DOWN)
-        self.assert_plays()
-        self.clock.seconds += DROPPED_CLICK_COOLDOWN_SECONDS - 0.1
-        self.sound.notice(EventType.LEFT_MOUSE_DOWN)
-        self.assert_silent()
-        self.clock.seconds += 0.1
-        self.sound.notice(EventType.LEFT_MOUSE_DOWN)
-        self.assert_plays()
+        rig = DroppedClickRig()
+        rig.sound.notice(EventType.LEFT_MOUSE_DOWN)
+        self.assertTrue(rig.played())
+        rig.clock.seconds += DROPPED_CLICK_COOLDOWN_SECONDS - 0.1
+        rig.sound.notice(EventType.LEFT_MOUSE_DOWN)
+        self.assertTrue(rig.stayed_silent())
+        rig.clock.seconds += 0.1
+        rig.sound.notice(EventType.LEFT_MOUSE_DOWN)
+        self.assertTrue(rig.played())
 
     def test_a_locked_click_is_dropped_and_plays(self) -> None:
-        event = 1234
-        result = self.blocker(blocking=True).filter(
-            None, EventType.LEFT_MOUSE_DOWN, event, None
+        rig = DroppedClickRig()
+        result = rig.blocker(blocking=True).filter(
+            None, EventType.LEFT_MOUSE_DOWN, 1234, None
         )
         self.assertIsNone(result)
-        self.assert_plays()
+        self.assertTrue(rig.played())
 
     def test_locked_movement_is_dropped_in_silence(self) -> None:
-        event = 1234
-        result = self.blocker(blocking=True).filter(
-            None, EventType.MOUSE_MOVED, event, None
+        rig = DroppedClickRig()
+        result = rig.blocker(blocking=True).filter(
+            None, EventType.MOUSE_MOVED, 1234, None
         )
         self.assertIsNone(result)
-        self.assert_silent()
+        self.assertTrue(rig.stayed_silent())
 
     def test_an_unlocked_click_passes_in_silence(self) -> None:
+        rig = DroppedClickRig()
         event = 1234
-        result = self.blocker(blocking=False).filter(
+        result = rig.blocker(blocking=False).filter(
             None, EventType.LEFT_MOUSE_DOWN, event, None
         )
         self.assertEqual(result, event)
-        self.assert_silent()
+        self.assertTrue(rig.stayed_silent())
 
     def test_the_sound_is_a_quiet_system_sound_after_the_warm_up(self) -> None:
         command = dropped_click_command()
