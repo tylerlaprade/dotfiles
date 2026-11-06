@@ -1,6 +1,6 @@
 # shellcheck shell=bash
 # resume — delay-launch a claude, codex, or grok session
-# Source from .zshrc / .bashrc:  source ~/Code/dotfiles/scripts/bin/resume.sh
+# Source from .zshrc:  source ~/Code/dotfiles/scripts/bin/resume.sh
 # macOS-only: uses BSD `date -j -f`. --wake uses `sudo pmset schedule wake`.
 #
 # No prompt arg → resumes this terminal tab's last session with prompt "continue".

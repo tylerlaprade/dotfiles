@@ -2,8 +2,7 @@
 # Outputs formatted git status for statuslines
 
 # git-meta caches (repo, repo_full, branch) per-PWD, invalidated by HEAD/config
-# mtime. One subprocess on cold call, ~0 on cache hit. Shared with the zsh
-# tab-title hook.
+# mtime. One subprocess on cold call, ~0 on cache hit.
 meta=$(git-meta 2>/dev/null) || exit 0
 IFS=$'\037' read -r repo_name repo_full full_branch common_dir <<<"$meta"
 

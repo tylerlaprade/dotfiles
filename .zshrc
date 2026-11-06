@@ -187,28 +187,6 @@ _cached_output zoxide-init $commands[zoxide] zoxide init zsh && eval "$REPLY"
 # direnv - auto-load .envrc files
 _cached_output direnv-hook $commands[direnv] direnv hook zsh && eval "$REPLY"
 
-# Tab title: used to prefix "#PR …" via git-meta + gh-pr-lookup on every
-# precmd/preexec (~50–60ms each). Disabled — we don't use PRs currently;
-# Pure still sets the tab title on its own.
-# _set_tab_title() {
-#   local repo branch pr_num cmd="${3:-$1}"
-#   local _meta
-#   _meta=$(git-meta 2>/dev/null) || return
-#   IFS=$'\037' read -r repo _ branch _ <<<"$_meta"
-#   local pr_info
-#   pr_info=$(gh-pr-lookup "$repo" "$branch" --async 2>/dev/null)
-#   local pr_num="${pr_info%%	*}"
-#   if [[ -n "$pr_num" ]]; then
-#     local pr_title="${pr_info#*	}"
-#     local prefix=""
-#     [[ -n "$cmd" ]] && prefix="${cmd%% *}: "
-#     printf '\e]0;%s#%s %s\a' "$prefix" "$pr_num" "$pr_title"
-#   fi
-# }
-# autoload -Uz add-zsh-hook
-# add-zsh-hook precmd _set_tab_title
-# add-zsh-hook preexec _set_tab_title
-
 # resume — delay-resume claude/codex/grok sessions
 source ~/Code/dotfiles/scripts/bin/resume.sh
 
