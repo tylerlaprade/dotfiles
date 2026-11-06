@@ -8,6 +8,7 @@
 # Prints: ok, five_hour, seven_day, fable, resets_5h, resets_7d, resets_fable,
 # updated_at, and error when ok is false. Percents are 0-100. Resets are unix
 # seconds. fable is the weekly Fable cap (limits[] weekly_scoped).
+# five_hour is null and resets_5h is 0 on a plan without a five-hour limit.
 #
 # A failed fetch still prints the last cache, with ok=false, and exits 1 so
 # resume does not treat stale numbers as live. Statusline can show them dimmed.
@@ -204,7 +205,7 @@ jq -c '
         ))
       | .[0]) as $f
   | {
-      five_hour: ($r.five_hour.utilization | pct),
+      five_hour: (if $r.five_hour then ($r.five_hour.utilization | pct) else null end),
       seven_day: ($r.seven_day.utilization | pct),
       fable: (($f.percent // 0) | pct),
       resets_5h: ($r.five_hour.resets_at | ts),

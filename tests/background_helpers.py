@@ -367,6 +367,9 @@ class BackgroundHelpersTest(unittest.TestCase):
 
     def run_statusline(self, usage_json: str, payload: JSONValue) -> str:
         self.install('claude-usage', '#!/bin/bash\nprintf \'%s\\n\' \'' + usage_json + '\'\n')
+        return self.render_statusline(payload)
+
+    def render_statusline(self, payload: JSONValue) -> str:
         source = (REPOSITORY / '.claude/statusline.sh').read_text()
         source = source.replace(file_reference(source, 'claude-rate-limits.json'), str(self.root / 'rates.json'))
         statusline = self.root / 'statusline.sh'
@@ -383,6 +386,44 @@ class BackgroundHelpersTest(unittest.TestCase):
         self.assertNotIn('Fable 23%', output)
         self.assertIn('5h ', output)
         self.assertIn('7d ', output)
+
+    def usage_from_api(self, body: dict[str, JSONValue]) -> dict[str, JSONValue]:
+        response = self.root / 'usage-response.json'
+        response.write_text(json.dumps(body))
+        self.install('curl', '#!/bin/bash\n'
+                     'while [[ $# -gt 0 ]]; do\n'
+                     f'  if [[ "$1" = -o ]]; then cp {str(response)!r} "$2"; fi\n'
+                     '  shift\n'
+                     'done\n'
+                     'printf 200\n')
+        self.environment.update(FAKE_SECURITY_STATUS='0',
+                                FAKE_SECRET=json.dumps({'claudeAiOauth': {'accessToken': FAKE_CREDENTIAL}}))
+        return usage_report(self.run_helper('claude-usage', '--fresh').stdout)
+
+    def test_usage_keeps_an_absent_five_hour_limit_apart_from_zero_percent(self) -> None:
+        weekly: dict[str, JSONValue] = {'utilization': 24.0, 'resets_at': '2026-11-12T19:00:00+00:00'}
+        absent = self.usage_from_api({'five_hour': None, 'seven_day': weekly})
+        self.assertIsNone(absent['five_hour'])
+        self.assertEqual((absent['resets_5h'], absent['seven_day']), (0, 24))
+        unused: dict[str, JSONValue] = {'utilization': 0.0, 'resets_at': '2026-11-06T19:00:00+00:00'}
+        self.assertEqual(self.usage_from_api({'five_hour': unused, 'seven_day': weekly})['five_hour'], 0)
+
+    def test_statusline_shows_five_hour_only_when_the_limit_exists(self) -> None:
+        payload: JSONValue = {'workspace': {'current_dir': str(self.root)}, 'context_window': {'total_input_tokens': 100},
+                              'rate_limits': {'seven_day': {'used_percentage': 24}}}
+        without_limit = self.run_statusline('{"ok":true,"five_hour":null,"seven_day":24,"resets_5h":0}', payload)
+        self.assertNotIn('5h ', without_limit)
+        self.assertIn('7d ', without_limit)
+        unused_limit = self.run_statusline('{"ok":true,"five_hour":0,"seven_day":24,"resets_5h":0}', payload)
+        self.assertIn('5h ', unused_limit)
+
+    def test_absent_five_hour_limit_does_not_look_like_new_activity(self) -> None:
+        self.cache.write_text(json.dumps({'ok': True, 'fable': 3, 'five_hour': None, 'seven_day': 24,
+                                          'fetched_at': int(time.time()) - 400}))
+        self.render_statusline({'workspace': {'current_dir': str(self.root)}, 'context_window': {'total_input_tokens': 100},
+                                'rate_limits': {'seven_day': {'used_percentage': 24}}})
+        self.assertFalse((self.root / 'usage.fetch').exists())
+        self.assertFalse(self.calls.exists())
 
     def test_statusline_has_no_dangling_separator_with_one_usage_part(self) -> None:
         payload: JSONValue = {'workspace': {'current_dir': str(self.root)}, 'context_window': {'total_input_tokens': 1000, 'context_window_size': 200000}}

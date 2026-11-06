@@ -15,7 +15,8 @@
 # No time/duration → defaults to next rate-limit reset.
 #   claude: runs claude-usage.sh (claude.ai subscription login, not an API key).
 #           Waits on the Fable weekly cap if that is at 100%, else the all-models
-#           7d window if that is at 100%, else the next 5h reset.
+#           7d window if that is at 100%, else the next 5h reset. A plan without
+#           a five-hour limit has none to wait for, so that last case errors.
 #   codex:  reads the latest token_count event from the most recent
 #           ~/.codex/sessions/*/*/*/rollout-*.jsonl.
 #   grok:   reads the latest "billing: fetched credits config" event from

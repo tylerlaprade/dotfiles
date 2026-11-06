@@ -376,7 +376,7 @@ fable_part=""
 if [[ -n "$_usage_cmd" ]]; then
   # Pass stdin's 5h/7d percentages so claude-usage can skip refresh when
   # nothing has burned on this account since the last successful fetch.
-  _usage=$(STATUSLINE_5H="${rate_5h:-0}" STATUSLINE_7D="${rate_7d:-0}" \
+  _usage=$(STATUSLINE_5H="$rate_5h" STATUSLINE_7D="${rate_7d:-0}" \
     "$_usage_cmd" --async 2>/dev/null) || true
 fi
 if [[ -n "$_usage" ]]; then
