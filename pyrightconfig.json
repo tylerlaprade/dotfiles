@@ -1,7 +1,6 @@
 {
   "extends": "../../.config/basedpyright/pyrightconfig.json",
   "include": ["scripts", "tests"],
-  "pythonVersion": "3.14",
   // The 3.9 files run on Apple's /usr/bin/python3: macOS Automation and App Data grants are tied to
   // the interpreter path, and Homebrew's changes on every upgrade.
   "executionEnvironments": [
