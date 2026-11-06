@@ -3,7 +3,6 @@ tap "tylerlaprade/tap"
 tap "withgraphite/tap"
 brew "bat"
 brew "bottom"
-brew "brush", args: ["HEAD"]
 brew "caddy"
 brew "claude-title"
 brew "cliproxyapi"
