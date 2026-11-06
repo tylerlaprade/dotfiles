@@ -386,6 +386,29 @@ class StatuslineTest(unittest.TestCase):
                 else:
                     self.assertEqual(visible(lines[1]), cases['today'][1])
 
+    def render_without_five_hour_limit(self, now: datetime, seven_day: int, left: timedelta) -> str:
+        rates = self.rates(now, seven_day=seven_day, seven_day_reset=now + left)
+        del rates['five_hour']
+        lines = self.render(self.payload(Session(rates=rates)), Fakes(now=now, usage=dict(USAGE_OK, five_hour=None)))
+        return visible(lines[1])
+
+    def test_weekly_battery_marks_the_even_burn_pace(self) -> None:
+        now = at(15, 0)
+        cases = {
+            'behind pace': (15, timedelta(days=3, hours=12), '▓▒░░░│░░░░ 15%'),
+            'on pace': (50, timedelta(days=3, hours=12), '▓▓▓▓▓│░░░░ 50%'),
+            'ahead of pace': (62, timedelta(days=5), '▓▓│▓▓▓░░░░ 62%'),
+            'nearly out': (96, timedelta(hours=18), '▓▓▓▓▓▓▓▓│▒ 96%'),
+            'over the limit': (100, timedelta(days=1), '▓▓▓▓▓▓▓▓│▓ 100%+'),
+        }
+        for name, (seven_day, left, expected) in cases.items():
+            with self.subTest(case=name):
+                self.assertIn(f'Usage · 7d {expected} (resets in', self.render_without_five_hour_limit(now, seven_day, left))
+
+    def test_weekly_battery_has_no_pace_mark_without_a_reset_time(self) -> None:
+        text = self.render_without_five_hour_limit(at(15, 0), 30, timedelta(minutes=-5))
+        self.assertIn('Usage · 7d ▓▓▓░░░░░░░ 30%', text)
+
     def test_clock_and_resets_follow_the_local_time_zone(self) -> None:
         now = at(15, 0)
         lines = self.render(self.payload(Session(rates=self.rates(now))), Fakes(now=now, claude_environment={'TZ': 'Asia/Kathmandu'}))

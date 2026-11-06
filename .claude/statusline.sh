@@ -134,6 +134,29 @@ rate_usage_gradient() {
   fi
 }
 
+# Sets battery to a 10-cell bar in the usage color, with a smooth transition
+# cell, and battery_color to that color. An optional cell index becomes a white
+# pace mark. Sets variables instead of printing, so a render starts no subshell.
+build_battery() {
+  local pct=$1 mark_cell=${2:--1} filled=$(( $1 * 10 / 100 )) transition=░ cell
+  [[ "$filled" -gt 10 ]] && filled=10
+  [[ $(( pct * 10 % 100 )) -ge 50 ]] && transition=▒
+  rate_usage_gradient "$pct"
+  printf -v battery_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
+  battery=$battery_color
+  for (( cell = 0; cell < 10; cell++ )); do
+    if [[ "$cell" -eq "$mark_cell" ]]; then
+      battery+=$'\033[1;38;2;255;255;255m│\033[0m'"$battery_color"
+    elif [[ "$cell" -lt "$filled" ]]; then
+      battery+=▓
+    elif [[ "$cell" -eq "$filled" ]]; then
+      battery+=$transition
+    else
+      battery+=░
+    fi
+  done
+}
+
 # Time-of-day color for the clock (weekdays 4:30-6:45pm, every day 9:30pm-1am local).
 # White outside the windows; LERPs white→green→yellow→bright-red (nighttime inserts an
 # extra white→blue pre-phase so the green-fade starts from blue). Bold kicks in at the
@@ -203,27 +226,9 @@ format_time_color() {
 # Color tracks pressure against the auto-compact trigger.
 # 0-55% stays green, 55-75% blends to yellow, 75-95% blends to red,
 # and anything above 95% stays bright red.
-rate_usage_gradient "$pct"
-bar_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
-
-# Build 10-char progress bar with smooth transition square
-filled=$((pct * 10 / 100))
-[[ "$filled" -gt 10 ]] && filled=10
-frac=$((pct * 10 % 100))
-
-bar=""
-[[ "$filled" -gt 0 ]] && printf -v fill "%${filled}s" && bar="${bar_color}${fill// /▓}"
-
-if [[ "$filled" -lt 10 ]]; then
-  if [[ "$frac" -lt 50 ]]; then
-    bar="${bar}${bar_color}░"
-  else
-    bar="${bar}${bar_color}▒"
-  fi
-
-  empty=$((9 - filled))
-  [[ "$empty" -gt 0 ]] && printf -v pad "%${empty}s" && bar="${bar}${pad// /░}"
-fi
+build_battery "$pct"
+bar=$battery
+bar_color=$battery_color
 ctx_info="${bar}${bar_color} ${pct}% · ${used_display}/${limit_display}${RESET}"
 
 # Persist 5h/7d so the claude() overage gate can read latest state.
@@ -465,7 +470,20 @@ fi
 rate=$(format_rate "$rate_5h" "$resets_5h" 18000 "$cost_display" "$cost_color" plus)
 [[ -n "$rate" ]] && rate_parts+=("5h $rate")
 rate=$(format_rate "$rate_7d" "$resets_7d" 604800 "" "" plus)
-[[ -n "$rate" ]] && rate_parts+=("7d $rate")
+# A five-hour entry leaves no room on the row for the battery. Its pace mark is
+# where an even burn would put the week by now.
+weekly_battery=""
+if [[ -n "$rate" && -z "$rate_5h" ]]; then
+  week_left=$(( ${resets_7d:-0} - now ))
+  pace_cell=-1
+  if [[ "$week_left" -gt 0 ]]; then
+    [[ "$week_left" -gt 604800 ]] && week_left=604800
+    pace_cell=$(( (604800 - week_left) * 10 / 604800 ))
+  fi
+  build_battery "$rate_7d" "$pace_cell"
+  weekly_battery="${battery}${RESET} "
+fi
+[[ -n "$rate" ]] && rate_parts+=("7d ${weekly_battery}$rate")
 [[ -n "$fable_part" ]] && rate_parts+=("$fable_part")
 if (( ${#rate_parts[@]} )); then
   usage_line=$(join_parts "${rate_parts[@]}")
