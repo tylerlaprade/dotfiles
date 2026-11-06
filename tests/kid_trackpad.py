@@ -3,15 +3,23 @@ from __future__ import annotations
 
 import plistlib
 import re
+import threading
 import unittest
 from pathlib import Path
 from typing import final
 
 from scripts.kid_trackpad import (
+    CLICK_EVENTS,
+    DROPPED_CLICK_COOLDOWN_SECONDS,
+    DROPPED_CLICK_SOUND,
     LOCK_SOUND,
     POINTER_EVENT_MASK,
     UNLOCK_SOUND,
+    DroppedClickSound,
+    EventType,
+    PointerBlocker,
     chime_command,
+    dropped_click_command,
     follow_layers,
     kanata_address,
     layer_name,
@@ -162,6 +170,102 @@ class LayerTest(unittest.TestCase):
                 [b'{"LayerChange":{"new":"kid"}}\n', b'{"Unknown":{}}\n'], gate
             )
         self.assertEqual(gate.states, ["blocked", "allowed"])
+
+
+@final
+class FakeClock:
+    def __init__(self) -> None:
+        self.seconds: float = 1000.0
+
+    def __call__(self) -> float:
+        return self.seconds
+
+
+@final
+class DroppedClickTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.clock = FakeClock()
+        self.started = threading.Semaphore(0)
+        self.sound = DroppedClickSound(self.started.release, self.clock)
+
+    def assert_plays(self) -> None:
+        self.assertTrue(self.started.acquire(timeout=5))
+
+    def assert_silent(self) -> None:
+        self.assertFalse(self.started.acquire(timeout=0.05))
+
+    def blocker(self, *, blocking: bool) -> PointerBlocker:
+        blocker = PointerBlocker.__new__(PointerBlocker)
+        blocker.blocking = blocking
+        blocker.dropped_click = self.sound
+        return blocker
+
+    def test_every_button_down_plays(self) -> None:
+        for event_type in CLICK_EVENTS:
+            with self.subTest(event_type=event_type):
+                self.clock.seconds += DROPPED_CLICK_COOLDOWN_SECONDS
+                self.sound.notice(event_type)
+                self.assert_plays()
+
+    def test_nothing_but_a_button_down_plays(self) -> None:
+        for event_type in EventType:
+            if event_type in CLICK_EVENTS:
+                continue
+            with self.subTest(event_type=event_type):
+                self.sound.notice(event_type)
+        self.assert_silent()
+
+    def test_repeat_clicks_stay_quiet_until_the_cooldown_ends(self) -> None:
+        self.sound.notice(EventType.LEFT_MOUSE_DOWN)
+        self.assert_plays()
+        self.clock.seconds += DROPPED_CLICK_COOLDOWN_SECONDS - 0.1
+        self.sound.notice(EventType.LEFT_MOUSE_DOWN)
+        self.assert_silent()
+        self.clock.seconds += 0.1
+        self.sound.notice(EventType.LEFT_MOUSE_DOWN)
+        self.assert_plays()
+
+    def test_a_locked_click_is_dropped_and_plays(self) -> None:
+        event = 1234
+        result = self.blocker(blocking=True).filter(
+            None, EventType.LEFT_MOUSE_DOWN, event, None
+        )
+        self.assertIsNone(result)
+        self.assert_plays()
+
+    def test_locked_movement_is_dropped_in_silence(self) -> None:
+        event = 1234
+        result = self.blocker(blocking=True).filter(
+            None, EventType.MOUSE_MOVED, event, None
+        )
+        self.assertIsNone(result)
+        self.assert_silent()
+
+    def test_an_unlocked_click_passes_in_silence(self) -> None:
+        event = 1234
+        result = self.blocker(blocking=False).filter(
+            None, EventType.LEFT_MOUSE_DOWN, event, None
+        )
+        self.assertEqual(result, event)
+        self.assert_silent()
+
+    def test_the_sound_is_a_quiet_system_sound_after_the_warm_up(self) -> None:
+        command = dropped_click_command()
+        self.assertTrue(Path(DROPPED_CLICK_SOUND).is_file())
+        self.assertEqual(command[-1], DROPPED_CLICK_SOUND)
+        self.assertEqual(command[2].count("/usr/bin/afplay -v 0 -t 0.3"), 1)
+        self.assertIn('/usr/bin/afplay -v 0.2 "$0"', command[2])
+
+    def test_lock_chimes_keep_their_exact_command(self) -> None:
+        self.assertEqual(
+            chime_command(LOCK_SOUND),
+            [
+                "/bin/sh",
+                "-c",
+                '/usr/bin/afplay -v 0 -t 0.3 "$0"; /usr/bin/afplay "$0"',
+                LOCK_SOUND,
+            ],
+        )
 
 
 if __name__ == "__main__":

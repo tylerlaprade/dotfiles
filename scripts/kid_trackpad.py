@@ -25,6 +25,9 @@ KANATA_PLIST = Path("/Library/LaunchDaemons/com.tylerlaprade.kanata.plist")
 KID_LAYER = "kid"
 LOCK_SOUND = "/System/Library/Components/CoreAudio.component/Contents/SharedSupport/SystemSounds/accessibility/Mouse Keys ON.aif"
 UNLOCK_SOUND = "/System/Library/Components/CoreAudio.component/Contents/SharedSupport/SystemSounds/accessibility/Mouse Keys OFF.aif"
+DROPPED_CLICK_SOUND = "/System/Library/Sounds/Basso.aiff"
+DROPPED_CLICK_VOLUME = 0.2
+DROPPED_CLICK_COOLDOWN_SECONDS = 10
 IGNORED_MESSAGES = frozenset(
     {"TapActivated", "HoldActivated", "ConfigFileReload", "MessagePush"}
 )
@@ -68,6 +71,13 @@ TAP_DISABLED = frozenset(
     {EventType.TAP_DISABLED_BY_TIMEOUT, EventType.TAP_DISABLED_BY_USER_INPUT}
 )
 POINTER_EVENT_MASK = sum(1 << event for event in EventType if event not in TAP_DISABLED)
+CLICK_EVENTS = frozenset(
+    {
+        EventType.LEFT_MOUSE_DOWN,
+        EventType.RIGHT_MOUSE_DOWN,
+        EventType.OTHER_MOUSE_DOWN,
+    }
+)
 
 JSONValue = Union[
     None, bool, int, float, str, list["JSONValue"], dict[str, "JSONValue"]
@@ -143,19 +153,55 @@ release: Callable[[int], None] = foundation.CFRelease
 default_run_loop_mode = ctypes.c_void_p.in_dll(foundation, "kCFRunLoopDefaultMode")
 
 
+# Idle audio hardware swallows the start of the first sound, so a silent
+# play wakes it before the audible one.
+AUDIO_WARM_UP = '/usr/bin/afplay -v 0 -t 0.3 "$0"'
+
+
 def chime_command(sound: str) -> list[str]:
-    # Idle audio hardware swallows the start of the first sound, so a silent
-    # play wakes it before the audible one.
+    return ["/bin/sh", "-c", f'{AUDIO_WARM_UP}; /usr/bin/afplay "$0"', sound]
+
+
+def dropped_click_command() -> list[str]:
     return [
         "/bin/sh",
         "-c",
-        '/usr/bin/afplay -v 0 -t 0.3 "$0"; /usr/bin/afplay "$0"',
-        sound,
+        f'{AUDIO_WARM_UP}; /usr/bin/afplay -v {DROPPED_CLICK_VOLUME} "$0"',
+        DROPPED_CLICK_SOUND,
     ]
 
 
 def play(sound: str) -> None:
     subprocess.Popen(chime_command(sound))
+
+
+def play_dropped_click() -> None:
+    subprocess.Popen(dropped_click_command())
+
+
+class DroppedClickSound:
+    def __init__(
+        self,
+        start_sound: Callable[[], None] = play_dropped_click,
+        now: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self.start_sound: Callable[[], None] = start_sound
+        self.now: Callable[[], float] = now
+        self.last_played: float | None = None
+
+    def notice(self, event_type: int) -> None:
+        if event_type not in CLICK_EVENTS:
+            return
+        moment = self.now()
+        if (
+            self.last_played is not None
+            and moment - self.last_played < DROPPED_CLICK_COOLDOWN_SECONDS
+        ):
+            return
+        self.last_played = moment
+        # macOS disables an event tap whose callback responds slowly, and
+        # starting a process waits for its exec.
+        threading.Thread(target=self.start_sound, daemon=True).start()
 
 
 class PointerGate(Protocol):
@@ -167,6 +213,7 @@ class PointerGate(Protocol):
 class PointerBlocker:
     def __init__(self) -> None:
         self.blocking: bool = False
+        self.dropped_click: DroppedClickSound = DroppedClickSound()
         self.callback: object = TapCallback(self.filter)
         tap = create_event_tap(
             SESSION_EVENT_TAP,
@@ -206,7 +253,10 @@ class PointerBlocker:
             if self.blocking:
                 enable_event_tap(self.tap, self.blocking)
             return event
-        return None if self.blocking else event
+        if not self.blocking:
+            return event
+        self.dropped_click.notice(event_type)
+        return None
 
     def block(self) -> None:
         if self.blocking:
