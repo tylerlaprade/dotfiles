@@ -194,7 +194,7 @@ _cached_output direnv-hook $commands[direnv] direnv hook zsh && eval "$REPLY"
 #   local repo branch pr_num cmd="${3:-$1}"
 #   local _meta
 #   _meta=$(git-meta 2>/dev/null) || return
-#   IFS=$'\t' read -r repo _ branch _ <<<"$_meta"
+#   IFS=$'\037' read -r repo _ branch _ <<<"$_meta"
 #   local pr_info
 #   pr_info=$(gh-pr-lookup "$repo" "$branch" --async 2>/dev/null)
 #   local pr_num="${pr_info%%	*}"

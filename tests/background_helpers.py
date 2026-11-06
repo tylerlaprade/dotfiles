@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import time
@@ -58,7 +59,7 @@ class BackgroundHelpersTest(unittest.TestCase):
         self.home = self.root / 'home'
         self.home.mkdir()
         self.environment = dict(os.environ, HOME=str(self.home), USER='tyler', PATH=f'{self.bin}:{os.environ["PATH"]}')
-        for name in ['GH_TOKEN', 'GITHUB_TOKEN', 'GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN']:
+        for name in ['GH_TOKEN', 'GITHUB_TOKEN', 'GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN', 'XDG_CONFIG_HOME']:
             self.environment.pop(name, None)
         (self.root / 'scripts/keychain-unlocked.py').write_text(
             'import os, sys\nsys.exit(int(os.environ.get("FAKE_KEYCHAIN_STATUS", "0")))\n')
@@ -66,7 +67,7 @@ class BackgroundHelpersTest(unittest.TestCase):
         usage_source = (REPOSITORY / 'scripts/bin/claude-usage.sh').read_text()
         live_cache = shell_assignment(usage_source, 'cache')
         live_lock = shell_assignment(usage_source, 'lock')
-        for name in ['gh-background', 'gh-pr-lookup', 'gh-pr-status', 'git-status-line', 'claude-usage']:
+        for name in ['gh-background', 'gh-pr-lookup', 'gh-pr-status', 'git-meta', 'git-status-line', 'claude-usage']:
             source = (REPOSITORY / f'scripts/bin/{name}.sh').read_text()
             source = source.replace(live_cache, str(self.cache)).replace(live_lock, str(self.root / 'usage.fetch'))
             self.install(name, source)
@@ -283,7 +284,7 @@ class BackgroundHelpersTest(unittest.TestCase):
 
     def test_git_status_renders_notice_without_invalid_pr_link(self) -> None:
         for name, body in {
-            'git-meta': 'printf "example\\texample/project\\tfeature\\n"',
+            'git-meta': 'printf "example\\037example/project\\037feature\\n"',
             'gh-pr-lookup': 'printf "!\\tlogin required\\n"',
             'gt-status': 'exit 0',
             'git': 'if [[ "$1" = rev-parse ]]; then exit 1; fi',
@@ -297,7 +298,7 @@ class BackgroundHelpersTest(unittest.TestCase):
 
     def test_git_status_shows_the_subfolder_below_the_repo_root(self) -> None:
         for name, body in {
-            'git-meta': 'printf "example\\texample/project\\tmaster\\n"',
+            'git-meta': 'printf "example\\037example/project\\037master\\n"',
             'gh-pr-lookup': 'exit 0',
             'gt-status': 'exit 0',
             'git': 'if [[ "$1" = rev-parse ]]; then exit 1; fi',
@@ -311,6 +312,58 @@ class BackgroundHelpersTest(unittest.TestCase):
                 result = subprocess.run([str(self.bin / 'git-status-line')], env=self.environment, cwd=folder,
                                         text=True, capture_output=True, timeout=5, check=False)
                 self.assertTrue(result.stdout.startswith(f'\x1b[37m{location}\x1b[0m '), repr(result.stdout))
+
+    def repository_with_origin(self, origin: str | None) -> Path:
+        repository = self.root / 'repository'
+        repository.mkdir()
+        self.environment.update(GIT_AUTHOR_NAME='Tyler', GIT_AUTHOR_EMAIL='tyler@example.com',
+                                GIT_COMMITTER_NAME='Tyler', GIT_COMMITTER_EMAIL='tyler@example.com')
+        commands = [['init'], ['commit', '--allow-empty', '-m', 'Start'], ['switch', '-c', 'feature']]
+        if origin is not None:
+            commands.append(['remote', 'add', 'origin', origin])
+        for command in commands:
+            subprocess.run(['git', *command], cwd=repository, env=self.environment,
+                           capture_output=True, timeout=5, check=True)
+        return repository
+
+    def run_in(self, folder: Path, name: str) -> str:
+        return subprocess.run([str(self.bin / name)], env=self.environment, cwd=folder,
+                              text=True, capture_output=True, timeout=5, check=False).stdout
+
+    def test_git_status_skips_pr_lookup_without_a_github_origin(self) -> None:
+        for name, origin in (('no remote', None), ('another host', 'https://gitlab.com/example/project.git')):
+            with self.subTest(case=name):
+                repository = self.repository_with_origin(origin)
+                output = self.run_in(repository, 'git-status-line')
+                self.assertIn('feature', output)
+                self.assertNotIn('.git', output)
+                self.assertNotIn('[PR:', output)
+                self.assertFalse(self.calls.exists())
+                shutil.rmtree(repository)
+
+    def test_git_meta_reads_every_github_origin_form(self) -> None:
+        for origin in ('git@github.com:example/project.git', 'https://github.com/example/project',
+                       'ssh://git@github.com/example/project.git'):
+            with self.subTest(origin=origin):
+                repository = self.repository_with_origin(origin)
+                fields = self.run_in(repository, 'git-meta').rstrip('\n').split('\x1f')
+                self.assertEqual(fields[1:3], ['example/project', 'feature'])
+                (self.home / '.cache/git-meta').unlink()
+                shutil.rmtree(repository)
+
+    def test_git_status_looks_up_prs_with_a_github_origin(self) -> None:
+        self.environment.update(FAKE_STATUS='0', FAKE_RESULT='')
+        self.run_in(self.repository_with_origin('git@github.com:example/project.git'), 'git-status-line')
+        self.wait_for_map()
+        self.assertIn('pr list --head feature', self.calls.read_text())
+
+    def test_git_meta_cache_serves_a_repository_without_a_remote(self) -> None:
+        repository = self.repository_with_origin(None)
+        fields = self.run_in(repository, 'git-meta').rstrip('\n').split('\x1f')
+        self.assertEqual(fields[:3], ['repository', '', 'feature'])
+        cache = self.home / '.cache/git-meta'
+        cache.write_text(cache.read_text().replace('\x1frepository\x1f', '\x1fcached-name\x1f', 1))
+        self.assertEqual(self.run_in(repository, 'git-meta').split('\x1f')[0], 'cached-name')
 
     def run_statusline(self, usage_json: str, payload: JSONValue) -> str:
         self.install('claude-usage', '#!/bin/bash\nprintf \'%s\\n\' \'' + usage_json + '\'\n')

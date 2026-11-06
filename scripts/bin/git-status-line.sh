@@ -5,7 +5,7 @@
 # mtime. One subprocess on cold call, ~0 on cache hit. Shared with the zsh
 # tab-title hook.
 meta=$(git-meta 2>/dev/null) || exit 0
-IFS=$'\t' read -r repo_name repo_full full_branch common_dir <<<"$meta"
+IFS=$'\037' read -r repo_name repo_full full_branch common_dir <<<"$meta"
 
 # Tracked changes and ahead/behind upstream from one git call. Optional locks
 # stay off so a render never contends with another session's git command.
@@ -19,14 +19,15 @@ while read -r kind field head_only upstream_only; do
   esac
 done <<< "$git_status"
 
-# PR number + title, skipped on the default branch, where no PR comes from.
+# PR number + title, skipped without a GitHub repo to ask and on the default
+# branch, where no PR comes from.
 default_branch=""
 if [[ -f "$common_dir/refs/remotes/origin/HEAD" ]]; then
   read -r _ origin_head < "$common_dir/refs/remotes/origin/HEAD"
   default_branch=${origin_head#refs/remotes/origin/}
 fi
 pr_lookup=""
-[[ "$full_branch" != "$default_branch" ]] && pr_lookup=$(gh-pr-lookup "$repo_name" "$full_branch" --async)
+[[ -n "$repo_full" && "$full_branch" != "$default_branch" ]] && pr_lookup=$(gh-pr-lookup "$repo_name" "$full_branch" --async)
 pr_num=${pr_lookup%%$'\t'*}
 pr_title=${pr_lookup#*$'\t'}
 pr_notice=""
