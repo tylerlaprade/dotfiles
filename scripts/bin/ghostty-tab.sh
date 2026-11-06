@@ -12,9 +12,15 @@ command_line=${2:?command line}
 # A tab opened while Screen Time has Ghostty locked out crashes Ghostty when the lockout lifts.
 "$HOME/.cargo/bin/session-guard" lockout --wait
 
-osascript - "$folder" "$command_line" "$PATH" <<'APPLESCRIPT'
-on run {workDir, commandLine, fullPath}
-  tell application "System Events" to set frontAppId to bundle identifier of first process whose frontmost is true
+# A system alert can hold the front as a background-only app, and activating one stalls until AppleScript times out.
+front_app=$(lsappinfo front)
+front_app_id=""
+if [[ $(lsappinfo info -only ApplicationType "$front_app") == *'"Foreground"'* ]]; then
+  front_app_id=$(lsappinfo info -only bundleID "$front_app" | sed -n 's/.*="\(.*\)"$/\1/p')
+fi
+
+osascript - "$folder" "$command_line" "$PATH" "$front_app_id" <<'APPLESCRIPT'
+on run {workDir, commandLine, fullPath, frontAppId}
   tell application "Ghostty"
     set cfg to new surface configuration
     set initial input of cfg to commandLine & linefeed
@@ -23,7 +29,7 @@ on run {workDir, commandLine, fullPath}
     if (count of windows) is 0 then
       set w to new window with configuration cfg
       set newTabId to id of selected tab of w
-      tell application id frontAppId to activate
+      if frontAppId is not "" then tell application id frontAppId to activate
       return newTabId
     end if
     set mainWindow to front window
@@ -38,7 +44,7 @@ on run {workDir, commandLine, fullPath}
     if id of front window is not previousWindowId then activate window (first window whose id is previousWindowId)
     set newTabId to id of t
   end tell
-  tell application id frontAppId to activate
+  if frontAppId is not "" then tell application id frontAppId to activate
   return newTabId
 end run
 APPLESCRIPT

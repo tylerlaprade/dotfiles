@@ -74,8 +74,7 @@ class SpawnSessionTest(unittest.TestCase):
         arguments = self.recorded("osascript").splitlines()
         self.assertEqual(arguments[1:3], [str(self.folder), "make test"])
         script = self.recorded("script")
-        self.assertIn("set frontAppId to bundle identifier", script)
-        self.assertIn("tell application id frontAppId to activate", script)
+        self.assertIn('if frontAppId is not "" then tell application id frontAppId to activate', script)
         self.assertIn("activate window (first window whose id is previousWindowId)", script)
         self.assertIn("set previousId to id of selected tab of mainWindow", script)
         self.assertIn(
