@@ -12,10 +12,11 @@ command_line=${2:?command line}
 # A tab opened while Screen Time has Ghostty locked out crashes Ghostty when the lockout lifts.
 "$HOME/.cargo/bin/session-guard" lockout --wait
 
-# A system alert can hold the front as a background-only app, and activating one stalls until AppleScript times out.
+# A system alert can hold the front as a UIElement app. Asking to activate one stalled this script for 119 seconds.
 front_app=$(lsappinfo front)
+front_app_type=$(lsappinfo info -only ApplicationType "$front_app")
 front_app_id=""
-if [[ $(lsappinfo info -only ApplicationType "$front_app") == *'"Foreground"'* ]]; then
+if [[ $front_app_type == *'"Foreground"'* ]]; then
   front_app_id=$(lsappinfo info -only bundleID "$front_app" | sed -n 's/.*="\(.*\)"$/\1/p')
 fi
 
