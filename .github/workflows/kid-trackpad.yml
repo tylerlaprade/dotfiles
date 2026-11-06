@@ -30,6 +30,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.x'
+          check-latest: true
       - name: Install linters
         run: python3 -m pip install ruff basedpyright
       - name: Link the shared lint policy where the project configs extend it
