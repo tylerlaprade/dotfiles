@@ -1,0 +1,102 @@
+{
+	"hooks": {
+		"PreToolUse": [
+			{
+				"matcher": "Bash",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "git-signing-guard"
+					}
+				]
+			},
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${HOME}/.cargo/bin/session-guard activity"
+					}
+				]
+			}
+		],
+		"SessionStart": [
+			{
+				"matcher": "startup|resume",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "tool_pid=\"$PPID\"; shell_pid=\"${SESSION_GUARD_SHELL_PID:-}\"; [ -n \"$shell_pid\" ] || shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then ${HOME}/.cargo/bin/session-guard register --tool codex --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else ${HOME}/.cargo/bin/session-guard register --tool codex --pid \"$tool_pid\"; fi"
+					}
+				]
+			}
+		],
+		"Stop": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "tool_pid=\"$PPID\"; shell_pid=\"${SESSION_GUARD_SHELL_PID:-}\"; [ -n \"$shell_pid\" ] || shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then ${HOME}/.cargo/bin/session-guard register --tool codex --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else ${HOME}/.cargo/bin/session-guard register --tool codex --pid \"$tool_pid\"; fi"
+					}
+				]
+			},
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${HOME}/.cargo/bin/session-guard activity"
+					}
+				]
+			}
+		],
+		"SessionEnd": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${HOME}/.cargo/bin/session-guard deregister"
+					}
+				]
+			}
+		],
+		"UserPromptSubmit": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${HOME}/.cargo/bin/session-guard activity"
+					}
+				]
+			}
+		],
+		"PostToolUse": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${HOME}/.cargo/bin/session-guard activity"
+					}
+				]
+			}
+		],
+		"PermissionRequest": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${HOME}/.cargo/bin/session-guard activity"
+					}
+				]
+			}
+		],
+		"Interrupt": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${HOME}/.cargo/bin/session-guard activity"
+					}
+				]
+			}
+		]
+	}
+}

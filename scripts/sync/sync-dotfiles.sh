@@ -113,7 +113,7 @@ for item in "$DOTFILES"/.codex/skills/*; do
   [[ -e "$item" || -L "$item" ]] || continue
   link "$item" "$HOME/.codex/skills/$(basename "$item")"
 done
-link "$DOTFILES/.codex/hooks.json" "$HOME/.codex/hooks.json"
+link "$DOTFILES/.codex/hooks/global.json" "$HOME/.codex/hooks.json"
 
 # Antigravity CLI (agy) global context. It took over the old
 # Gemini CLI home at ~/.gemini and still reads GEMINI.md there.
