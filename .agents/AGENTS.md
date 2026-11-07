@@ -73,7 +73,7 @@
 - For user-facing copy (app text, notifications, store and site lines), draft a batch of distinct candidates at once and choose among them. A single line polished alone drifts toward clever and stiff; a batch keeps the voice plain and lets the lines be compared.
 - When I mark up specific lines of a draft or plan, change only those lines and keep the rest word for word.
 - Keep a visual artifact available until I have reviewed it; do not delete a shared temporary file in the same turn.
-- When a command is piped or wrapped, verify the underlying command's exit status rather than the last helper's status.
+- When a command is piped or wrapped, verify the underlying command's exit status rather than the last helper's status, and check its output too: a command can exit 0 having printed nothing.
 - Scale review and parallel-agent fan-out to the change and the laptop's shared
   CPU. Recheck only what changed; do not launch several cold builds for the same
   proof.
