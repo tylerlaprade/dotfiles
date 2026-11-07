@@ -214,6 +214,17 @@ class SpawnSessionTest(unittest.TestCase):
         self.assertIn("cannot read", result.stderr)
         self.assertFalse(Path(f"{self.calls}.osascript").exists())
 
+    def test_background_owner_checks_permission_before_opening_a_tab(self) -> None:
+        owner = self.bin / "owner"
+        self.install(owner, 'printf "%s\\n" "$@" > "$CALLS.owner"\nexit 1\n')
+        result = self.run_command(
+            "ghostty-tab", str(self.folder), "make test", str(owner)
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.recorded("owner"), "check\n")
+        self.assertIn("lockout --wait", self.recorded("guard"))
+        self.assertFalse(Path(f"{self.calls}.osascript").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

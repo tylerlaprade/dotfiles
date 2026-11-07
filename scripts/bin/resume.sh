@@ -175,9 +175,16 @@ _resume_is_tool() {
 }
 
 resume() {
+  case "$1" in
+    list|cancel|authorize)
+      _resume_scheduler "$@"
+      return $? ;;
+    *) ;;
+  esac
   local session=""
   local new_session=0
   local wake=0
+  local wait_here=0
   local -a args=()
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -192,6 +199,8 @@ resume() {
         new_session=1 ;;
       -w|--wake)
         wake=1 ;;
+      --wait)
+        wait_here=1 ;;
       -h|--help)
         _resume_help
         return 0 ;;
@@ -303,14 +312,24 @@ resume() {
     _resume_schedule_wake $(( now + delay )) || true
     wake_when=$_resume_wake_stamp
   fi
-  _resume_sleep_until "$label" "$target_clock" "$delay" "$$" "$wake_when" "${cmd[@]}" "${prompt_args[@]}"
+  if (( wait_here )); then
+    _resume_sleep_until "$label" "$target_clock" "$delay" "$$" "$wake_when" "${cmd[@]}" "${prompt_args[@]}"
+  else
+    _resume_scheduler add --tool "$tool" --session "$selected_session" \
+      --at "$(( now + delay ))" --directory "$PWD" --wake "$wake_when" \
+      -- "${cmd[@]}" "${prompt_args[@]}"
+  fi
+}
+
+_resume_scheduler() {
+  /opt/homebrew/bin/python3 "$HOME/Code/dotfiles/scripts/resume_schedule.py" "$@"
 }
 
 _resume_help() {
   cat <<EOF
 Usage: resume <tool> [time|duration] [options] [prompt]
 
-Delay-launch an agent session. Supported tools are listed below.
+Schedule an agent session in a new tab and return to the shell.
 Tool, time/duration, and options may be passed in any order.
 
 No prompt arg resumes this terminal tab's last session with prompt "continue".
@@ -318,6 +337,14 @@ Prompt arg resumes this terminal tab's last session with that prompt.
 Use -n/--new to start a fresh session instead of resuming.
 Use -s/--session to override tab-local selection.
 Use -w/--wake to schedule a Mac wake at the target time (needs admin).
+Use --wait to keep the countdown and resume in this tab instead.
+Schedules survive closing the terminal and run after sleep or login.
+
+Manage schedules:
+  resume list                   show pending and failed schedules
+  resume list --all             include finished schedules
+  resume cancel ID              cancel a schedule
+  resume authorize              grant the named launcher Automation access
 
 Time/duration:
   7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
@@ -328,6 +355,7 @@ Options:
   -s, --session ID_OR_NAME       resume a specific session
   -n, --new                      start a new session
   -w, --wake                     schedule a Mac wake at the target time
+  --wait                         wait and resume in the current tab
   -h, --help                     show this help
 
 Tools: ${_RESUME_TOOLS// /, }

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Usage: ghostty-tab <folder> <command line>
+# Usage: ghostty-tab <folder> <command line> [automation owner executable]
 # Types <command line> into a new shell tab of the main Ghostty window, the one
 # with the most tabs, and prints the tab's id. Ghostty's scripting selects every
 # tab it adds, makes its window key and activates the app, with no option to
@@ -11,6 +11,10 @@ command_line=${2:?command line}
 
 # A tab opened while Screen Time has Ghostty locked out crashes Ghostty when the lockout lifts.
 "$HOME/.cargo/bin/session-guard" lockout --wait
+
+if [[ $# -eq 3 ]]; then
+  "$3" check
+fi
 
 # A system alert can hold the front as a UIElement app. Asking to activate one stalled this script for 119 seconds.
 front_app=$(lsappinfo front)

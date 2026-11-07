@@ -29,6 +29,9 @@ last_label=""
 last_delay=""
 last_shell_pid=""
 last_cmd=()
+last_mode=""
+last_management=()
+last_directory=""
 last_wake_end=""
 caffeinate_called=0
 
@@ -45,10 +48,28 @@ caffeinate() {
 }
 
 _resume_sleep_until() {
+  last_mode=wait
   last_label="$1"
   last_delay="$3"
   last_shell_pid="$4"
   last_cmd=("${@:6}")
+}
+
+_resume_scheduler() {
+  last_mode=scheduled
+  if [[ "$1" != add ]]; then
+    last_management=("$@")
+    return 0
+  fi
+  local tool="$3" session="$5"
+  last_delay=$(( $7 - 1000 ))
+  last_directory="$9"
+  last_cmd=("${@:13}")
+  if [[ -n "$session" ]]; then
+    last_label="Resuming $tool"
+  else
+    last_label="Starting new $tool"
+  fi
 }
 
 _resume_schedule_wake() {
@@ -76,6 +97,9 @@ run_resume() {
   last_shell_pid=""
   last_cmd=()
   last_wake_end=""
+  last_mode=""
+  last_management=()
+  last_directory=""
   caffeinate_called=0
   : > "$stdout_file"
   : > "$stderr_file"
@@ -138,7 +162,7 @@ expected_help() {
   cat <<'EOF'
 Usage: resume <tool> [time|duration] [options] [prompt]
 
-Delay-launch an agent session. Supported tools are listed below.
+Schedule an agent session in a new tab and return to the shell.
 Tool, time/duration, and options may be passed in any order.
 
 No prompt arg resumes this terminal tab's last session with prompt "continue".
@@ -146,6 +170,14 @@ Prompt arg resumes this terminal tab's last session with that prompt.
 Use -n/--new to start a fresh session instead of resuming.
 Use -s/--session to override tab-local selection.
 Use -w/--wake to schedule a Mac wake at the target time (needs admin).
+Use --wait to keep the countdown and resume in this tab instead.
+Schedules survive closing the terminal and run after sleep or login.
+
+Manage schedules:
+  resume list                   show pending and failed schedules
+  resume list --all             include finished schedules
+  resume cancel ID              cancel a schedule
+  resume authorize              grant the named launcher Automation access
 
 Time/duration:
   7p, 7pm, 730p, 1220a, 5am     clock time (next occurrence)
@@ -156,6 +188,7 @@ Options:
   -s, --session ID_OR_NAME       resume a specific session
   -n, --new                      start a new session
   -w, --wake                     schedule a Mac wake at the target time
+  --wait                         wait and resume in the current tab
   -h, --help                     show this help
 
 Tools: claude, codex, grok, opencode
@@ -190,7 +223,7 @@ test_codex_tab_session_continue() {
   expect_status 0
   expect_label "Resuming codex"
   expect_delay 0
-  expect_shell_pid
+  [[ "$last_mode" == scheduled && "$last_directory" == "$PWD" ]] || fail "expected a schedule in this folder"
   expect_cmd $'codex\nresume\n--dangerously-bypass-approvals-and-sandbox\n33333333-3333-4333-8333-333333333333\ncontinue'
   [[ "$caffeinate_called" == 0 ]] || fail "caffeinate should not run"
 }
@@ -497,6 +530,24 @@ test_missing_tool_shows_help_on_stderr() {
   expect_no_cmd
 }
 
+test_wait_keeps_current_tab() {
+  run_resume --wait codex 0s
+  expect_status 0
+  expect_shell_pid
+  [[ "$last_mode" == wait ]] || fail "expected foreground waiting"
+}
+
+test_list_and_cancel() {
+  run_resume list --all
+  expect_status 0
+  [[ "${last_management[*]}" == 'list --all' ]] || fail "list was not forwarded"
+  run_resume cancel scheduled-id
+  expect_status 0
+  [[ "${last_management[*]}" == 'cancel scheduled-id' ]] || fail "cancel was not forwarded"
+}
+
+run_case "wait keeps the current tab" test_wait_keeps_current_tab
+run_case "list and cancel reach the scheduler" test_list_and_cancel
 run_case "codex resumes this tab's session with continue" test_codex_tab_session_continue
 run_case "codex no-time path uses latest rate-limit reset" test_codex_latest_without_time_uses_rate_limit_reset
 run_case "codex explicit session resumes with continue" test_codex_session_continue

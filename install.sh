@@ -200,6 +200,7 @@ echo "Applying macOS defaults..."
 "$DOTFILES/scripts/setup/apply-macos-defaults.py"
 
 "$DOTFILES/scripts/bin/kanata-setup.sh" || failed=1
+/opt/homebrew/bin/python3 "$DOTFILES/scripts/resume_schedule.py" install || failed=1
 
 launch_domain="gui/$(id -u)"
 for plist in "$HOME/Library/LaunchAgents"/com.tylerlaprade.*.plist; do
