@@ -135,14 +135,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.local/bin/claude-reply-push"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "[ \"$CLAUDE_CODE_ENTRYPOINT\" = cli ] || exit 0; tool_pid=\"$PPID\"; shell_pid=\"${SESSION_GUARD_SHELL_PID:-}\"; [ -n \"$shell_pid\" ] || shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then ${HOME}/.cargo/bin/session-guard register --tool claude --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else ${HOME}/.cargo/bin/session-guard register --tool claude --pid \"$tool_pid\"; fi"
           }
         ]
