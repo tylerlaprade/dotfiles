@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from typing import final, override
+from typing import cast, final, override
 
 HOOK = Path(__file__).resolve().parents[1] / "scripts/bin/claude-reply-push.sh"
 
@@ -20,7 +20,7 @@ class ClaudeReplyPushTest(unittest.TestCase):
         self.transcript = Path(directory.name) / "session.jsonl"
 
     def write_turns(self, *origins: str) -> None:
-        lines = [
+        lines: list[object] = [
             {"type": "user", "turnOrigin": origin, "message": {"content": "hi"}}
             for origin in origins
         ]
@@ -46,7 +46,7 @@ class ClaudeReplyPushTest(unittest.TestCase):
 
     def test_a_turn_tyler_started_asks_for_a_push(self) -> None:
         self.write_turns("peer", "human")
-        decision = json.loads(self.run_hook())
+        decision = cast("dict[str, str]", json.loads(self.run_hook()))
         self.assertEqual(decision["decision"], "block")
         self.assertIn("PushNotification", decision["reason"])
 
