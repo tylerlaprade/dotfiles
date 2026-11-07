@@ -11,4 +11,4 @@ IFS=$'\t' read -r active transcript <<< "$fields"
 # Reading newest first, the first turn marker is the one for the turn now ending.
 origin=$(tail -r -n 4000 "$transcript" | rg -m1 -o '"turnOrigin":"[a-z_]+"')
 [[ $origin == '"turnOrigin":"human"' ]] || exit 0
-jq -nc '{decision: "block", reason: "This turn began with Tyler'"'"'s own message. Unless you already sent one this turn, send him the reply'"'"'s gist with PushNotification: one line under 200 characters, leading with what he would act on. Then end the turn without writing anything more."}'
+jq -nc --arg reason "This turn began with Tyler's own message. If you already sent a push this turn, stop now. Otherwise call PushNotification with your reply's gist, one line under 200 characters, leading with what he would act on. Write no text at all, before or after the call: your reply above stays the final one, so the push must not be mentioned anywhere." '{decision: "block", reason: $reason}'
