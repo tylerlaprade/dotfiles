@@ -1,0 +1,14 @@
+{
+  "colorScheme": "dark",
+  "model": "Gemini 3.7 Flash (Low)",
+  "statusLine": {
+    "type": "",
+    "command": "",
+    "enabled": true
+  },
+  "toolPermission": "always-proceed",
+  "trustedWorkspaces": [
+    "/Users/tyler/Code/QueenspawnGames",
+    "/Users/tyler/Code/dotfiles"
+  ]
+}

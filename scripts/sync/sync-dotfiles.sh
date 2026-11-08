@@ -120,6 +120,8 @@ link "$DOTFILES/.codex/hooks/global.json" "$HOME/.codex/hooks.json"
 mkdir -p "$HOME/.gemini"
 link "$DOTFILES/.agents/AGENTS.md" "$HOME/.gemini/GEMINI.md"
 link "$DOTFILES/.gemini/settings.json" "$HOME/.gemini/settings.json"
+mkdir -p "$HOME/.gemini/antigravity-cli"
+link "$DOTFILES/.gemini/antigravity-cli/settings.json" "$HOME/.gemini/antigravity-cli/settings.json"
 
 # Grok global rules. Pair with [compat.claude] agents = false in
 # ~/.grok/config.toml so Grok does not load the same file twice through
