@@ -294,9 +294,10 @@
   },
   "feedbackDrafts": "quiet",
   "alwaysThinkingEnabled": true,
+  "effortLevel": "xhigh",
   "modelSettings": {
     "claude-opus-5-5": {
-      "effortLevel": "high"
+      "effortLevel": "xhigh"
     }
   },
   "autoCompactWindow": 833000,
