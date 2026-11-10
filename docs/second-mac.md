@@ -23,3 +23,5 @@ repo carries the configuration; each machine logs in on its own.
    ID and Code Signing Assets; open the file on the second Mac.
 5. Grant Input Monitoring and Accessibility to `~/.local/bin/kanata`, and
    Accessibility to Ghostty, AltTab, and Homerow when they ask.
+6. Install Avec and Hex by hand, because the Brewfile does not carry them. The
+   sync adds each one's login item only after the app is installed.

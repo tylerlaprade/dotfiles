@@ -1,22 +1,30 @@
 [
   {
+    "name": "Avec",
+    "path": "/Applications/Avec.app"
+  },
+  {
     "name": "Brave Browser",
     "path": "/Applications/Brave Browser.app"
-  },
-  {
-    "name": "Ghostty",
-    "path": "/Applications/Ghostty.app"
-  },
-  {
-    "name": "Discord",
-    "path": "/Applications/Discord.app"
   },
   {
     "name": "ChatGPT",
     "path": "/Applications/ChatGPT.app"
   },
   {
+    "name": "Discord",
+    "path": "/Applications/Discord.app"
+  },
+  {
+    "name": "Ghostty",
+    "path": "/Applications/Ghostty.app"
+  },
+  {
     "name": "Google Chrome",
     "path": "/Applications/Google Chrome.app"
+  },
+  {
+    "name": "Hex",
+    "path": "/Applications/Hex.app"
   }
 ]
