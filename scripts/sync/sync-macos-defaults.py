@@ -594,7 +594,8 @@ if applied_domains and not options.dry_run:
 # ---------------------------------------------------------------------------
 
 # Apps that register their own login item (SMAppService). A SharedFileList
-# entry beside that registration opens the app twice.
+# entry beside that registration opens the app twice, and System Events lists
+# the registration itself, so deleting that entry turns launch at login off.
 LOGIN_ITEMS_SKIP = {"Monologue"}
 
 LOGIN_ITEMS_READ = """
@@ -642,24 +643,22 @@ def read_login_items_file() -> dict[str, str]:
     return tracked
 
 
-def read_live_login_items() -> tuple[dict[str, str], list[str]] | None:
-    """(tracked path→name, skipped names present on this Mac). None if unread."""
+def read_live_login_items() -> dict[str, str] | None:
+    """Tracked path→name on this Mac. None if unread."""
     raw = run_osascript(LOGIN_ITEMS_READ)
     if raw.returncode != 0:
         return None
     if not raw.stdout.strip():
-        return {}, []
+        return {}
     lines = raw.stdout.rstrip("\n").split("\n")
     tracked: dict[str, str] = {}
-    skipped: list[str] = []
     for name, path in zip(lines[0::2], lines[1::2]):
         if not name or not path:
             continue
         if name in LOGIN_ITEMS_SKIP or Path(path).name == "Monologue.app":
-            skipped.append(name)
             continue
         tracked[path] = name
-    return tracked, skipped
+    return tracked
 
 
 def is_installed(path: str) -> bool:
@@ -707,18 +706,14 @@ end tell
     return run_osascript(script)
 
 
-def preview_login_items(local_map: dict[str, str], merged: dict[str, str], skipped: list[str]) -> None:
-    for name in skipped:
-        print(f"would remove login item {name}")
+def preview_login_items(local_map: dict[str, str], merged: dict[str, str]) -> None:
     for path in sorted(set(local_map) - set(merged)):
         print(f"would remove login item {local_map[path]}")
     for path in sorted(set(merged) - set(local_map)):
         print(f"would add login item {merged[path]}")
 
 
-def apply_login_items(local_map: dict[str, str], merged: dict[str, str], skipped: list[str]) -> None:
-    for name in skipped:
-        delete_login_item(name)
+def apply_login_items(local_map: dict[str, str], merged: dict[str, str]) -> None:
     for path in sorted(set(local_map) - set(merged)):
         delete_login_item(local_map[path])
     for path, name in sorted(merged.items()):
@@ -730,11 +725,10 @@ def apply_login_items(local_map: dict[str, str], merged: dict[str, str], skipped
 
 
 def sync_login_items() -> None:
-    live = read_live_login_items()
-    if live is None:
+    local_map = read_live_login_items()
+    if local_map is None:
         print("login items: could not read the live list; leaving the repo file alone", file=sys.stderr)
         return
-    local_map, skipped = live
     repo_map = read_login_items_file()
     recorded_base = None if options.adopt else threeway.load_base(LOGIN_ITEMS_BASE)
     base = None if recorded_base is None else threeway.strings(recorded_base)
@@ -745,10 +739,10 @@ def sync_login_items() -> None:
         merged = threeway.merge(base, comparable, repo_map)
 
     if options.dry_run:
-        preview_login_items(local_map, merged, skipped)
+        preview_login_items(local_map, merged)
         return
 
-    apply_login_items(local_map, merged, skipped)
+    apply_login_items(local_map, merged)
 
     if merged != repo_map:
         write_login_items_file(merged)
