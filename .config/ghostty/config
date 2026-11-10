@@ -6,6 +6,7 @@ cursor-color = cell-foreground
 cursor-text = cell-background
 font-size = 18
 font-codepoint-map = U+2665=Menlo
+font-family = Cascadia Code
 fullscreen = true
 keybind = performable:cmd+c=copy_to_clipboard
 macos-option-as-alt = true
