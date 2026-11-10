@@ -96,7 +96,6 @@
 - Never work in a second copy of a project — a git worktree, a fresh clone, a copy under /tmp, or anything else — for sessions, subagents, helpers or builds, unless I ask for that workflow.
 - For external platforms, inspect the live configuration and native options before proposing custom machinery.
 - Never suggest a mail filter that archives or hides mail I don't want; name the sender's own off switch.
-- When I name which of my accounts to use, read the signed-in account's email or handle on the page and match it before acting. Every account of mine shows the name Tyler Laprade, so a display name proves nothing. If the page is in a different account, stop and tell me; on Nov 8 a video went to the wrong YouTube account because a worker matched the channel name.
 - Sign up for services with the address in my git config. Use the alias tyler@tylerlaprade.com only where other people will see the address: store listings, policy pages, site contacts.
 - Before checkout in a Porkbun cart, find the current $1-off coupon and apply it.
 - Never use my private email or strings derived from it as test data. "Tyler" is
