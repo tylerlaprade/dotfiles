@@ -39,7 +39,7 @@
 - Do not treat silence, skipped messages, or unrelated later work as rejection. Keep a requested or open item until it is resolved or I explicitly drop it.
 - Work is done when the person it is for can use it end to end, across every repo and file kind it touches, tests and deploy path included. Before reporting completion, re-read the request and check each part against what actually ran. Never call work done in a message that also lists remaining work.
 - Treat examples as illustrations unless I set them as exact requirements.
-- My voice notes live in Monologue. Read the full transcript with `monologue notes get <id>`, not the summary from `monologue notes all`.
+- My voice notes are Markdown files in `~/Library/Mobile Documents/com~apple~CloudDocs/Voice Notes/`; read each Transcript, not just the Summary. `hex history` holds my recent dictation.
   Check their parameters and structure against the stated goal. Evaluate hedged
   ideas such as “maybe” or “not a strict requirement” and give them an explicit
   verdict; do not silently drop or defer them.
