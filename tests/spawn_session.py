@@ -131,6 +131,41 @@ class SpawnSessionTest(unittest.TestCase):
         self.assertIn("attach-after-lockout 4f2a", self.recorded("guard"))
         self.assertFalse(Path(f"{self.calls}.osascript").exists())
 
+    def test_without_a_brief_the_session_starts_idle_in_a_tab(self) -> None:
+        for arguments in ((), ("--name", "Kid tabs")):
+            with self.subTest(arguments=arguments):
+                result = self.run_command("spawn-session", str(self.folder), *arguments)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                typed = self.recorded("osascript").splitlines()[2]
+                expected = "claude --name Kid\\ tabs" if arguments else "claude"
+                self.assertEqual(typed, expected)
+
+    def test_without_a_brief_a_lockout_starts_an_idle_background_session(
+        self,
+    ) -> None:
+        self.lockout(LOCKED_OUT)
+        result = self.run_command(
+            "spawn-session", str(self.folder), "--name", "Kid tabs"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "background 4f2a\n")
+        self.assertEqual(
+            self.recorded("claude").splitlines(), ["--bg", "--name", "Kid tabs"]
+        )
+        self.assertIn("attach-after-lockout 4f2a", self.recorded("guard"))
+
+    def test_without_a_brief_rex_types_only_the_command(self) -> None:
+        self.install_rex(self.bin / "rex")
+        result = self.run_command(
+            "spawn-session", str(self.folder), "--name", "Kid tabs"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "block:1\n")
+        new, *typed = self.recorded("rex").split("\n", 1)
+        self.assertEqual(new, f"|new Kid tabs -c {self.folder} --json")
+        self.assertEqual(typed[0], "|send -b block:1 claude --name Kid\\ tabs\n\n")
+        self.assert_no_ghostty()
+
     def rex_calls(self) -> list[str]:
         return self.recorded("rex").splitlines()
 

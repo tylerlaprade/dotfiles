@@ -1,8 +1,11 @@
 #!/bin/bash
-# Usage: spawn-session <folder> <brief-file> [claude options...]
-# Starts a peer Claude session in <folder> with the brief as its first prompt,
-# typed into a shell, and prints the id of the terminal it runs in. Claude is the
-# shell's own command there: run from a wrapper, it would keep no transcript.
+# Usage: spawn-session <folder> [brief-file] [claude options...]
+# Starts a peer Claude session in <folder>, typed into a shell, and prints the id
+# of the terminal it runs in. A brief file becomes its first prompt. Without one
+# (no second argument, or one starting with "-"), the session starts idle, ready
+# for a cross-session message, so the transcript never shows another session's
+# brief as Tyler's own words. Claude is the shell's own command there: run from
+# a wrapper, it would keep no transcript.
 # With Rex installed, the terminal is a new Rex session and the id is its block,
 # `block:...`. Rex's server has no window, so this opens none and neither a
 # lockout nor a locked screen holds it.
@@ -13,17 +16,23 @@
 set -euo pipefail
 
 folder=${1:?folder}
-brief=${2:?brief file}
-shift 2
-[[ -r "$brief" ]] || { echo "spawn-session: cannot read $brief" >&2; exit 1; }
+shift
+brief=
+if (( $# > 0 )) && [[ "$1" != -* ]]; then
+  brief=$1
+  shift
+  [[ -r "$brief" ]] || { echo "spawn-session: cannot read $brief" >&2; exit 1; }
+fi
 [[ -d "$folder" ]] || { echo "spawn-session: no folder $folder" >&2; exit 1; }
-[[ "$brief" == /* ]] || brief="$PWD/$brief"
+[[ -z "$brief" || "$brief" == /* ]] || brief="$PWD/$brief"
 
 command_line=claude
 for option in "$@"; do
   printf -v command_line '%s %q' "$command_line" "$option"
 done
-printf -v command_line "%s \"\$(cat %q)\"" "$command_line" "$brief"
+if [[ -n "$brief" ]]; then
+  printf -v command_line "%s \"\$(cat %q)\"" "$command_line" "$brief"
+fi
 
 if rex=$(rex-path 2>/dev/null); then
   folder=$(cd "$folder" && pwd)
@@ -48,7 +57,7 @@ fi
 
 guard="$HOME/.cargo/bin/session-guard"
 if ! "$guard" lockout >/dev/null 2>&1; then
-  started=$(cd "$folder" && claude --bg "$@" "$(<"$brief")")
+  started=$(cd "$folder" && claude --bg "$@" ${brief:+"$(<"$brief")"})
   backgrounded='backgrounded · ([0-9a-f]+)'
   if [[ ! "$started" =~ $backgrounded ]]; then
     printf 'spawn-session: claude --bg printed no id:\n%s\n' "$started" >&2
