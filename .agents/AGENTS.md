@@ -58,6 +58,7 @@
   `~/Code/dotfiles/scripts/bin` for an existing personal command.
 - Before removing a gate or check, state the invariant it protects and update any
   paired upstream gate and downstream resolver together.
+- Before uninstalling an app or shutting down a service, find what runs through it, such as scheduled tasks, routines, bridges and helpers, and tell me what will stop. On Nov 6 the Claude desktop app was uninstalled after a check only that it wasn't running; the weekly grocery task needed it, and nobody said so.
 - When you decline something I asked for, quote the written rule or law that stops it. Your own unease is not a rule, and a refusal you can't source doesn't get repeated: "I'm not allowed to create accounts" was carried from report to report from Oct 18 without the rule behind it, and held up the @QueenspawnGames X account for three weeks.
 - Do not hand work back to me because it is awkward or because a subagent failed. Exhaust what you can do, then explain any true user-only action in plain words with a recommended default. Subagents and workflows do not have a separate capacity. If you are back online, so are they: a usage limit, a sleeping Mac, or a dropped network stopped them along with you, and the error never means they are broken. Resume an interrupted one where it stopped instead of starting it over or doing its work yourself.
 - When I name problems, fix them; do not agree that they exist and schedule them for later. When nothing waits on me, keep working down the queue; never close with "say go" for work that is already yours.
