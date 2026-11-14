@@ -714,14 +714,23 @@ def preview_login_items(local_map: dict[str, str], merged: dict[str, str]) -> No
 
 
 def apply_login_items(local_map: dict[str, str], merged: dict[str, str]) -> None:
+    removed: list[str] = []
     for path in sorted(set(local_map) - set(merged)):
-        delete_login_item(local_map[path])
+        result = delete_login_item(local_map[path])
+        if result.returncode != 0:
+            print(f"login item {local_map[path]}: {result.stderr.strip()}", file=sys.stderr)
+            continue
+        removed.append(path)
+    added: dict[str, str] = {}
     for path, name in sorted(merged.items()):
         if path in local_map or not is_installed(path):
             continue
         result = add_login_item(path)
         if result.returncode != 0:
             print(f"login item {name}: {result.stderr.strip()}", file=sys.stderr)
+            continue
+        added[path] = name
+    threeway.log_applied("login-items", "System Events", added, removed)
 
 
 def sync_login_items() -> None:
