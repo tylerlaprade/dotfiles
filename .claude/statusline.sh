@@ -134,14 +134,13 @@ rate_usage_gradient() {
   fi
 }
 
-# Sets battery to a 10-cell bar in the usage color, with a smooth transition
-# cell, and battery_color to that color. An optional cell index becomes a white
+# Sets battery to a 10-cell bar in the color the caller left in r, g, b, with a
+# smooth transition cell, and battery_color to that color. An optional cell index becomes a white
 # pace mark. Sets variables instead of printing, so a render starts no subshell.
 build_battery() {
   local pct=$1 mark_cell=${2:--1} filled=$(( $1 * 10 / 100 )) transition=░ cell
   [[ "$filled" -gt 10 ]] && filled=10
   [[ $(( pct * 10 % 100 )) -ge 50 ]] && transition=▒
-  rate_usage_gradient "$pct"
   printf -v battery_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
   battery=$battery_color
   for (( cell = 0; cell < 10; cell++ )); do
@@ -226,6 +225,7 @@ format_time_color() {
 # Color tracks pressure against the auto-compact trigger.
 # 0-55% stays green, 55-75% blends to yellow, 75-95% blends to red,
 # and anything above 95% stays bright red.
+rate_usage_gradient "$pct"
 build_battery "$pct"
 bar=$battery
 bar_color=$battery_color
@@ -469,21 +469,26 @@ if [[ "${rate_5h:-0}" -ge 100 ]]; then
 fi
 rate=$(format_rate "$rate_5h" "$resets_5h" 18000 "$cost_display" "$cost_color" plus)
 [[ -n "$rate" ]] && rate_parts+=("5h $rate")
-rate=$(format_rate "$rate_7d" "$resets_7d" 604800 "" "" plus)
-# A five-hour entry leaves no room on the row for the battery. Its pace mark is
-# where an even burn would put the week by now.
-weekly_battery=""
-if [[ -n "$rate" && -z "$rate_5h" ]]; then
+# Without a five-hour entry the row has room for a weekly battery. Bar and
+# percent take the countdown's pace color, and the pace mark is where an even
+# burn would put the week by now.
+if [[ -n "$rate_7d" && -z "$rate_5h" ]]; then
   week_left=$(( ${resets_7d:-0} - now ))
   pace_cell=-1
   if [[ "$week_left" -gt 0 ]]; then
     [[ "$week_left" -gt 604800 ]] && week_left=604800
     pace_cell=$(( (604800 - week_left) * 10 / 604800 ))
   fi
+  pace_gradient "$rate_7d" "$resets_7d" 604800
   build_battery "$rate_7d" "$pace_cell"
-  weekly_battery="${battery}${RESET} "
+  week_percent="${rate_7d}%"
+  [[ "$rate_7d" -ge 100 ]] && week_percent+="+"
+  rate=$(format_rate "$rate_7d" "$resets_7d" 604800 "$week_percent" "$battery_color")
+  rate_parts+=("7d ${battery}${RESET} $rate")
+else
+  rate=$(format_rate "$rate_7d" "$resets_7d" 604800 "" "" plus)
+  [[ -n "$rate" ]] && rate_parts+=("7d $rate")
 fi
-[[ -n "$rate" ]] && rate_parts+=("7d ${weekly_battery}$rate")
 [[ -n "$fable_part" ]] && rate_parts+=("$fable_part")
 if (( ${#rate_parts[@]} )); then
   usage_line=$(join_parts "${rate_parts[@]}")

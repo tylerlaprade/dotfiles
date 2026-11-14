@@ -177,6 +177,14 @@ DEFAULT_SESSION = Session()
 DEFAULT_FAKES = Fakes()
 
 
+def weekly_colors(line: str) -> list[tuple[int, int, int]]:
+    match = re.search(r'7d \x1b\[38;2;(\d+);(\d+);(\d+)m.*?\x1b\[38;2;(\d+);(\d+);(\d+)m\d+%.*?resets in \x1b\[38;2;(\d+);(\d+);(\d+)m', line)
+    if match is None:
+        raise AssertionError(f'no weekly battery in {line!r}')
+    values = [int(value) for value in match.groups()]
+    return [(values[0], values[1], values[2]), (values[3], values[4], values[5]), (values[6], values[7], values[8])]
+
+
 @final
 class StatuslineTest(unittest.TestCase):
     @override
@@ -390,7 +398,7 @@ class StatuslineTest(unittest.TestCase):
         rates = self.rates(now, seven_day=seven_day, seven_day_reset=now + left)
         del rates['five_hour']
         lines = self.render(self.payload(Session(rates=rates)), Fakes(now=now, usage=dict(USAGE_OK, five_hour=None)))
-        return visible(lines[1])
+        return lines[1]
 
     def test_weekly_battery_marks_the_even_burn_pace(self) -> None:
         now = at(15, 0)
@@ -403,10 +411,20 @@ class StatuslineTest(unittest.TestCase):
         }
         for name, (seven_day, left, expected) in cases.items():
             with self.subTest(case=name):
-                self.assertIn(f'Usage · 7d {expected} (resets in', self.render_without_five_hour_limit(now, seven_day, left))
+                line = self.render_without_five_hour_limit(now, seven_day, left)
+                self.assertIn(f'Usage · 7d {expected} (resets in', visible(line))
+                self.assertEqual(len(set(weekly_colors(line))), 1, line)
+
+    def test_weekly_battery_and_percent_follow_pace(self) -> None:
+        now = at(15, 0)
+        ahead = weekly_colors(self.render_without_five_hour_limit(now, 45, timedelta(days=6, hours=6)))[0]
+        behind = weekly_colors(self.render_without_five_hour_limit(now, 45, timedelta(days=1)))[0]
+        self.assertGreater(ahead[0], 200)
+        self.assertLess(ahead[1], 100)
+        self.assertLess(behind[0], 200)
 
     def test_weekly_battery_has_no_pace_mark_without_a_reset_time(self) -> None:
-        text = self.render_without_five_hour_limit(at(15, 0), 30, timedelta(minutes=-5))
+        text = visible(self.render_without_five_hour_limit(at(15, 0), 30, timedelta(minutes=-5)))
         self.assertIn('Usage · 7d ▓▓▓░░░░░░░ 30%', text)
 
     def test_clock_and_resets_follow_the_local_time_zone(self) -> None:
