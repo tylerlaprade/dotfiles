@@ -295,6 +295,7 @@
   },
   "feedbackDrafts": "quiet",
   "alwaysThinkingEnabled": true,
+  "cleanupPeriodDays": 36500,
   "effortLevel": "xhigh",
   "modelSettings": {
     "claude-opus-5-5": {
