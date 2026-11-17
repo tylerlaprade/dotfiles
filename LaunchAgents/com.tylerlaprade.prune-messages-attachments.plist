@@ -6,10 +6,9 @@
 	<string>com.tylerlaprade.prune-messages-attachments</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/usr/bin/osascript</string>
-		<string>/Users/tyler/Code/dotfiles/scripts/sync/open-ghostty-tab.applescript</string>
-		<string>/Users/tyler/Code/dotfiles/scripts/sync/prune-messages-attachments.sh</string>
-		<string>/tmp/prune-messages-attachments.log</string>
+		<string>/bin/bash</string>
+		<string>-c</string>
+		<string>PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/bin:/bin" exec terminal-tab "$HOME" "${DOTFILES_DIR:-$HOME/Code/dotfiles}/scripts/sync/prune-messages-attachments.sh &gt;&gt; /tmp/prune-messages-attachments.log 2&gt;&amp;1; exit"</string>
 	</array>
 	<key>StartCalendarInterval</key>
 	<dict>

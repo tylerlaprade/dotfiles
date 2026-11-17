@@ -27,7 +27,13 @@ class SpawnSessionTest(unittest.TestCase):
         self.folder.mkdir()
         self.brief = self.root / "my brief.md"
         self.brief.write_text("Do the thing.\n")
-        for name in ("ghostty-tab", "rex-path", "spawn-session"):
+        for name in (
+            "ghostty-tab",
+            "rex-path",
+            "rex-tab",
+            "spawn-session",
+            "terminal-tab",
+        ):
             (self.bin / name).symlink_to(REPOSITORY / f"scripts/bin/{name}.sh")
         self.install(
             self.bin / "osascript",
@@ -271,6 +277,45 @@ class SpawnSessionTest(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(result.stdout, "")
                 self.assert_no_ghostty()
+
+    def test_terminal_tab_types_into_a_rex_tab_named_for_its_folder(self) -> None:
+        self.install_rex(self.bin / "rex")
+        self.rex_sessions("Claude")
+        owner = self.bin / "owner"
+        self.install(owner, 'printf "%s\\n" "$@" > "$CALLS.owner"\n')
+        result = self.run_command(
+            "terminal-tab", str(self.folder), "make test", str(owner)
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "block:2\n")
+        self.assertEqual(
+            self.rex_calls()[1],
+            f"|window new -s session:claude work -c {self.folder} --focus=false --json",
+        )
+        self.assertTrue(self.recorded("rex").endswith("|send -b block:2 make test\n\n"))
+        self.assertFalse(Path(f"{self.calls}.owner").exists())
+        self.assert_no_ghostty()
+
+    def test_terminal_tab_without_rex_opens_a_ghostty_tab(self) -> None:
+        result = self.run_command("terminal-tab", str(self.folder), "make test")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "tab-7\n")
+        self.assertEqual(
+            self.recorded("osascript").splitlines()[1:3],
+            [str(self.folder), "make test"],
+        )
+        self.assertIn("lockout --wait", self.recorded("guard"))
+
+    def test_rex_tab_takes_its_label_and_fails_without_rex(self) -> None:
+        result = self.run_command("rex-tab", str(self.folder), "make test")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("Rex is not installed", result.stderr)
+        self.install_rex(self.bin / "rex")
+        result = self.run_command("rex-tab", str(self.folder), "make test", "Tests")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            self.rex_calls()[1], f"|new Claude --window Tests -c {self.folder} --json"
+        )
 
     def test_missing_folder_fails_before_anything_starts(self) -> None:
         self.install_rex(self.bin / "rex")

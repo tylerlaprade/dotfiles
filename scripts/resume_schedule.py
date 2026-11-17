@@ -464,7 +464,7 @@ def open_session(job: Job) -> None:
         check_grok_sign_in(job["directory"])
     result = subprocess.run(
         [
-            str(SCRIPT.parent / "bin/ghostty-tab.sh"),
+            str(SCRIPT.parent / "bin/terminal-tab.sh"),
             job["directory"],
             command_line(job),
             str(EXECUTABLE),

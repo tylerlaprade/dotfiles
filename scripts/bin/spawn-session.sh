@@ -6,10 +6,8 @@
 # for a cross-session message, so the transcript never shows another session's
 # brief as Tyler's own words. Claude is the shell's own command there: run from
 # a wrapper, it would keep no transcript.
-# With Rex installed, the terminal is a new tab (a Rex window) in one shared Rex
-# session labeled Claude, created when missing, and the id is its block,
-# `block:...`. The tab opens without becoming the active one. Rex's server has
-# no window, so this opens none and neither a lockout nor a locked screen holds it.
+# With Rex installed, the terminal is a new tab from rex-tab, labeled with the
+# session's --name or else its folder's name, and the id is its block.
 # Otherwise it is a new tab from ghostty-tab, and the id is the tab's. While
 # Screen Time has Ghostty locked out, or that is not yet known, the session
 # starts with `claude --bg` instead, this prints "background <id>", and
@@ -35,33 +33,16 @@ if [[ -n "$brief" ]]; then
   printf -v command_line "%s \"\$(cat %q)\"" "$command_line" "$brief"
 fi
 
-if rex=$(rex-path 2>/dev/null); then
-  folder=$(cd "$folder" && pwd)
-  label=${folder##*/}
+if rex-path >/dev/null 2>&1; then
+  label=
   while (( $# > 0 )); do
     case $1 in
-      --name | -n) label=${2:-$label}; break ;;
+      --name | -n) label=${2:-}; break ;;
       --name=*) label=${1#--name=}; break ;;
       *) shift ;;
     esac
   done
-  # Rex takes a leading dash for a flag, and names a window itself given no label.
-  while [[ "$label" == -* ]]; do label=${label#-}; done
-  # Inside a Rex terminal, a block in any other session counts as not found.
-  unset REX_SESSION
-  shared=Claude
-  session=$("$rex" ls --json | jq -r --arg label "$shared" \
-    'first(.sessions[] | select(.label == $label) | .session_id) // empty')
-  if [[ -n "$session" ]]; then
-    created=$("$rex" window new -s "$session" ${label:+"$label"} -c "$folder" --focus=false --json)
-    block=$(jq -er '.block_ids[0]' <<<"$created")
-  else
-    created=$("$rex" new "$shared" ${label:+--window "$label"} -c "$folder" --json)
-    block=$(jq -er '.initial_windows[0].block_ids[0]' <<<"$created")
-  fi
-  "$rex" send -b "$block" "$command_line"$'\n'
-  echo "$block"
-  exit 0
+  exec rex-tab "$folder" "$command_line" "$label"
 fi
 
 guard="$HOME/.cargo/bin/session-guard"
