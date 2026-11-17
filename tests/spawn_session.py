@@ -1,11 +1,13 @@
 # Copyright (C) 2026 Tyler Laprade. SPDX-License-Identifier: GPL-3.0-only
 from __future__ import annotations
 
+import json
+import shlex
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from typing import final, override
+from typing import cast, final, override
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 LOCKED_OUT = 1
@@ -90,6 +92,7 @@ class SpawnSessionTest(unittest.TestCase):
             "HOME": str(self.home),
             "PATH": f"{self.bin}:/usr/bin:/bin",
             "CALLS": str(self.calls),
+            "TMPDIR": str(self.root),
             **extra_environment,
         }
         return subprocess.run(
@@ -103,6 +106,31 @@ class SpawnSessionTest(unittest.TestCase):
 
     def recorded(self, kind: str) -> str:
         return Path(f"{self.calls}.{kind}").read_text()
+
+    def assert_brief_hook(self, arguments: list[str]) -> None:
+        self.assertEqual(arguments[:3], ["--name", "Kid tabs", "--settings"])
+        self.assertEqual(len(arguments), 4)
+        settings = cast(
+            "dict[str, dict[str, list[dict[str, list[dict[str, object]]]]]]",
+            json.loads(arguments[3]),
+        )
+        [hook] = settings["hooks"]["SessionStart"][0]["hooks"]
+        command = str(hook.pop("command"))
+        self.assertEqual(hook, {"type": "command", "asyncRewake": True})
+        self.brief.write_text("A later edit.\n")
+        runs = [
+            subprocess.run(
+                ["/bin/bash", "-c", command],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            for _ in range(2)
+        ]
+        self.assertEqual(
+            [(run.returncode, run.stderr) for run in runs],
+            [(2, "Do the thing.\n"), (0, "")],
+        )
 
     def test_tab_types_the_command_and_keeps_the_previous_tab_selected(self) -> None:
         result = self.run_command("ghostty-tab", str(self.folder), "make test")
@@ -131,11 +159,9 @@ class SpawnSessionTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "tab-7\n")
-        typed = self.recorded("osascript").splitlines()[2]
-        self.assertEqual(
-            typed,
-            f'claude --name Kid\\ tabs "$(cat {str(self.brief).replace(" ", "\\ ")})"',
-        )
+        command, *arguments = shlex.split(self.recorded("osascript").splitlines()[2])
+        self.assertEqual(command, "claude")
+        self.assert_brief_hook(arguments)
         self.assertFalse(Path(f"{self.calls}.claude").exists())
 
     def test_session_starts_in_the_background_during_a_lockout(self) -> None:
@@ -145,10 +171,9 @@ class SpawnSessionTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "background 4f2a\n")
-        self.assertEqual(
-            self.recorded("claude").splitlines(),
-            ["--bg", "--name", "Kid tabs", "Do the thing."],
-        )
+        background, *arguments = self.recorded("claude").splitlines()
+        self.assertEqual(background, "--bg")
+        self.assert_brief_hook(arguments)
         self.assertIn("attach-after-lockout 4f2a", self.recorded("guard"))
         self.assertFalse(Path(f"{self.calls}.osascript").exists())
 
@@ -205,10 +230,11 @@ class SpawnSessionTest(unittest.TestCase):
         listed, new, *typed = self.recorded("rex").split("\n", 2)
         self.assertEqual(listed, "|ls --json")
         self.assertEqual(new, f"|new Claude --window Kid tabs -c {self.folder} --json")
-        self.assertEqual(
-            typed[0],
-            f'|send -b block:1 claude --name Kid\\ tabs "$(cat {str(self.brief).replace(" ", "\\ ")})"\n\n',
-        )
+        sent = typed[0].removeprefix("|send -b block:1 ")
+        self.assertTrue(sent.endswith("\n\n"))
+        command, *arguments = shlex.split(sent)
+        self.assertEqual(command, "claude")
+        self.assert_brief_hook(arguments)
         self.assert_no_ghostty()
 
     def test_later_sessions_open_as_background_tabs_in_the_shared_session(
@@ -325,6 +351,19 @@ class SpawnSessionTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("no folder", result.stderr)
         self.assertFalse(Path(f"{self.calls}.rex").exists())
+
+    def test_a_brief_with_its_own_settings_fails_before_anything_starts(
+        self,
+    ) -> None:
+        self.install_rex(self.bin / "rex")
+        for settings in (("--settings", "{}"), ("--settings={}",)):
+            with self.subTest(settings=settings):
+                result = self.run_command(
+                    "spawn-session", str(self.folder), str(self.brief), *settings
+                )
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("Claude honors only one", result.stderr)
+                self.assertFalse(Path(f"{self.calls}.rex").exists())
 
     def test_unreadable_brief_fails_before_anything_starts(self) -> None:
         result = self.run_command(
