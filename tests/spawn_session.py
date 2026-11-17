@@ -55,12 +55,27 @@ class SpawnSessionTest(unittest.TestCase):
         self.install(
             path,
             'printf "%s|%s\\n" "${REX_SESSION:-}" "$*" >> "$CALLS.rex"\n'
-            'if [ "$1" = new ]; then cat "$CALLS.rex-reply"; exit "$(cat "$CALLS.rex-status")"; fi\n',
+            'case "$1" in\n'
+            '  ls) cat "$CALLS.rex-sessions" ;;\n'
+            '  new) cat "$CALLS.rex-reply"; exit "$(cat "$CALLS.rex-status")" ;;\n'
+            '  window) cat "$CALLS.rex-window"; exit "$(cat "$CALLS.rex-status")" ;;\n'
+            "esac\n",
         )
+        self.rex_sessions()
         Path(f"{self.calls}.rex-reply").write_text(
             '{"session_id":"session:1","initial_windows":[{"block_ids":["block:1"]}]}\n'
         )
+        Path(f"{self.calls}.rex-window").write_text(
+            '{"window_id":"window:2","block_ids":["block:2"]}\n'
+        )
         Path(f"{self.calls}.rex-status").write_text("0\n")
+
+    def rex_sessions(self, *labels: str) -> None:
+        sessions = ",".join(
+            f'{{"session_id":"session:{label.lower()}","label":"{label}"}}'
+            for label in labels
+        )
+        Path(f"{self.calls}.rex-sessions").write_text(f'{{"sessions":[{sessions}]}}\n')
 
     def run_command(
         self, *arguments: str, **extra_environment: str
@@ -161,8 +176,9 @@ class SpawnSessionTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "block:1\n")
-        new, *typed = self.recorded("rex").split("\n", 1)
-        self.assertEqual(new, f"|new Kid tabs -c {self.folder} --json")
+        listed, new, *typed = self.recorded("rex").split("\n", 2)
+        self.assertEqual(listed, "|ls --json")
+        self.assertEqual(new, f"|new Claude --window Kid tabs -c {self.folder} --json")
         self.assertEqual(typed[0], "|send -b block:1 claude --name Kid\\ tabs\n\n")
         self.assert_no_ghostty()
 
@@ -180,12 +196,31 @@ class SpawnSessionTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "block:1\n")
-        new, *typed = self.recorded("rex").split("\n", 1)
-        self.assertEqual(new, f"|new Kid tabs -c {self.folder} --json")
+        listed, new, *typed = self.recorded("rex").split("\n", 2)
+        self.assertEqual(listed, "|ls --json")
+        self.assertEqual(new, f"|new Claude --window Kid tabs -c {self.folder} --json")
         self.assertEqual(
             typed[0],
             f'|send -b block:1 claude --name Kid\\ tabs "$(cat {str(self.brief).replace(" ", "\\ ")})"\n\n',
         )
+        self.assert_no_ghostty()
+
+    def test_later_sessions_open_as_background_tabs_in_the_shared_session(
+        self,
+    ) -> None:
+        self.install_rex(self.bin / "rex")
+        self.rex_sessions("Fondly", "Claude")
+        result = self.run_command(
+            "spawn-session", str(self.folder), str(self.brief), "--name", "Kid tabs"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "block:2\n")
+        self.assertEqual(
+            self.rex_calls()[1],
+            f"|window new -s session:claude Kid tabs -c {self.folder} --focus=false --json",
+        )
+        self.assertTrue(self.rex_calls()[2].startswith("|send -b block:2 claude "))
+        self.assertFalse(any(call.startswith("|new ") for call in self.rex_calls()))
         self.assert_no_ghostty()
 
     def test_rex_is_found_inside_its_app_when_it_is_not_on_path(self) -> None:
@@ -195,7 +230,7 @@ class SpawnSessionTest(unittest.TestCase):
         result = self.run_command("spawn-session", str(self.folder), str(self.brief))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "block:1\n")
-        self.assertIn("|new work -c ", self.rex_calls()[0])
+        self.assertIn("|new Claude --window work -c ", self.rex_calls()[1])
         self.assert_no_ghostty()
 
     def test_a_rex_terminal_can_start_a_session_outside_its_own_session(self) -> None:
@@ -207,7 +242,7 @@ class SpawnSessionTest(unittest.TestCase):
             REX_SESSION="session:mine",
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue(self.rex_calls()[0].startswith("|new "))
+        self.assertTrue(self.rex_calls()[1].startswith("|new Claude "))
         self.assertTrue(any(call.startswith("|send ") for call in self.rex_calls()))
 
     def test_a_rex_label_never_reads_as_a_flag(self) -> None:
@@ -216,21 +251,26 @@ class SpawnSessionTest(unittest.TestCase):
         dashed.mkdir()
         result = self.run_command("spawn-session", str(dashed), str(self.brief))
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("|new work -c ", self.rex_calls()[0])
+        self.assertIn("|new Claude --window work -c ", self.rex_calls()[1])
         only_dashes = self.root / "--"
         only_dashes.mkdir()
         result = self.run_command("spawn-session", str(only_dashes), str(self.brief))
         self.assertEqual(result.returncode, 0, result.stderr)
         started = [call for call in self.rex_calls() if call.startswith("|new ")]
-        self.assertIn("|new -c ", started[-1])
+        self.assertIn("|new Claude -c ", started[-1])
 
-    def test_a_failed_rex_session_never_falls_back_to_ghostty(self) -> None:
-        self.install_rex(self.bin / "rex")
-        Path(f"{self.calls}.rex-status").write_text("3\n")
-        result = self.run_command("spawn-session", str(self.folder), str(self.brief))
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(result.stdout, "")
-        self.assert_no_ghostty()
+    def test_a_failed_rex_tab_never_falls_back_to_ghostty(self) -> None:
+        for shared in ((), ("Claude",)):
+            with self.subTest(shared=shared):
+                self.install_rex(self.bin / "rex")
+                self.rex_sessions(*shared)
+                Path(f"{self.calls}.rex-status").write_text("3\n")
+                result = self.run_command(
+                    "spawn-session", str(self.folder), str(self.brief)
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, "")
+                self.assert_no_ghostty()
 
     def test_missing_folder_fails_before_anything_starts(self) -> None:
         self.install_rex(self.bin / "rex")
