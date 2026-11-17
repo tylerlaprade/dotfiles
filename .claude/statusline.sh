@@ -51,9 +51,8 @@ input_fields=$(
   ] | join("\u001f")' <<< "$input"
 )
 IFS=$'\037' read -r rate_5h rate_7d resets_5h resets_7d model_name effort_level session_id raw_cost cost_cents <<< "$input_fields"
-clock_fields=$(date '+%s %Y%j %u %H %M %S %-I:%M %p')
-read -r now today clock_weekday clock_hour clock_minute clock_second current_time <<< "$clock_fields"
-tomorrow=$(date -v+1d +"%Y%j")
+clock_fields=$(date '+%s %u %H %M %S %-I:%M %p')
+read -r now clock_weekday clock_hour clock_minute clock_second current_time <<< "$clock_fields"
 
 format_tokens() {
   local tokens=$1
@@ -295,10 +294,7 @@ format_rate() {
   if [[ -n "$display_override" ]]; then
     info="${display_color}${display_override}${RESET}"
   else
-    # Absolute hard-limit usage: 0-55% green, 55-75% green→yellow,
-    # 75-95% yellow→bright red, 95%+ bright red. Print the number as
-    # reported — no "+" for "maybe over."
-    rate_usage_gradient "$pct"
+    pace_gradient "$pct" "$resets" "$window_secs"
     local pct_color
     printf -v pct_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
     local suffix="%"
@@ -309,18 +305,6 @@ format_rate() {
   fi
 
   if [[ "$time_remaining" -gt 0 ]]; then
-    pace_gradient "$pct" "$resets" "$window_secs"
-    local time_color reset_fields reset_str reset_day reset_time reset_weekday_time
-    printf -v time_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
-    reset_fields=$(date -r "$resets" +"%Y%j|%-I:%M %p|%a %-I:%M %p" 2>/dev/null)
-    IFS='|' read -r reset_day reset_time reset_weekday_time <<< "$reset_fields"
-    if [[ "$reset_day" = "$today" ]]; then
-      reset_str=$reset_time
-    elif [[ "$reset_day" = "$tomorrow" ]]; then
-      reset_str="${reset_time}${RESET} tomorrow"
-    else
-      reset_str=$reset_weekday_time
-    fi
     local days=$(( time_remaining / 86400 ))
     local hrs=$(( (time_remaining % 86400) / 3600 ))
     local mins=$(( (time_remaining % 3600) / 60 ))
@@ -332,11 +316,12 @@ format_rate() {
     else
       remaining="${mins}m"
     fi
-    # Reset-time proximity: blue just after reset → green → yellow → red as it nears.
+    # Countdown color by how soon the reset is: blue just after one, then green,
+    # yellow, and red as the next nears.
     tn_gradient $(( time_elapsed * 100 / window_secs )) 55 80 95 80 20
-    local reset_color
-    printf -v reset_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
-    [[ -n "$reset_str" ]] && info="${info} (resets in ${time_color}${remaining}${RESET} at ${reset_color}${reset_str}${RESET})"
+    local countdown_color
+    printf -v countdown_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
+    info="${info} (resets in ${countdown_color}${remaining}${RESET})"
   fi
 
   echo "$info"
@@ -421,8 +406,7 @@ if [[ -n "$_usage" ]]; then
       fable_part="${DIM}Fable unavailable${RESET}"
     fi
   elif [[ -n "$rate_fable" ]]; then
-    # Same weekly reset as 7d: omit the duplicate countdown, and pace-color the
-    # percent so the pace still shows somewhere. Compare within the usage
+    # Same weekly reset as 7d: omit the duplicate countdown. Compare within the usage
     # payload, and allow a minute of slack: the API rounds the two windows
     # independently, so the same reset arrives as 14:59:59 and 15:00:00. A real
     # divergence would be hours, never seconds.
@@ -432,8 +416,6 @@ if [[ -n "$_usage" ]]; then
       fable_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
       fable_part="Fable ${fable_color}${rate_fable}%${RESET}"
     else
-      # Resets diverged: the countdown carries the pace, so the percent goes
-      # back to the absolute gradient, same as 5h and 7d.
       rate=$(format_rate "$rate_fable" "$resets_fable" 604800)
       [[ -n "$rate" ]] && fable_part="Fable $rate"
     fi
@@ -469,9 +451,8 @@ if [[ "${rate_5h:-0}" -ge 100 ]]; then
 fi
 rate=$(format_rate "$rate_5h" "$resets_5h" 18000 "$cost_display" "$cost_color" plus)
 [[ -n "$rate" ]] && rate_parts+=("5h $rate")
-# Without a five-hour entry the row has room for a weekly battery. Bar and
-# percent take the countdown's pace color, and the pace mark is where an even
-# burn would put the week by now.
+# Without a five-hour entry the row has room for a weekly battery in the pace
+# color, with a mark where an even burn would put the week by now.
 if [[ -n "$rate_7d" && -z "$rate_5h" ]]; then
   week_left=$(( ${resets_7d:-0} - now ))
   pace_cell=-1

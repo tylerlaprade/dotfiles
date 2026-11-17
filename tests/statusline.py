@@ -375,13 +375,13 @@ class StatuslineTest(unittest.TestCase):
         resets_7d = int((now + timedelta(days=6, hours=15)).timestamp())
         base_usage = dict(USAGE_OK, resets_5h=int((now + timedelta(hours=2)).timestamp()), resets_7d=resets_7d)
         cases = {
-            'today': (self.rates(now), 'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable 4%'),
+            'today': (self.rates(now), 'Usage · 5h 6% (resets in 2h 0m) · 7d 3% (resets in 6d 15h) · Fable 4%'),
             'tomorrow': (self.rates(now, five_hour_reset=now + timedelta(hours=20)),
-                         'Usage · 5h 6% (resets in 20h 0m at 11:00 AM tomorrow) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable 4%'),
+                         'Usage · 5h 6% (resets in 20h 0m) · 7d 3% (resets in 6d 15h) · Fable 4%'),
             'next week': (self.rates(now, seven_day_reset=now + timedelta(days=5, hours=3)),
-                          'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 5d 3h at Mon 6:00 PM) · Fable 4%'),
+                          'Usage · 5h 6% (resets in 2h 0m) · 7d 3% (resets in 5d 3h) · Fable 4%'),
             'expired': (self.rates(now, five_hour_reset=now - timedelta(minutes=5)),
-                        'Usage · 5h 6% · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable 4%'),
+                        'Usage · 5h 6% · 7d 3% (resets in 6d 15h) · Fable 4%'),
             'same weekly reset as fable': (self.rates(now), None),
         }
         for name, (rates, expected) in cases.items():
@@ -413,7 +413,8 @@ class StatuslineTest(unittest.TestCase):
             with self.subTest(case=name):
                 line = self.render_without_five_hour_limit(now, seven_day, left)
                 self.assertIn(f'Usage · 7d {expected} (resets in', visible(line))
-                self.assertEqual(len(set(weekly_colors(line))), 1, line)
+                battery, percent, _ = weekly_colors(line)
+                self.assertEqual(battery, percent, line)
 
     def test_weekly_battery_and_percent_follow_pace(self) -> None:
         now = at(15, 0)
@@ -423,6 +424,25 @@ class StatuslineTest(unittest.TestCase):
         self.assertLess(ahead[1], 100)
         self.assertLess(behind[0], 200)
 
+    def test_countdown_shows_how_soon_the_reset_is(self) -> None:
+        now = at(15, 0)
+        fresh = weekly_colors(self.render_without_five_hour_limit(now, 10, timedelta(days=6, hours=20)))[2]
+        closing = weekly_colors(self.render_without_five_hour_limit(now, 10, timedelta(hours=2)))[2]
+        self.assertEqual(fresh, (129, 162, 190))
+        self.assertGreater(closing[0], 200)
+        self.assertLess(closing[1], 150)
+
+    def test_five_hour_percent_follows_pace(self) -> None:
+        now = at(15, 0)
+        rates = self.rates(now, five_hour=50, five_hour_reset=now + timedelta(hours=4, minutes=30))
+        line = self.render(self.payload(Session(rates=rates)), Fakes(now=now))[1]
+        match = re.search(r'5h \x1b\[38;2;(\d+);(\d+);(\d+)m50%', line)
+        if match is None:
+            self.fail(line)
+        red, green, _ = (int(value) for value in match.groups())
+        self.assertGreater(red, 200)
+        self.assertLess(green, 100)
+
     def test_weekly_battery_has_no_pace_mark_without_a_reset_time(self) -> None:
         text = visible(self.render_without_five_hour_limit(at(15, 0), 30, timedelta(minutes=-5)))
         self.assertIn('Usage · 7d ▓▓▓░░░░░░░ 30%', text)
@@ -431,36 +451,36 @@ class StatuslineTest(unittest.TestCase):
         now = at(15, 0)
         lines = self.render(self.payload(Session(rates=self.rates(now))), Fakes(now=now, claude_environment={'TZ': 'Asia/Kathmandu'}))
         self.assert_context_line(lines[0], ContextLine(29, '50k/167k', '1:45 AM'))
-        self.assertEqual(visible(lines[1]), 'Usage · 5h 6% (resets in 2h 0m at 3:45 AM) · 7d 3% (resets in 6d 15h at Wed 4:45 PM) · Fable 4%')
+        self.assertEqual(visible(lines[1]), 'Usage · 5h 6% (resets in 2h 0m) · 7d 3% (resets in 6d 15h) · Fable 4%')
 
     def test_exhausted_five_hour_window_shows_cost(self) -> None:
         now = at(15, 0)
         lines = self.render(self.payload(Session(rates=self.rates(now, five_hour=100, seven_day=100), cost=12.5)), Fakes(now=now))
         text = visible(lines[1])
-        self.assertTrue(text.startswith('Usage · 5h $12.50 (resets in 2h 0m at 5:00 PM) · 7d 100%+ (resets in'), text)
+        self.assertTrue(text.startswith('Usage · 5h $12.50 (resets in 2h 0m) · 7d 100%+ (resets in'), text)
         lines = self.render(self.payload(Session(rates=self.rates(now, five_hour=100, seven_day=100))), Fakes(now=now))
         self.assertTrue(visible(lines[1]).startswith('Usage · 5h 100%+ (resets in'), visible(lines[1]))
 
     def test_usage_fetch_outcomes(self) -> None:
         now = at(15, 0)
         cases: dict[str, tuple[JSONValue, int, bool, str]] = {
-            'ok': (USAGE_OK, 0, True, 'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable 4%'),
+            'ok': (USAGE_OK, 0, True, 'Usage · 5h 6% (resets in 2h 0m) · 7d 3% (resets in 6d 15h) · Fable 4%'),
             'keychain unavailable': ({'ok': False, 'error': 'keychain unavailable'}, 1, True,
-                                     'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable unavailable'),
+                                     'Usage · 5h 6% (resets in 2h 0m) · 7d 3% (resets in 6d 15h) · Fable unavailable'),
             'keychain unavailable with cache': ({'ok': False, 'error': 'keychain unavailable', 'fable': 40}, 1, True,
-                                                'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable 40% · stale'),
+                                                'Usage · 5h 6% (resets in 2h 0m) · 7d 3% (resets in 6d 15h) · Fable 40% · stale'),
             'python missing': ({'ok': False, 'error': 'no python', 'fable': 40}, 1, True,
-                               'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable: brew install python'),
+                               'Usage · 5h 6% (resets in 2h 0m) · 7d 3% (resets in 6d 15h) · Fable: brew install python'),
             'login required': ({'ok': False, 'error': 'HTTP 401', 'fable': 40}, 1, True,
-                               'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable: login required'),
+                               'Usage · 5h 6% (resets in 2h 0m) · 7d 3% (resets in 6d 15h) · Fable: login required'),
             'rate limited': ({'ok': False, 'error': 'HTTP 429', 'fable': 73}, 1, True,
-                             'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable 73% · rate limited'),
+                             'Usage · 5h 6% (resets in 2h 0m) · 7d 3% (resets in 6d 15h) · Fable 73% · rate limited'),
             'fetch failed': ({'ok': False, 'error': 'boom', 'fable': 10}, 1, True,
-                             'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable 10% · fetch failed'),
+                             'Usage · 5h 6% (resets in 2h 0m) · 7d 3% (resets in 6d 15h) · Fable 10% · fetch failed'),
             'empty result': (None, 1, True,
-                             'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM) · Fable unavailable'),
+                             'Usage · 5h 6% (resets in 2h 0m) · 7d 3% (resets in 6d 15h) · Fable unavailable'),
             'command missing': (None, 0, False,
-                                'Usage · 5h 6% (resets in 2h 0m at 5:00 PM) · 7d 3% (resets in 6d 15h at Wed 6:00 AM)'),
+                                'Usage · 5h 6% (resets in 2h 0m) · 7d 3% (resets in 6d 15h)'),
         }
         for name, (usage, status, command, expected) in cases.items():
             with self.subTest(case=name):
@@ -473,7 +493,7 @@ class StatuslineTest(unittest.TestCase):
         usage = dict(USAGE_OK, five_hour=20, seven_day=30, resets_5h=int((now + timedelta(hours=1)).timestamp()),
                      resets_7d=int((now + timedelta(days=2)).timestamp()))
         lines = self.render(self.payload(), Fakes(now=now, usage=usage))
-        self.assertEqual(visible(lines[1]), 'Usage · 5h 20% (resets in 1h 0m at 4:00 PM) · 7d 30% (resets in 2d 0h at Fri 3:00 PM) · Fable 4%')
+        self.assertEqual(visible(lines[1]), 'Usage · 5h 20% (resets in 1h 0m) · 7d 30% (resets in 2d 0h) · Fable 4%')
         lines = self.render(self.payload(), Fakes(now=now, usage=None, usage_status=1, usage_command=False))
         self.assertEqual(len(lines), 2)
         self.assertEqual(visible(lines[1]), 'Fondly master ')
