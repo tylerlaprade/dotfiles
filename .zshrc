@@ -158,7 +158,7 @@ if (( $+commands[cw] )); then
 fi
 
 # Drop-in names. ls/cat flags mostly work; top is the TUI (btm, not `bottom`).
-alias ls="eza"
+alias ls="lsd"
 alias cat="bat"
 alias lg="lazygit"
 alias top="btm"
