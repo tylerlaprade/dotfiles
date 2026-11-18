@@ -103,7 +103,7 @@
 - Do not override the repository's Git identity with `-c user.name` or
   `-c user.email`; let its configured identity apply.
 - Don't override my configured git/GitHub default branch name.
-- Report evidence about credentials and exposure; do not prescribe rotation by reflex.
+- Report evidence about credentials and exposure; do not prescribe rotation by reflex. A key or token in plain text in a private repo is fine and goes unmentioned; raise it only when the repo is public or the key has leaked somewhere else ("I don't care about my keys written in plain text in private repos as long as it's private," Nov 19).
 - Do not change global git, shell, or environment configuration as a local workaround without explicit authorization.
 - Do not kill `gpg-agent` during a signed workflow. If signing truly needs a
   passphrase prompt the tool cannot show, state the exact user-only prewarm step.
