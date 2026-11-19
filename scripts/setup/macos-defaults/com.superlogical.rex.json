@@ -1,0 +1,87 @@
+{
+  "Onboarding.firstRun": {
+    "type": "string",
+    "value": "done"
+  },
+  "SUAutomaticallyUpdate": {
+    "type": "bool",
+    "value": true
+  },
+  "SUEnableAutomaticChecks": {
+    "type": "bool",
+    "value": true
+  },
+  "SUScheduledCheckInterval": {
+    "type": "float",
+    "value": 86400.0
+  },
+  "Workspace.activityGrouping": {
+    "type": "string",
+    "value": "priority"
+  },
+  "Workspace.activityGroupingResetToPriority": {
+    "type": "bool",
+    "value": true
+  },
+  "Workspace.darkThemeID": {
+    "type": "string",
+    "value": "merino-dark"
+  },
+  "Workspace.inactivePaneFadeMode": {
+    "type": "string",
+    "value": "both"
+  },
+  "Workspace.lightThemeID": {
+    "type": "string",
+    "value": "merino-light"
+  },
+  "Workspace.tabIconTintMode": {
+    "type": "string",
+    "value": "off"
+  },
+  "Workspace.terminalCopyOnSelect": {
+    "type": "bool",
+    "value": true
+  },
+  "Workspace.terminalFontPointSize": {
+    "type": "float",
+    "value": 18.0
+  },
+  "Workspace.usesStandardInactiveWindowPaneStyles": {
+    "type": "bool",
+    "value": true
+  },
+  "rex.client.remoteControl": {
+    "type": "bool",
+    "value": true
+  },
+  "rex.local-server.cached-route.v1": {
+    "type": "plist",
+    "value": {
+      "endpoint": "unix:///Users/tyler/Library/Application%20Support/rex/server.sock",
+      "serverInstanceID": "d6b0fd54-0dd9-4650-b428-42e8589de60c"
+    }
+  },
+  "rex.server.automatic-restart-enabled": {
+    "type": "bool",
+    "value": true
+  },
+  "rex.server.block-plugin-reload-enabled": {
+    "type": "bool",
+    "value": false
+  },
+  "rex.server.run-mode": {
+    "type": "string",
+    "value": "bundled"
+  },
+  "rex.server.web-client-origin-patterns": {
+    "type": "plist",
+    "value": [
+      "https://rex.superlogical.com"
+    ]
+  },
+  "rex.sync.hosts-migrated.v1": {
+    "type": "bool",
+    "value": true
+  }
+}
