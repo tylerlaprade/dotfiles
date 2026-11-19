@@ -104,7 +104,7 @@ if command -v cargo >/dev/null 2>&1; then
   if ! grep -qxF session-guard <<<"$installed_crates"; then
     echo "Installing session-guard..."
     if cargo install --git https://github.com/tylerlaprade/session-guard; then
-      session-guard install --terminal ghostty || failed=1
+      session-guard install --terminal rex || failed=1
     else
       failed=1
     fi
@@ -214,6 +214,7 @@ echo "  1. Sourcery auth:    sourcery login"
 echo "  2. Kanata:           Allow ~/.local/bin/kanata in Input Monitoring and Accessibility,"
 echo "                      and the Karabiner driver in Login Items & Extensions → Driver Extensions"
 echo "  3. Kid trackpad lock: Allow python3 (/usr/bin/python3) in Accessibility"
+echo "  4. By hand:         Install Rex Beta from its invite, Avec, and Hex; the sync adds their login items"
 echo ""
 if [[ $failed -ne 0 ]]; then
   echo "Some install steps failed."

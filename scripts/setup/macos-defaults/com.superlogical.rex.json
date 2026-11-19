@@ -55,13 +55,6 @@
     "type": "bool",
     "value": true
   },
-  "rex.local-server.cached-route.v1": {
-    "type": "plist",
-    "value": {
-      "endpoint": "unix:///Users/tyler/Library/Application%20Support/rex/server.sock",
-      "serverInstanceID": "d6b0fd54-0dd9-4650-b428-42e8589de60c"
-    }
-  },
   "rex.server.automatic-restart-enabled": {
     "type": "bool",
     "value": true
@@ -79,9 +72,5 @@
     "value": [
       "https://rex.superlogical.com"
     ]
-  },
-  "rex.sync.hosts-migrated.v1": {
-    "type": "bool",
-    "value": true
   }
 }

@@ -696,13 +696,7 @@ def add_login_item(path: str) -> subprocess.CompletedProcess[str]:
 
 def delete_login_item(name: str) -> subprocess.CompletedProcess[str]:
     escaped = applescript_string(name)
-    script = f"""
-tell application "System Events"
-    repeat with li in (every login item whose name is "{escaped}")
-        delete li
-    end repeat
-end tell
-"""
+    script = f'tell application "System Events" to delete (every login item whose name is "{escaped}")'
     return run_osascript(script)
 
 
@@ -713,12 +707,15 @@ def preview_login_items(local_map: dict[str, str], merged: dict[str, str]) -> No
         print(f"would add login item {merged[path]}")
 
 
-def apply_login_items(local_map: dict[str, str], merged: dict[str, str]) -> None:
+def apply_login_items(local_map: dict[str, str], merged: dict[str, str]) -> dict[str, str]:
+    """Apply the merge to this Mac and return what landed, so a failed change is retried."""
+    landed = dict(merged)
     removed: list[str] = []
     for path in sorted(set(local_map) - set(merged)):
         result = delete_login_item(local_map[path])
         if result.returncode != 0:
             print(f"login item {local_map[path]}: {result.stderr.strip()}", file=sys.stderr)
+            landed[path] = local_map[path]
             continue
         removed.append(path)
     added: dict[str, str] = {}
@@ -728,9 +725,11 @@ def apply_login_items(local_map: dict[str, str], merged: dict[str, str]) -> None
         result = add_login_item(path)
         if result.returncode != 0:
             print(f"login item {name}: {result.stderr.strip()}", file=sys.stderr)
+            del landed[path]
             continue
         added[path] = name
     threeway.log_applied("login-items", "System Events", added, removed)
+    return landed
 
 
 def sync_login_items() -> None:
@@ -751,11 +750,11 @@ def sync_login_items() -> None:
         preview_login_items(local_map, merged)
         return
 
-    apply_login_items(local_map, merged)
+    landed = apply_login_items(local_map, merged)
 
     if merged != repo_map:
         write_login_items_file(merged)
-    threeway.save_base(LOGIN_ITEMS_BASE, merged)
+    threeway.save_base(LOGIN_ITEMS_BASE, landed)
 
 
 sync_login_items()
