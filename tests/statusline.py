@@ -57,6 +57,8 @@ type RGB = tuple[int, int, int]
 TOMORROW_BLUE: RGB = (129, 162, 190)
 WHITE: RGB = (255, 255, 255)
 READABLE_CONTRAST = 4.5
+REDRAWN_CONTRAST_CEILING = 4.6
+EQUAL_CONTRAST_LUMINANCE = 0.179
 SRGB_LINEAR_KNEE = 0.04045
 
 
@@ -98,6 +100,18 @@ def luminance(color: RGB) -> float:
 def contrast(first: RGB, second: RGB) -> float:
     lighter, darker = sorted((luminance(first), luminance(second)), reverse=True)
     return (lighter + 0.05) / (darker + 0.05)
+
+
+def is_light(background: RGB) -> bool:
+    return luminance(background) > EQUAL_CONTRAST_LUMINANCE
+
+
+def context_color(line: str) -> RGB:
+    match = re.search(r'\x1b\[38;2;(\d+);(\d+);(\d+)m[▓▒░]', line)
+    if match is None:
+        raise AssertionError(f'no context bar in {line!r}')
+    red, green, blue = (int(value) for value in match.groups())
+    return (red, green, blue)
 
 
 def color_before(line: str, text: str) -> RGB:
@@ -331,16 +345,30 @@ class StatuslineTest(unittest.TestCase):
         lines = self.render(self.payload(session), Fakes(now=now, usage=dict(USAGE_OK, five_hour=None), claude_environment=environment))
         return lines[0] + lines[1]
 
+    def assert_redrawn(self, color: RGB, background: RGB) -> None:
+        self.assertGreaterEqual(contrast(color, background), READABLE_CONTRAST, color)
+        self.assertLess(contrast(color, background), REDRAWN_CONTRAST_CEILING, color)
+
     def assert_theme_colors(self, line: str, theme: Theme) -> None:
         background, foreground = rgb(theme.background), rgb(theme.foreground)
         self.assertEqual(color_before(line, '│'), foreground, line)
-        self.assertEqual(weekly_colors(line)[2], rgb(theme.blue), line)
-        yellow = color_before(line, 'compaction due')
+        blue, yellow = weekly_colors(line)[2], color_before(line, 'compaction due')
+        if is_light(background):
+            self.assert_redrawn(blue, background)
+            self.assertEqual(max(blue), blue[2], blue)
+            self.assert_redrawn(yellow, background)
+            self.assertLess(yellow[2], min(yellow[0], yellow[1]), yellow)
+            return
+        self.assertEqual(blue, rgb(theme.blue), line)
         self.assertGreaterEqual(contrast(yellow, background), READABLE_CONTRAST, yellow)
         if contrast(rgb(theme.yellow), background) >= READABLE_CONTRAST:
             self.assertEqual(yellow, rgb(theme.yellow))
         else:
             self.assertNotEqual(yellow, rgb(theme.yellow))
+
+    def context_line(self, environment: dict[str, str], percent: int) -> str:
+        session = Session(tokens=167000 * percent // 100)
+        return self.render(self.payload(session), Fakes(claude_environment=environment))[0]
 
     def payload(self, session: Session = DEFAULT_SESSION) -> dict[str, JSONValue]:
         payload: dict[str, JSONValue] = {
@@ -661,6 +689,24 @@ class StatuslineTest(unittest.TestCase):
                 self.assertEqual(color_before(line, '│'), WHITE, line)
                 self.assertEqual(weekly_colors(line)[2], TOMORROW_BLUE, line)
 
+    def test_light_background_draws_every_step_at_the_readable_limit(self) -> None:
+        rex = self.install_rex()
+        environment = dict(rex, FAKE_STYLE='')
+        colors = {percent: context_color(self.context_line(environment, percent)) for percent in (40, 60, 75, 81, 90, 100)}
+        for percent, color in colors.items():
+            with self.subTest(percent=percent):
+                self.assert_redrawn(color, rgb(PAPER.background))
+        self.assertEqual(max(colors[40]), colors[40][1], colors[40])
+        self.assertGreater(colors[81][1], colors[90][1], colors)
+        self.assertGreater(colors[90][0], 2 * colors[90][1], colors[90])
+
+    def test_dark_background_keeps_the_plain_blend(self) -> None:
+        rex = self.install_rex()
+        line = self.context_line(dict(rex, FAKE_STYLE='Dark'), 81)
+        yellow, alarm, step = rgb(NIGHT.yellow), (255, 0, 0), 30
+        expected = tuple(start + int((end - start) * step / 100) for start, end in zip(yellow, alarm, strict=True))
+        self.assertEqual(context_color(line), expected, line)
+
     def test_ghostty_theme_follows_its_config(self) -> None:
         config = self.home / '.config/ghostty'
         (config / 'themes').mkdir(parents=True)
@@ -677,7 +723,10 @@ class StatuslineTest(unittest.TestCase):
                 line = self.palette_line({'TERM_PROGRAM': 'ghostty', 'GHOSTTY_RESOURCES_DIR': str(resources),
                                           'TMPDIR': str(cache), 'FAKE_STYLE': style})
                 self.assertEqual(color_before(line, '│'), (0x44, 0x55, 0x66), line)
-                self.assertEqual(weekly_colors(line)[2], rgb(theme.blue), line)
+                if is_light(rgb(theme.background)):
+                    self.assert_redrawn(weekly_colors(line)[2], rgb(theme.background))
+                else:
+                    self.assertEqual(weekly_colors(line)[2], rgb(theme.blue), line)
 
     def test_saved_palette_is_reused_until_a_source_changes(self) -> None:
         rex = self.install_rex()

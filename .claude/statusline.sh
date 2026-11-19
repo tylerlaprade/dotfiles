@@ -82,9 +82,12 @@ DIM='\033[90m'
 fallback_palette=(255 255 255 129 162 190 181 189 104 240 198 116 204 102 102 255 0 0)
 ghostty_default_background=282c34
 
-# Prints foreground, blue, green, yellow, red, and alarm red as r g b each, given the background,
-# foreground, blue, green, yellow, and red as hex. A color under 4.5:1 against the background
-# moves toward white on a dark background, or black on a light one, until it reaches 4.5:1.
+# Prints two lines, given the background, foreground, blue, green, yellow, and red as hex. The first is
+# the foreground, blue, green, yellow, red, and alarm red as r g b each. The second is the steps per
+# gradient, then each step's r g b along blue→green, green→yellow, yellow→red, red→alarm, and yellow→alarm.
+# On a dark background a color under 4.5:1 moves toward white until it reaches 4.5:1, and each gradient
+# is just its two ends. On a light background the colors, and each gradient at every fifth percent, are
+# redrawn in their own hue at the lightest shade that reaches 4.5:1, as saturated as that shade allows.
 readable_palette() {
   jq -rn '
     def channel: . / 255 | if . <= 0.04045 then . / 12.92 else pow((. + 0.055) / 1.055; 2.4) end;
@@ -93,13 +96,53 @@ readable_palette() {
     def rgb: ltrimstr("#") | ascii_downcase | explode | map(if . >= 97 then . - 87 else . - 48 end)
       | [.[0] * 16 + .[1], .[2] * 16 + .[3], .[4] * 16 + .[5]];
     def toward($target; $percent): [., $target] | transpose | map(.[0] + (.[1] - .[0]) * $percent / 100 | round);
-    def readable($background; $foreground):
-      (if ($foreground | luminance) > ($background | luminance) then [255, 255, 255] else [0, 0, 0] end) as $extreme
+    def blend($target; $percent): [., $target] | transpose | map(.[0] + ((.[1] - .[0]) * $percent / 100 | trunc));
+    def readable($background; $light):
+      (if $light then [0, 0, 0] else [255, 255, 255] end) as $extreme
       | . as $color
       | first(range(0; 101) as $percent | $color | toward($extreme; $percent) | select(contrast($background) >= 4.5))
         // $extreme;
+    def hue:
+      map(channel) as [$r, $g, $b]
+      | [0.4122214708 * $r + 0.5363325363 * $g + 0.0514459929 * $b,
+         0.2119034982 * $r + 0.6806995451 * $g + 0.1073969566 * $b,
+         0.0883024619 * $r + 0.2817188376 * $g + 0.6299787005 * $b]
+      | map(cbrt) as [$l, $m, $s]
+      | atan2(0.0259040371 * $l + 0.7827717662 * $m - 0.8086757660 * $s; 1.9779984951 * $l - 2.4285922050 * $m + 0.4505937099 * $s);
+    def linear_rgb($lightness; $chroma; $hue):
+      ($chroma * ($hue | cos)) as $a | ($chroma * ($hue | sin)) as $b
+      | [$lightness + 0.3963377774 * $a + 0.2158037573 * $b,
+         $lightness - 0.1055613458 * $a - 0.0638541728 * $b,
+         $lightness - 0.0894841775 * $a - 1.2914855480 * $b]
+      | map(. * . * .) as [$l, $m, $s]
+      | [4.0767416621 * $l - 3.3077115913 * $m + 0.2309699292 * $s,
+         -1.2684380046 * $l + 2.6097574011 * $m - 0.3413193965 * $s,
+         -0.0041960863 * $l - 0.7034186147 * $m + 1.7076147010 * $s];
+    def in_gamut: all(.[]; . >= -0.0001 and . <= 1.0001);
+    def encoded: map([[., 0] | max, 1] | min | if . <= 0.0031308 then 12.92 * . else 1.055 * pow(.; 1 / 2.4) - 0.055 end | . * 255 | round);
+    def vivid($lightness; $hue):
+      (reduce range(12) as $_ ([0, 0.4]; ((.[0] + .[1]) / 2) as $chroma
+        | if linear_rgb($lightness; $chroma; $hue) | in_gamut then [$chroma, .[1]] else [.[0], $chroma] end)
+        | .[0]) as $chroma
+      | linear_rgb($lightness; $chroma; $hue) | encoded;
+    def redrawn($background):
+      hue as $hue
+      | reduce range(14) as $_ ([0, 1]; ((.[0] + .[1]) / 2) as $lightness
+          | if vivid($lightness; $hue) | contrast($background) >= 4.5 then [$lightness, .[1]] else [.[0], $lightness] end)
+      | vivid(.[0]; $hue);
     $ARGS.positional | map(rgb) as [$background, $foreground, $blue, $green, $yellow, $red]
-    | [$foreground, ($blue, $green, $yellow, $red, [255, 0, 0] | readable($background; $foreground))]
+    # 0.179 is the background luminance where black and white text have equal contrast.
+    | ($background | luminance > 0.179) as $light
+    | [$blue, $green, $yellow, $red, [255, 0, 0]] | map(readable($background; $light)) as $colors
+    | $colors as [$b, $g, $y, $r, $alarm]
+    | [[$b, $g], [$g, $y], [$y, $r], [$r, $alarm], [$y, $alarm]] as $gradients
+    | if $light then
+        [$foreground, ($colors[] | redrawn($background))],
+        [20, ($gradients[] as [$from, $to] | range(0; 101; 5) as $percent | $from | blend($to; $percent) | redrawn($background))]
+      else
+        [$foreground, $colors],
+        [1, $gradients]
+      end
     | flatten | join(" ")' --args "$@"
 }
 
@@ -199,12 +242,18 @@ resolve_ghostty_palette() {
   theme_colors=("${colors[256]}" "${colors[257]}" "${colors[4]}" "${colors[2]}" "${colors[3]}" "${colors[1]}")
 }
 
+# Sets segments to the five gradients with just their two ends, as readable_palette does on a dark background.
+end_point_segments() {
+  local blue=("${palette[@]:3:3}") green=("${palette[@]:6:3}") yellow=("${palette[@]:9:3}") red=("${palette[@]:12:3}") alarm=("${palette[@]:15:3}")
+  segments=(1 "${blue[@]}" "${green[@]}" "${green[@]}" "${yellow[@]}" "${yellow[@]}" "${red[@]}" "${red[@]}" "${alarm[@]}" "${yellow[@]}" "${alarm[@]}")
+}
+
 load_palette() {
   local resolver=$1 source joined_sources readable='' palette_cache=${TMPDIR:-/tmp}
   palette_cache=${palette_cache%/}/statusline-palette-${TERM_PROGRAM:-}
   palette=()
   if [[ -f "$palette_cache" ]]; then
-    { IFS=$'\037' read -r -a palette_sources; read -r -a palette; } < "$palette_cache"
+    { IFS=$'\037' read -r -a palette_sources; read -r -a palette; read -r -a segments; } < "$palette_cache"
     for source in "${palette_sources[@]}"; do
       [[ "$palette_cache" -nt "$source" ]] || { palette=(); break; }
     done
@@ -212,19 +261,27 @@ load_palette() {
   (( ${#palette[@]} )) && return
   palette_sources=("${BASH_SOURCE[0]}") theme_colors=()
   "$resolver" && readable=$(readable_palette "${theme_colors[@]}" 2>/dev/null)
-  read -r -a palette <<< "${readable:-${fallback_palette[*]}}"
+  if [[ -n "$readable" ]]; then
+    { read -r -a palette; read -r -a segments; } <<< "$readable"
+  else
+    palette=("${fallback_palette[@]}")
+    end_point_segments
+  fi
   printf -v joined_sources '%s\037' "${palette_sources[@]}"
-  printf '%s\n%s\n' "${joined_sources%$'\037'}" "${palette[*]}" > "$palette_cache.$$" \
+  printf '%s\n%s\n%s\n' "${joined_sources%$'\037'}" "${palette[*]}" "${segments[*]}" > "$palette_cache.$$" \
     && mv -f "$palette_cache.$$" "$palette_cache"
 }
 
 case "${TERM_PROGRAM:-}" in
   rex) load_palette resolve_rex_palette ;;
   ghostty) load_palette resolve_ghostty_palette ;;
-  *) palette=("${fallback_palette[@]}") ;;
+  *)
+    palette=("${fallback_palette[@]}")
+    end_point_segments
+    ;;
 esac
 foreground_rgb=("${palette[@]:0:3}") blue_rgb=("${palette[@]:3:3}") green_rgb=("${palette[@]:6:3}")
-yellow_rgb=("${palette[@]:9:3}") red_rgb=("${palette[@]:12:3}") alarm_rgb=("${palette[@]:15:3}")
+yellow_rgb=("${palette[@]:9:3}") alarm_rgb=("${palette[@]:15:3}")
 printf -v FOREGROUND '\033[38;2;%d;%d;%dm' "${foreground_rgb[@]}"
 printf -v YELLOW '\033[38;2;%d;%d;%dm' "${yellow_rgb[@]}"
 printf -v pace_mark '\033[1;38;2;%d;%d;%dm│\033[0m' "${foreground_rgb[@]}"
@@ -240,6 +297,20 @@ blend() {
   b=$(( $3 + ($6 - $3) * $7 / 100 ))
 }
 
+blue_to_green=0 green_to_yellow=1 yellow_to_red=2 red_to_alarm=3 yellow_to_alarm=4
+
+# Sets r, g, b to the color a percent along one of the gradients saved with the palette, blending
+# between its two nearest steps.
+blend_gradient() {
+  local steps=${segments[0]} position=$(( $2 * segments[0] ))
+  local index=$(( 1 + ($1 * (steps + 1) + position / 100) * 3 ))
+  if (( position % 100 == 0 )); then
+    set_color "${segments[@]:index:3}"
+  else
+    blend "${segments[@]:index:6}" $(( position % 100 ))
+  fi
+}
+
 # Theme gradient: (blue →) green → yellow → red with an asymptotic tail toward the alarm red
 # Sets global r, g, b. Args: value green_end yellow_point red_point [asymptotic_k] [blue_floor]
 # When blue_floor is set, val ≤ blue_floor is pure blue and blue_floor→green_end blends blue→green.
@@ -249,16 +320,16 @@ severity_gradient() {
     if [[ "$val" -le "$blue_floor" ]]; then
       set_color "${blue_rgb[@]}"
     else
-      blend "${blue_rgb[@]}" "${green_rgb[@]}" $(( (val - blue_floor) * 100 / (green_end - blue_floor) ))
+      blend_gradient "$blue_to_green" $(( (val - blue_floor) * 100 / (green_end - blue_floor) ))
     fi
   elif [[ "$val" -le "$green_end" ]]; then
     set_color "${green_rgb[@]}"
   elif [[ "$val" -le "$yellow_pt" ]]; then
-    blend "${green_rgb[@]}" "${yellow_rgb[@]}" $(( (val - green_end) * 100 / (yellow_pt - green_end) ))
+    blend_gradient "$green_to_yellow" $(( (val - green_end) * 100 / (yellow_pt - green_end) ))
   elif [[ "$val" -le "$red_pt" ]]; then
-    blend "${yellow_rgb[@]}" "${red_rgb[@]}" $(( (val - yellow_pt) * 100 / (red_pt - yellow_pt) ))
+    blend_gradient "$yellow_to_red" $(( (val - yellow_pt) * 100 / (red_pt - yellow_pt) ))
   else
-    blend "${red_rgb[@]}" "${alarm_rgb[@]}" $(( (val - red_pt) * 100 / (val - red_pt + k) ))
+    blend_gradient "$red_to_alarm" $(( (val - red_pt) * 100 / (val - red_pt + k) ))
   fi
 }
 
@@ -267,9 +338,9 @@ rate_usage_gradient() {
   if [[ "$val" -le 55 ]]; then
     set_color "${green_rgb[@]}"
   elif [[ "$val" -le 75 ]]; then
-    blend "${green_rgb[@]}" "${yellow_rgb[@]}" $(( (val - 55) * 100 / 20 ))
+    blend_gradient "$green_to_yellow" $(( (val - 55) * 100 / 20 ))
   elif [[ "$val" -le 95 ]]; then
-    blend "${yellow_rgb[@]}" "${alarm_rgb[@]}" $(( (val - 75) * 100 / 20 ))
+    blend_gradient "$yellow_to_alarm" $(( (val - 75) * 100 / 20 ))
   else
     set_color "${alarm_rgb[@]}"
   fi
@@ -305,7 +376,7 @@ build_battery() {
 # reads as a steady 30s-on/30s-off blink without per-session race.
 format_time_color() {
   local t_str=$1 dow=$clock_weekday h=$clock_hour m=$clock_minute s=$clock_second secs phase_start t r g b bold="" reverse=""
-  local night=0 start_rgb=("${foreground_rgb[@]}")
+  local night=0
   # 10# prefix prevents octal parsing on 08:xx / 09:xx
   secs=$((10#$h * 3600 + 10#$m * 60 + 10#$s))
   local P0 P1 P2 P3 P_blue
@@ -330,22 +401,23 @@ format_time_color() {
     return
   fi
   # After the pre-phase, the green-fade starts from blue instead of the foreground on night windows.
-  if [[ "$night" -eq 1 ]]; then
-    start_rgb=("${blue_rgb[@]}")
-    P0=$P_blue
-  fi
+  [[ "$night" -eq 1 ]] && P0=$P_blue
   if [[ "$secs" -lt "$P1" ]]; then           # start_color -> green
     phase_start=$P0
     t=$(( (secs - phase_start) * 100 / (P1 - P0) ))
-    blend "${start_rgb[@]}" "${green_rgb[@]}" "$t"
+    if [[ "$night" -eq 1 ]]; then
+      blend_gradient "$blue_to_green" "$t"
+    else
+      blend "${foreground_rgb[@]}" "${green_rgb[@]}" "$t"
+    fi
   elif [[ "$secs" -lt "$P2" ]]; then         # green -> yellow
     phase_start=$P1
     t=$(( (secs - phase_start) * 100 / (P2 - P1) ))
-    blend "${green_rgb[@]}" "${yellow_rgb[@]}" "$t"
+    blend_gradient "$green_to_yellow" "$t"
   elif [[ "$secs" -lt "$P3" ]]; then         # yellow -> alarm red + BOLD
     phase_start=$P2
     t=$(( (secs - phase_start) * 100 / (P3 - P2) ))
-    blend "${yellow_rgb[@]}" "${alarm_rgb[@]}" "$t"
+    blend_gradient "$yellow_to_alarm" "$t"
     bold='\033[1m'
   else                                     # alarm red + BOLD + reverse toggle
     set_color "${alarm_rgb[@]}"
@@ -574,7 +646,7 @@ cost_display="" cost_color=""
 if [[ "${rate_5h:-0}" -ge 100 ]]; then
   if [[ -n "$raw_cost" ]]; then
     session_cost=$(printf "%.2f" "$raw_cost")
-    blend "${red_rgb[@]}" "${alarm_rgb[@]}" $(( cost_cents * 100 / (cost_cents + 2000) ))
+    blend_gradient "$red_to_alarm" $(( cost_cents * 100 / (cost_cents + 2000) ))
     printf -v cost_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
     cost_display="\$${session_cost}"
   fi
