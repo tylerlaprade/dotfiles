@@ -72,7 +72,7 @@ case "$cached" in
   *) ttl=300 ;;
 esac
 
-if [[ -n "$cached" && $age -lt $ttl ]]; then
+if [[ -n "$cached" && $age -ge 0 && $age -lt $ttl ]]; then
   emit_entry "$cached"
   exit 0
 fi

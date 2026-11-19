@@ -95,6 +95,7 @@ check_cache() {
   [[ -f "$cache" ]] || return 0
   local age err cache_5h cache_7d
   age=$(( now - $(jq -r '.fetched_at // .updated_at // 0' "$cache" 2>/dev/null || echo 0) ))
+  [[ "$age" -ge 0 ]] || return 0
   if [[ "$age" -lt "$CACHE_FLOOR" ]]; then
     cache_servable=true
     return
