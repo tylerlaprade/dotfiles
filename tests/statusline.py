@@ -53,13 +53,14 @@ DEFAULTS_SHIM = ('#!/bin/bash\n'
                  '  "read com.superlogical.rex Workspace.darkThemeID") echo night ;;\n'
                  '  *) exit 1 ;;\n'
                  'esac\n')
+LSAPPINFO_SHIM = ('#!/bin/bash\n'
+                  '[ "$*" = "info -only bundlepath com.superlogical.rex" ] && [ -n "${FAKE_REX_APP:-}" ] '
+                  '&& printf \'"LSBundlePath"="%s"\\n\' "$FAKE_REX_APP"\n')
 type RGB = tuple[int, int, int]
 TOMORROW_BLUE: RGB = (129, 162, 190)
 WHITE: RGB = (255, 255, 255)
-READABLE_CONTRAST = 4.5
-REDRAWN_CONTRAST_CEILING = 4.6
-EQUAL_CONTRAST_LUMINANCE = 0.179
-SRGB_LINEAR_KNEE = 0.04045
+RED: RGB = (255, 0, 0)
+REX_THEMES = 'Contents/Resources/SuperUI_SuperDesignTokens.bundle/Contents/Resources/themes.json'
 
 
 @dataclass(frozen=True)
@@ -87,31 +88,6 @@ NIGHT = Theme('#0d1117', '#e6edf3', '#58a6ff', '#3fb950', '#d29922', '#ff7b72')
 def rgb(hex_color: str) -> RGB:
     value = int(hex_color.lstrip('#'), 16)
     return (value >> 16, (value >> 8) & 0xFF, value & 0xFF)
-
-
-def luminance(color: RGB) -> float:
-    def linear(channel: int) -> float:
-        fraction = channel / 255
-        return fraction / 12.92 if fraction <= SRGB_LINEAR_KNEE else ((fraction + 0.055) / 1.055) ** 2.4
-    red, green, blue = (linear(channel) for channel in color)
-    return 0.2126 * red + 0.7152 * green + 0.0722 * blue
-
-
-def contrast(first: RGB, second: RGB) -> float:
-    lighter, darker = sorted((luminance(first), luminance(second)), reverse=True)
-    return (lighter + 0.05) / (darker + 0.05)
-
-
-def is_light(background: RGB) -> bool:
-    return luminance(background) > EQUAL_CONTRAST_LUMINANCE
-
-
-def context_color(line: str) -> RGB:
-    match = re.search(r'\x1b\[38;2;(\d+);(\d+);(\d+)m[▓▒░]', line)
-    if match is None:
-        raise AssertionError(f'no context bar in {line!r}')
-    red, green, blue = (int(value) for value in match.groups())
-    return (red, green, blue)
 
 
 def color_before(line: str, text: str) -> RGB:
@@ -292,6 +268,7 @@ class StatuslineTest(unittest.TestCase):
                      'printf "%b" "${FAKE_GIT:-}"\n')
         self.install('claude-usage', USAGE_SHIM)
         self.install('defaults', DEFAULTS_SHIM)
+        self.install('lsappinfo', LSAPPINFO_SHIM)
         self.defaults_calls = self.root / 'defaults-calls'
         self.defaults_calls.touch()
         jq = shutil.which('jq')
@@ -327,15 +304,13 @@ class StatuslineTest(unittest.TestCase):
         return path
 
     def install_rex(self) -> dict[str, str]:
-        helpers = self.root / 'Rex.app/Contents/Helpers/Rex Server.rex/Contents/MacOS'
-        helpers.mkdir(parents=True)
-        themes = self.root / 'Rex.app/Contents/Resources/SuperUI_SuperDesignTokens.bundle/Contents/Resources/themes.json'
+        themes = self.root / 'Rex.app' / REX_THEMES
         themes.parent.mkdir(parents=True)
         themes.write_text(json.dumps([PAPER.rex_entry('paper'), NIGHT.rex_entry('night')]))
         self.age(themes)
         self.preference('com.superlogical.rex.plist')
         self.preference('.GlobalPreferences.plist')
-        return {'TERM_PROGRAM': 'rex', 'REX_BIN_DIR': str(helpers)}
+        return {'TERM_PROGRAM': 'rex', 'FAKE_REX_APP': str(self.root / 'Rex.app')}
 
     def palette_line(self, environment: dict[str, str], seven_day: int = 10) -> str:
         now = at(15, 0)
@@ -345,30 +320,10 @@ class StatuslineTest(unittest.TestCase):
         lines = self.render(self.payload(session), Fakes(now=now, usage=dict(USAGE_OK, five_hour=None), claude_environment=environment))
         return lines[0] + lines[1]
 
-    def assert_redrawn(self, color: RGB, background: RGB) -> None:
-        self.assertGreaterEqual(contrast(color, background), READABLE_CONTRAST, color)
-        self.assertLess(contrast(color, background), REDRAWN_CONTRAST_CEILING, color)
-
     def assert_theme_colors(self, line: str, theme: Theme) -> None:
-        background, foreground = rgb(theme.background), rgb(theme.foreground)
-        self.assertEqual(color_before(line, '│'), foreground, line)
-        blue, yellow = weekly_colors(line)[2], color_before(line, 'compaction due')
-        if is_light(background):
-            self.assert_redrawn(blue, background)
-            self.assertEqual(max(blue), blue[2], blue)
-            self.assert_redrawn(yellow, background)
-            self.assertLess(yellow[2], min(yellow[0], yellow[1]), yellow)
-            return
-        self.assertEqual(blue, rgb(theme.blue), line)
-        self.assertGreaterEqual(contrast(yellow, background), READABLE_CONTRAST, yellow)
-        if contrast(rgb(theme.yellow), background) >= READABLE_CONTRAST:
-            self.assertEqual(yellow, rgb(theme.yellow))
-        else:
-            self.assertNotEqual(yellow, rgb(theme.yellow))
-
-    def context_line(self, environment: dict[str, str], percent: int) -> str:
-        session = Session(tokens=167000 * percent // 100)
-        return self.render(self.payload(session), Fakes(claude_environment=environment))[0]
+        self.assertEqual(color_before(line, '│'), rgb(theme.foreground), line)
+        self.assertEqual(weekly_colors(line)[2], rgb(theme.blue), line)
+        self.assertEqual(color_before(line, 'compaction due'), rgb(theme.yellow), line)
 
     def payload(self, session: Session = DEFAULT_SESSION) -> dict[str, JSONValue]:
         payload: dict[str, JSONValue] = {
@@ -665,21 +620,19 @@ class StatuslineTest(unittest.TestCase):
                 line = self.palette_line(dict(rex, TMPDIR=str(cache), FAKE_REX_APPEARANCE=rex_appearance, FAKE_STYLE=style))
                 self.assert_theme_colors(line, theme)
 
-    def test_alarm_red_stays_readable(self) -> None:
+    def test_spent_limit_is_pure_red_in_every_theme(self) -> None:
         rex = self.install_rex()
-        for style, theme in (('', PAPER), ('Dark', NIGHT)):
-            with self.subTest(theme=theme.background):
+        for style in ('', 'Dark'):
+            with self.subTest(style=style):
                 cache = self.root / f'alarm{style}'
                 cache.mkdir()
                 line = self.palette_line(dict(rex, TMPDIR=str(cache), FAKE_STYLE=style), seven_day=100)
-                alarm = color_before(line, '100%+')
-                self.assertGreaterEqual(contrast(alarm, rgb(theme.background)), READABLE_CONTRAST, alarm)
-                self.assertGreater(alarm[0], alarm[1] + 100, alarm)
+                self.assertEqual(color_before(line, '100%+'), RED, line)
 
     def test_unreadable_rex_theme_falls_back_to_tomorrow_night(self) -> None:
         rex = self.install_rex()
         cases = {'unknown appearance': dict(rex, FAKE_REX_APPEARANCE='sepia'),
-                 'no app path': {'TERM_PROGRAM': 'rex'},
+                 'Rex app not running': {'TERM_PROGRAM': 'rex'},
                  'other terminal': {'TERM_PROGRAM': 'Apple_Terminal'}}
         for name, environment in cases.items():
             with self.subTest(name):
@@ -688,24 +641,6 @@ class StatuslineTest(unittest.TestCase):
                 line = self.palette_line(dict(environment, TMPDIR=str(cache)))
                 self.assertEqual(color_before(line, '│'), WHITE, line)
                 self.assertEqual(weekly_colors(line)[2], TOMORROW_BLUE, line)
-
-    def test_light_background_draws_every_step_at_the_readable_limit(self) -> None:
-        rex = self.install_rex()
-        environment = dict(rex, FAKE_STYLE='')
-        colors = {percent: context_color(self.context_line(environment, percent)) for percent in (40, 60, 75, 81, 90, 100)}
-        for percent, color in colors.items():
-            with self.subTest(percent=percent):
-                self.assert_redrawn(color, rgb(PAPER.background))
-        self.assertEqual(max(colors[40]), colors[40][1], colors[40])
-        self.assertGreater(colors[81][1], colors[90][1], colors)
-        self.assertGreater(colors[90][0], 2 * colors[90][1], colors[90])
-
-    def test_dark_background_keeps_the_plain_blend(self) -> None:
-        rex = self.install_rex()
-        line = self.context_line(dict(rex, FAKE_STYLE='Dark'), 81)
-        yellow, alarm, step = rgb(NIGHT.yellow), (255, 0, 0), 30
-        expected = tuple(start + int((end - start) * step / 100) for start, end in zip(yellow, alarm, strict=True))
-        self.assertEqual(context_color(line), expected, line)
 
     def test_ghostty_theme_follows_its_config(self) -> None:
         config = self.home / '.config/ghostty'
@@ -723,10 +658,7 @@ class StatuslineTest(unittest.TestCase):
                 line = self.palette_line({'TERM_PROGRAM': 'ghostty', 'GHOSTTY_RESOURCES_DIR': str(resources),
                                           'TMPDIR': str(cache), 'FAKE_STYLE': style})
                 self.assertEqual(color_before(line, '│'), (0x44, 0x55, 0x66), line)
-                if is_light(rgb(theme.background)):
-                    self.assert_redrawn(weekly_colors(line)[2], rgb(theme.background))
-                else:
-                    self.assertEqual(weekly_colors(line)[2], rgb(theme.blue), line)
+                self.assertEqual(weekly_colors(line)[2], rgb(theme.blue), line)
 
     def test_saved_palette_is_reused_until_a_source_changes(self) -> None:
         rex = self.install_rex()
@@ -739,6 +671,18 @@ class StatuslineTest(unittest.TestCase):
         self.freshen(self.home / 'Library/Preferences/.GlobalPreferences.plist')
         self.assert_theme_colors(self.palette_line(dict(environment, FAKE_STYLE='Dark')), NIGHT)
         self.assertNotEqual(self.defaults_calls.read_text(), '')
+
+    def test_saved_palette_follows_a_moved_app_and_waits_for_a_running_one(self) -> None:
+        rex = self.install_rex()
+        not_running = {'TERM_PROGRAM': 'rex', 'FAKE_STYLE': ''}
+        self.assertEqual(weekly_colors(self.palette_line(not_running))[2], TOMORROW_BLUE)
+        self.assertFalse((self.root / 'statusline-palette-rex').exists())
+        self.assert_theme_colors(self.palette_line(dict(rex, FAKE_STYLE='')), PAPER)
+        moved = self.root / 'Rex Beta.app'
+        (self.root / 'Rex.app').rename(moved)
+        (moved / REX_THEMES).write_text(json.dumps([PAPER.rex_entry('night'), NIGHT.rex_entry('paper')]))
+        self.age(moved / REX_THEMES)
+        self.assert_theme_colors(self.palette_line(dict(rex, FAKE_REX_APP=str(moved), FAKE_STYLE='')), NIGHT)
 
     def test_folder_outside_git_abbreviates_home(self) -> None:
         folder = self.home / 'Code'
