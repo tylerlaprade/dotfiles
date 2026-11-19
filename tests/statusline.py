@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
 import tempfile
+import time
 import unicodedata
 import unittest
 from dataclasses import dataclass, field
@@ -42,6 +44,68 @@ PR_GIT = ('\x1b[37mFondly\x1b[0m \x1b]8;;https://app.graphite.dev/github/pr/exam
           '\x1b[32m#12\x1b[0m \x1b[37mAdd the launch banner\x1b[0m\x1b]8;;\x1b\\\x1b[36m \x1b[0m')
 USAGE_OK: dict[str, JSONValue] = {'ok': True, 'five_hour': 6, 'seven_day': 3, 'fable': 4}
 USAGE_SHIM = '#!/bin/bash\nprintf "%s\\n" "${FAKE_USAGE:-}"\nexit "${FAKE_USAGE_STATUS:-0}"\n'
+DEFAULTS_SHIM = ('#!/bin/bash\n'
+                 'printf "%s\\n" "$*" >> "$DEFAULTS_CALLS"\n'
+                 'case "$*" in\n'
+                 '  "read -g AppleInterfaceStyle") [ "${FAKE_STYLE:-}" = Dark ] && echo Dark ;;\n'
+                 '  "read com.superlogical.rex Workspace.appearance") [ -n "${FAKE_REX_APPEARANCE:-}" ] && echo "$FAKE_REX_APPEARANCE" ;;\n'
+                 '  "read com.superlogical.rex Workspace.lightThemeID") echo paper ;;\n'
+                 '  "read com.superlogical.rex Workspace.darkThemeID") echo night ;;\n'
+                 '  *) exit 1 ;;\n'
+                 'esac\n')
+type RGB = tuple[int, int, int]
+TOMORROW_BLUE: RGB = (129, 162, 190)
+WHITE: RGB = (255, 255, 255)
+READABLE_CONTRAST = 4.5
+SRGB_LINEAR_KNEE = 0.04045
+
+
+@dataclass(frozen=True)
+class Theme:
+    background: str
+    foreground: str
+    blue: str
+    green: str
+    yellow: str
+    red: str
+
+    def rex_entry(self, theme_id: str) -> dict[str, JSONValue]:
+        ansi: list[JSONValue] = ['#000000', self.red, self.green, self.yellow, self.blue]
+        return {'id': theme_id, 'source': {'background': self.background, 'foreground': self.foreground, 'ansi': ansi}}
+
+    def ghostty_file(self) -> str:
+        return (f'background = {self.background}\nforeground = {self.foreground}\n'
+                f'palette = 1={self.red}\npalette = 2={self.green}\npalette = 3={self.yellow}\npalette = 4={self.blue}\n')
+
+
+PAPER = Theme('#ffffff', '#1f2328', '#0969da', '#116329', '#f0c674', '#cf222e')
+NIGHT = Theme('#0d1117', '#e6edf3', '#58a6ff', '#3fb950', '#d29922', '#ff7b72')
+
+
+def rgb(hex_color: str) -> RGB:
+    value = int(hex_color.lstrip('#'), 16)
+    return (value >> 16, (value >> 8) & 0xFF, value & 0xFF)
+
+
+def luminance(color: RGB) -> float:
+    def linear(channel: int) -> float:
+        fraction = channel / 255
+        return fraction / 12.92 if fraction <= SRGB_LINEAR_KNEE else ((fraction + 0.055) / 1.055) ** 2.4
+    red, green, blue = (linear(channel) for channel in color)
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+
+
+def contrast(first: RGB, second: RGB) -> float:
+    lighter, darker = sorted((luminance(first), luminance(second)), reverse=True)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def color_before(line: str, text: str) -> RGB:
+    match = re.search(rf'\x1b\[(?:1;)?38;2;(\d+);(\d+);(\d+)m{re.escape(text)}', line)
+    if match is None:
+        raise AssertionError(f'no truecolor before {text!r} in {line!r}')
+    red, green, blue = (int(value) for value in match.groups())
+    return (red, green, blue)
 
 
 def at(hour: int, minute: int, second: int = 0, day: datetime = WEDNESDAY) -> datetime:
@@ -202,6 +266,8 @@ class StatuslineTest(unittest.TestCase):
         source = (REPOSITORY / '.claude/statusline.sh').read_text()
         self.statusline = self.root / 'statusline.sh'
         self.statusline.write_text(source.replace(file_reference(source, 'claude-rate-limits.json'), str(self.root / 'rates.json')))
+        self.statusline.chmod(0o755)
+        self.age(self.statusline)
         self.install('date', '#!/bin/bash\n'
                      'for argument in "$@"; do [ "$argument" = -r ] && exec /bin/date "$@"; done\n'
                      'exec /bin/date -r "$FAKE_NOW" "$@"\n')
@@ -211,6 +277,9 @@ class StatuslineTest(unittest.TestCase):
         self.install('git-status-line', '#!/bin/bash\n'
                      'printf "%b" "${FAKE_GIT:-}"\n')
         self.install('claude-usage', USAGE_SHIM)
+        self.install('defaults', DEFAULTS_SHIM)
+        self.defaults_calls = self.root / 'defaults-calls'
+        self.defaults_calls.touch()
         jq = shutil.which('jq')
         if jq is None:
             self.fail('jq is required')
@@ -219,12 +288,59 @@ class StatuslineTest(unittest.TestCase):
             'PATH': f'{self.bin}:{Path(jq).parent}:/usr/bin:/bin',
             'FAKE_GIT': PLAIN_GIT,
             'TZ': EASTERN.key,
+            'TMPDIR': str(self.root),
+            'DEFAULTS_CALLS': str(self.defaults_calls),
         }
 
     def install(self, name: str, source: str) -> None:
         target = self.bin / name
         target.write_text(source)
         target.chmod(0o755)
+
+    def age(self, path: Path) -> None:
+        past = time.time() - 3600
+        os.utime(path, (past, past))
+
+    def freshen(self, path: Path) -> None:
+        future = time.time() + 3600
+        os.utime(path, (future, future))
+
+    def preference(self, name: str) -> Path:
+        path = self.home / 'Library/Preferences' / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.touch()
+        self.age(path)
+        return path
+
+    def install_rex(self) -> dict[str, str]:
+        helpers = self.root / 'Rex.app/Contents/Helpers/Rex Server.rex/Contents/MacOS'
+        helpers.mkdir(parents=True)
+        themes = self.root / 'Rex.app/Contents/Resources/SuperUI_SuperDesignTokens.bundle/Contents/Resources/themes.json'
+        themes.parent.mkdir(parents=True)
+        themes.write_text(json.dumps([PAPER.rex_entry('paper'), NIGHT.rex_entry('night')]))
+        self.age(themes)
+        self.preference('com.superlogical.rex.plist')
+        self.preference('.GlobalPreferences.plist')
+        return {'TERM_PROGRAM': 'rex', 'REX_BIN_DIR': str(helpers)}
+
+    def palette_line(self, environment: dict[str, str], seven_day: int = 10) -> str:
+        now = at(15, 0)
+        rates = self.rates(now, seven_day=seven_day, seven_day_reset=now + timedelta(days=6, hours=20))
+        del rates['five_hour']
+        session = Session(tokens=171000, rates=rates)
+        lines = self.render(self.payload(session), Fakes(now=now, usage=dict(USAGE_OK, five_hour=None), claude_environment=environment))
+        return lines[0] + lines[1]
+
+    def assert_theme_colors(self, line: str, theme: Theme) -> None:
+        background, foreground = rgb(theme.background), rgb(theme.foreground)
+        self.assertEqual(color_before(line, '│'), foreground, line)
+        self.assertEqual(weekly_colors(line)[2], rgb(theme.blue), line)
+        yellow = color_before(line, 'compaction due')
+        self.assertGreaterEqual(contrast(yellow, background), READABLE_CONTRAST, yellow)
+        if contrast(rgb(theme.yellow), background) >= READABLE_CONTRAST:
+            self.assertEqual(yellow, rgb(theme.yellow))
+        else:
+            self.assertNotEqual(yellow, rgb(theme.yellow))
 
     def payload(self, session: Session = DEFAULT_SESSION) -> dict[str, JSONValue]:
         payload: dict[str, JSONValue] = {
@@ -258,7 +374,7 @@ class StatuslineTest(unittest.TestCase):
             self.install('claude-usage', USAGE_SHIM)
         else:
             shim.unlink(missing_ok=True)
-        result = subprocess.run(['bash', str(self.statusline)], input=json.dumps(payload).encode(),
+        result = subprocess.run([str(self.statusline)], input=json.dumps(payload).encode(),
                                 env=environment, capture_output=True, timeout=5, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stderr, b'', 'the script wrote to stderr')
@@ -349,9 +465,9 @@ class StatuslineTest(unittest.TestCase):
 
     def test_clock_color_follows_the_time_of_day(self) -> None:
         cases: list[tuple[datetime, str, set[str], set[str]]] = [
-            (at(15, 0), '3:00 PM', {'\x1b[97m3:00 PM'}, {'\x1b[1m', '\x1b[7m'}),
-            (at(16, 45), '4:45 PM', {'\x1b[38;2;0;200;0m'}, {'\x1b[1m', '\x1b[7m', '\x1b[97m'}),
-            (at(16, 50), '4:50 PM', {'\x1b[38;2;'}, {'\x1b[1m', '\x1b[7m', '\x1b[97m'}),
+            (at(15, 0), '3:00 PM', {'\x1b[38;2;255;255;255m3:00 PM'}, {'\x1b[1m', '\x1b[7m'}),
+            (at(16, 45), '4:45 PM', {'\x1b[38;2;181;189;104m'}, {'\x1b[1m', '\x1b[7m', '\x1b[38;2;255;255;255m'}),
+            (at(16, 50), '4:50 PM', {'\x1b[38;2;'}, {'\x1b[1m', '\x1b[7m', '\x1b[38;2;255;255;255m'}),
             (at(17, 10), '5:10 PM', {'\x1b[1m'}, {'\x1b[7m'}),
             (at(18, 40, 10), '6:40 PM', {'\x1b[1m', '\x1b[7m'}, set()),
             (at(18, 40, 40), '6:40 PM', {'\x1b[1m'}, {'\x1b[7m'}),
@@ -428,7 +544,7 @@ class StatuslineTest(unittest.TestCase):
         now = at(15, 0)
         fresh = weekly_colors(self.render_without_five_hour_limit(now, 10, timedelta(days=6, hours=20)))[2]
         closing = weekly_colors(self.render_without_five_hour_limit(now, 10, timedelta(hours=2)))[2]
-        self.assertEqual(fresh, (129, 162, 190))
+        self.assertEqual(fresh, TOMORROW_BLUE)
         self.assertGreater(closing[0], 200)
         self.assertLess(closing[1], 150)
 
@@ -509,6 +625,71 @@ class StatuslineTest(unittest.TestCase):
         lines = self.render(self.payload(), Fakes(git=''))
         self.assertEqual(len(lines), MAX_LINES)
         self.assertEqual(visible(lines[2]), str(self.workspace))
+
+    def test_rex_theme_follows_the_appearance(self) -> None:
+        rex = self.install_rex()
+        cases = (('system light', '', '', PAPER), ('system dark', '', 'Dark', NIGHT),
+                 ('Rex light over system dark', 'light', 'Dark', PAPER), ('Rex dark over system light', 'dark', '', NIGHT))
+        for name, rex_appearance, style, theme in cases:
+            with self.subTest(name):
+                cache = self.root / name
+                cache.mkdir()
+                line = self.palette_line(dict(rex, TMPDIR=str(cache), FAKE_REX_APPEARANCE=rex_appearance, FAKE_STYLE=style))
+                self.assert_theme_colors(line, theme)
+
+    def test_alarm_red_stays_readable(self) -> None:
+        rex = self.install_rex()
+        for style, theme in (('', PAPER), ('Dark', NIGHT)):
+            with self.subTest(theme=theme.background):
+                cache = self.root / f'alarm{style}'
+                cache.mkdir()
+                line = self.palette_line(dict(rex, TMPDIR=str(cache), FAKE_STYLE=style), seven_day=100)
+                alarm = color_before(line, '100%+')
+                self.assertGreaterEqual(contrast(alarm, rgb(theme.background)), READABLE_CONTRAST, alarm)
+                self.assertGreater(alarm[0], alarm[1] + 100, alarm)
+
+    def test_unreadable_rex_theme_falls_back_to_tomorrow_night(self) -> None:
+        rex = self.install_rex()
+        cases = {'unknown appearance': dict(rex, FAKE_REX_APPEARANCE='sepia'),
+                 'no app path': {'TERM_PROGRAM': 'rex'},
+                 'other terminal': {'TERM_PROGRAM': 'Apple_Terminal'}}
+        for name, environment in cases.items():
+            with self.subTest(name):
+                cache = self.root / name
+                cache.mkdir()
+                line = self.palette_line(dict(environment, TMPDIR=str(cache)))
+                self.assertEqual(color_before(line, '│'), WHITE, line)
+                self.assertEqual(weekly_colors(line)[2], TOMORROW_BLUE, line)
+
+    def test_ghostty_theme_follows_its_config(self) -> None:
+        config = self.home / '.config/ghostty'
+        (config / 'themes').mkdir(parents=True)
+        (config / 'config').write_text('font-size = 18\ntheme = "light:Paper,dark:Night"\nforeground = #445566\n')
+        (config / 'themes/Paper').write_text(PAPER.ghostty_file())
+        resources = self.root / 'ghostty-resources'
+        (resources / 'themes').mkdir(parents=True)
+        (resources / 'themes/Night').write_text(NIGHT.ghostty_file())
+        self.preference('.GlobalPreferences.plist')
+        for style, theme in (('', PAPER), ('Dark', NIGHT)):
+            with self.subTest(theme=theme.background):
+                cache = self.root / f'ghostty{style}'
+                cache.mkdir()
+                line = self.palette_line({'TERM_PROGRAM': 'ghostty', 'GHOSTTY_RESOURCES_DIR': str(resources),
+                                          'TMPDIR': str(cache), 'FAKE_STYLE': style})
+                self.assertEqual(color_before(line, '│'), (0x44, 0x55, 0x66), line)
+                self.assertEqual(weekly_colors(line)[2], rgb(theme.blue), line)
+
+    def test_saved_palette_is_reused_until_a_source_changes(self) -> None:
+        rex = self.install_rex()
+        environment = dict(rex, FAKE_STYLE='')
+        self.assert_theme_colors(self.palette_line(environment), PAPER)
+        self.assertNotEqual(self.defaults_calls.read_text(), '')
+        self.defaults_calls.write_text('')
+        self.assert_theme_colors(self.palette_line(dict(environment, FAKE_STYLE='Dark')), PAPER)
+        self.assertEqual(self.defaults_calls.read_text(), '')
+        self.freshen(self.home / 'Library/Preferences/.GlobalPreferences.plist')
+        self.assert_theme_colors(self.palette_line(dict(environment, FAKE_STYLE='Dark')), NIGHT)
+        self.assertNotEqual(self.defaults_calls.read_text(), '')
 
     def test_folder_outside_git_abbreviates_home(self) -> None:
         folder = self.home / 'Code'

@@ -76,66 +76,208 @@ compaction_due=false
 [[ "$auto_compacts" = true ]] && [[ "$used_tokens" -ge "$limit_tokens" ]] && compaction_due=true
 
 RESET='\033[0m'
-WHITE='\033[97m'
 DIM='\033[90m'
-YELLOW='\033[33m'
 
-# Tomorrow Night gradient: (blue →) green → yellow → red with asymptotic red tail
+# Ghostty's default colors, which also stand in for any terminal whose theme is unreadable.
+fallback_palette=(255 255 255 129 162 190 181 189 104 240 198 116 204 102 102 255 0 0)
+ghostty_default_background=282c34
+
+# Prints foreground, blue, green, yellow, red, and alarm red as r g b each, given the background,
+# foreground, blue, green, yellow, and red as hex. A color under 4.5:1 against the background
+# moves toward white on a dark background, or black on a light one, until it reaches 4.5:1.
+readable_palette() {
+  jq -rn '
+    def channel: . / 255 | if . <= 0.04045 then . / 12.92 else pow((. + 0.055) / 1.055; 2.4) end;
+    def luminance: 0.2126 * (.[0] | channel) + 0.7152 * (.[1] | channel) + 0.0722 * (.[2] | channel);
+    def contrast($other): [luminance, ($other | luminance)] | (max + 0.05) / (min + 0.05);
+    def rgb: ltrimstr("#") | ascii_downcase | explode | map(if . >= 97 then . - 87 else . - 48 end)
+      | [.[0] * 16 + .[1], .[2] * 16 + .[3], .[4] * 16 + .[5]];
+    def toward($target; $percent): [., $target] | transpose | map(.[0] + (.[1] - .[0]) * $percent / 100 | round);
+    def readable($background; $foreground):
+      (if ($foreground | luminance) > ($background | luminance) then [255, 255, 255] else [0, 0, 0] end) as $extreme
+      | . as $color
+      | first(range(0; 101) as $percent | $color | toward($extreme; $percent) | select(contrast($background) >= 4.5))
+        // $extreme;
+    $ARGS.positional | map(rgb) as [$background, $foreground, $blue, $green, $yellow, $red]
+    | [$foreground, ($blue, $green, $yellow, $red, [255, 0, 0] | readable($background; $foreground))]
+    | flatten | join(" ")' --args "$@"
+}
+
+# macOS rewrites this plist when it switches appearance, so the plist keys the saved palette.
+system_appearance() {
+  local style
+  palette_sources+=("$HOME/Library/Preferences/.GlobalPreferences.plist")
+  style=$(defaults read -g AppleInterfaceStyle 2>/dev/null)
+  if [[ "$style" = Dark ]]; then
+    appearance=dark
+  else
+    appearance=light
+  fi
+}
+
+# Each resolver sets theme_colors to the background, foreground, blue, green, yellow, and red as hex.
+resolve_rex_palette() {
+  local appearance theme_id colors
+  local themes=${REX_BIN_DIR:-}
+  themes=${themes%%/Contents/Helpers/*}/Contents/Resources/SuperUI_SuperDesignTokens.bundle/Contents/Resources/themes.json
+  palette_sources+=("$HOME/Library/Preferences/com.superlogical.rex.plist" "$themes")
+  appearance=$(defaults read com.superlogical.rex Workspace.appearance 2>/dev/null)
+  case "$appearance" in
+    light|dark) ;;
+    auto|'') system_appearance ;;
+    *) return 1 ;;
+  esac
+  theme_id=$(defaults read com.superlogical.rex "Workspace.${appearance}ThemeID" 2>/dev/null) || return
+  colors=$(jq -r --arg id "$theme_id" '
+    first(.[] | select(.id == $id) | .source | [.background, .foreground, .ansi[4], .ansi[2], .ansi[3], .ansi[1]])
+    | join(" ")' "$themes" 2>/dev/null)
+  [[ -n "$colors" ]] || return
+  read -r -a theme_colors <<< "$colors"
+}
+
+# Sets parsed_theme and parsed_colors (palette indexes, then 256 background and 257 foreground) from one Ghostty file.
+parse_ghostty_file() {
+  local line setting='^[[:space:]]*(theme|background|foreground|palette)[[:space:]]*=[[:space:]]*"?([^"]*[^"[:space:]])"?[[:space:]]*$'
+  local hex='^#?([0-9A-Fa-f]{6})$' palette_entry='^([0-9]+)[[:space:]]*=[[:space:]]*#?([0-9A-Fa-f]{6})$'
+  parsed_theme='' parsed_colors=()
+  [[ -f "$1" ]] || return
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ $setting ]] || continue
+    local value=${BASH_REMATCH[2]}
+    case "${BASH_REMATCH[1]}" in
+      theme) parsed_theme=$value ;;
+      background) [[ "$value" =~ $hex ]] && parsed_colors[256]=${BASH_REMATCH[1]} ;;
+      foreground) [[ "$value" =~ $hex ]] && parsed_colors[257]=${BASH_REMATCH[1]} ;;
+      palette) [[ "$value" =~ $palette_entry ]] && parsed_colors[BASH_REMATCH[1]]=${BASH_REMATCH[2]} ;;
+      *) printf 'statusline: no case for Ghostty setting %s\n' "${BASH_REMATCH[1]}" >&2; exit 1 ;;
+    esac
+  done < "$1"
+}
+
+resolve_ghostty_palette() {
+  local config_dir=${XDG_CONFIG_HOME:-$HOME/.config}/ghostty appearance config theme='' entry index theme_file hex offset=0
+  local paired_theme='^[[:space:]]*(light|dark):[[:space:]]*(.*[^[:space:]])'
+  local -a colors=([256]=$ghostty_default_background) config_colors=() entries=() theme_files=()
+  for index in 257 4 2 3 1; do
+    printf -v hex '%02x%02x%02x' "${fallback_palette[@]:offset:3}"
+    colors[index]=$hex
+    (( offset += 3 ))
+  done
+  for config in "$config_dir/config" "$HOME/Library/Application Support/com.mitchellh.ghostty/config"; do
+    palette_sources+=("$config")
+    parse_ghostty_file "$config"
+    [[ -n "$parsed_theme" ]] && theme=$parsed_theme
+    for index in "${!parsed_colors[@]}"; do
+      config_colors[index]=${parsed_colors[index]}
+    done
+  done
+  if [[ "$theme" == *light:* || "$theme" == *dark:* ]]; then
+    system_appearance
+    IFS=, read -r -a entries <<< "$theme"
+    for entry in "${entries[@]}"; do
+      [[ "$entry" =~ $paired_theme ]] && [[ "${BASH_REMATCH[1]}" = "$appearance" ]] && theme=${BASH_REMATCH[2]}
+    done
+  fi
+  if [[ "$theme" == /* ]]; then
+    theme_files=("$theme")
+  elif [[ -n "$theme" ]]; then
+    theme_files=("$config_dir/themes/$theme")
+    [[ -n "${GHOSTTY_RESOURCES_DIR:-}" ]] && theme_files+=("$GHOSTTY_RESOURCES_DIR/themes/$theme")
+  fi
+  for theme_file in "${theme_files[@]}"; do
+    palette_sources+=("$theme_file")
+    [[ -f "$theme_file" ]] || continue
+    parse_ghostty_file "$theme_file"
+    for index in "${!parsed_colors[@]}"; do
+      colors[index]=${parsed_colors[index]}
+    done
+    break
+  done
+  for index in "${!config_colors[@]}"; do
+    colors[index]=${config_colors[index]}
+  done
+  theme_colors=("${colors[256]}" "${colors[257]}" "${colors[4]}" "${colors[2]}" "${colors[3]}" "${colors[1]}")
+}
+
+load_palette() {
+  local resolver=$1 source joined_sources readable='' palette_cache=${TMPDIR:-/tmp}
+  palette_cache=${palette_cache%/}/statusline-palette-${TERM_PROGRAM:-}
+  palette=()
+  if [[ -f "$palette_cache" ]]; then
+    { IFS=$'\037' read -r -a palette_sources; read -r -a palette; } < "$palette_cache"
+    for source in "${palette_sources[@]}"; do
+      [[ "$palette_cache" -nt "$source" ]] || { palette=(); break; }
+    done
+  fi
+  (( ${#palette[@]} )) && return
+  palette_sources=("${BASH_SOURCE[0]}") theme_colors=()
+  "$resolver" && readable=$(readable_palette "${theme_colors[@]}" 2>/dev/null)
+  read -r -a palette <<< "${readable:-${fallback_palette[*]}}"
+  printf -v joined_sources '%s\037' "${palette_sources[@]}"
+  printf '%s\n%s\n' "${joined_sources%$'\037'}" "${palette[*]}" > "$palette_cache.$$" \
+    && mv -f "$palette_cache.$$" "$palette_cache"
+}
+
+case "${TERM_PROGRAM:-}" in
+  rex) load_palette resolve_rex_palette ;;
+  ghostty) load_palette resolve_ghostty_palette ;;
+  *) palette=("${fallback_palette[@]}") ;;
+esac
+foreground_rgb=("${palette[@]:0:3}") blue_rgb=("${palette[@]:3:3}") green_rgb=("${palette[@]:6:3}")
+yellow_rgb=("${palette[@]:9:3}") red_rgb=("${palette[@]:12:3}") alarm_rgb=("${palette[@]:15:3}")
+printf -v FOREGROUND '\033[38;2;%d;%d;%dm' "${foreground_rgb[@]}"
+printf -v YELLOW '\033[38;2;%d;%d;%dm' "${yellow_rgb[@]}"
+printf -v pace_mark '\033[1;38;2;%d;%d;%dm│\033[0m' "${foreground_rgb[@]}"
+
+set_color() {
+  r=$1 g=$2 b=$3
+}
+
+# Sets r, g, b to the color a percent of the way from the first r g b to the second.
+blend() {
+  r=$(( $1 + ($4 - $1) * $7 / 100 ))
+  g=$(( $2 + ($5 - $2) * $7 / 100 ))
+  b=$(( $3 + ($6 - $3) * $7 / 100 ))
+}
+
+# Theme gradient: (blue →) green → yellow → red with an asymptotic tail toward the alarm red
 # Sets global r, g, b. Args: value green_end yellow_point red_point [asymptotic_k] [blue_floor]
 # When blue_floor is set, val ≤ blue_floor is pure blue and blue_floor→green_end blends blue→green.
-tn_gradient() {
+severity_gradient() {
   local val=$1 green_end=$2 yellow_pt=$3 red_pt=$4 k=${5:-80} blue_floor=${6:-}
   if [[ -n "$blue_floor" ]] && [[ "$val" -lt "$green_end" ]]; then
     if [[ "$val" -le "$blue_floor" ]]; then
-      r=129 g=162 b=190
+      set_color "${blue_rgb[@]}"
     else
-      local t=$(( (val - blue_floor) * 100 / (green_end - blue_floor) ))
-      r=$(( 129 + (181 - 129) * t / 100 ))
-      g=$(( 162 + (189 - 162) * t / 100 ))
-      b=$(( 190 + (104 - 190) * t / 100 ))
+      blend "${blue_rgb[@]}" "${green_rgb[@]}" $(( (val - blue_floor) * 100 / (green_end - blue_floor) ))
     fi
   elif [[ "$val" -le "$green_end" ]]; then
-    r=181 g=189 b=104
+    set_color "${green_rgb[@]}"
   elif [[ "$val" -le "$yellow_pt" ]]; then
-    local t=$(( (val - green_end) * 100 / (yellow_pt - green_end) ))
-    r=$(( 181 + (240 - 181) * t / 100 ))
-    g=$(( 189 + (198 - 189) * t / 100 ))
-    b=$(( 104 + (116 - 104) * t / 100 ))
+    blend "${green_rgb[@]}" "${yellow_rgb[@]}" $(( (val - green_end) * 100 / (yellow_pt - green_end) ))
   elif [[ "$val" -le "$red_pt" ]]; then
-    local t=$(( (val - yellow_pt) * 100 / (red_pt - yellow_pt) ))
-    r=$(( 240 + (204 - 240) * t / 100 ))
-    g=$(( 198 + (102 - 198) * t / 100 ))
-    b=$(( 116 + (102 - 116) * t / 100 ))
+    blend "${yellow_rgb[@]}" "${red_rgb[@]}" $(( (val - yellow_pt) * 100 / (red_pt - yellow_pt) ))
   else
-    local t=$(( (val - red_pt) * 100 / (val - red_pt + k) ))
-    r=$(( 204 + (255 - 204) * t / 100 ))
-    g=$(( 102 - 102 * t / 100 ))
-    b=$(( 102 - 102 * t / 100 ))
+    blend "${red_rgb[@]}" "${alarm_rgb[@]}" $(( (val - red_pt) * 100 / (val - red_pt + k) ))
   fi
 }
 
 rate_usage_gradient() {
   local val=$1
   if [[ "$val" -le 55 ]]; then
-    r=181 g=189 b=104
+    set_color "${green_rgb[@]}"
   elif [[ "$val" -le 75 ]]; then
-    local t=$(( (val - 55) * 100 / 20 ))
-    r=$(( 181 + (240 - 181) * t / 100 ))
-    g=$(( 189 + (198 - 189) * t / 100 ))
-    b=$(( 104 + (116 - 104) * t / 100 ))
+    blend "${green_rgb[@]}" "${yellow_rgb[@]}" $(( (val - 55) * 100 / 20 ))
   elif [[ "$val" -le 95 ]]; then
-    local t=$(( (val - 75) * 100 / 20 ))
-    r=$(( 240 + (255 - 240) * t / 100 ))
-    g=$(( 198 - 198 * t / 100 ))
-    b=$(( 116 - 116 * t / 100 ))
+    blend "${yellow_rgb[@]}" "${alarm_rgb[@]}" $(( (val - 75) * 100 / 20 ))
   else
-    r=255 g=0 b=0
+    set_color "${alarm_rgb[@]}"
   fi
 }
 
 # Sets battery to a 10-cell bar in the color the caller left in r, g, b, with a
-# smooth transition cell, and battery_color to that color. An optional cell index becomes a white
-# pace mark. Sets variables instead of printing, so a render starts no subshell.
+# smooth transition cell, and battery_color to that color. An optional cell index becomes a
+# pace mark in the theme's foreground. Sets variables instead of printing, so a render starts no subshell.
 build_battery() {
   local pct=$1 mark_cell=${2:--1} filled=$(( $1 * 10 / 100 )) transition=░ cell
   [[ "$filled" -gt 10 ]] && filled=10
@@ -144,7 +286,7 @@ build_battery() {
   battery=$battery_color
   for (( cell = 0; cell < 10; cell++ )); do
     if [[ "$cell" -eq "$mark_cell" ]]; then
-      battery+=$'\033[1;38;2;255;255;255m│\033[0m'"$battery_color"
+      battery+=$pace_mark$battery_color
     elif [[ "$cell" -lt "$filled" ]]; then
       battery+=▓
     elif [[ "$cell" -eq "$filled" ]]; then
@@ -156,14 +298,14 @@ build_battery() {
 }
 
 # Time-of-day color for the clock (weekdays 4:30-6:45pm, every day 9:30pm-1am local).
-# White outside the windows; LERPs white→green→yellow→bright-red (nighttime inserts an
-# extra white→blue pre-phase so the green-fade starts from blue). Bold kicks in at the
+# Foreground outside the windows; LERPs foreground→green→yellow→alarm red (nighttime inserts an
+# extra foreground→blue pre-phase so the green-fade starts from blue). Bold kicks in at the
 # yellow→red phase onward. Final phase of each window also toggles reverse video —
 # on for seconds 0-29, off for 30-59. Statusline updates every 30s, so the toggle
 # reads as a steady 30s-on/30s-off blink without per-session race.
 format_time_color() {
   local t_str=$1 dow=$clock_weekday h=$clock_hour m=$clock_minute s=$clock_second secs phase_start t r g b bold="" reverse=""
-  local night=0 start_r=255 start_g=255 start_b=255
+  local night=0 start_rgb=("${foreground_rgb[@]}")
   # 10# prefix prevents octal parsing on 08:xx / 09:xx
   secs=$((10#$h * 3600 + 10#$m * 60 + 10#$s))
   local P0 P1 P2 P3 P_blue
@@ -177,44 +319,36 @@ format_time_color() {
     night=1
     [[ "$secs" -lt 3600 ]] && secs=$(( secs + 86400 ))
   else
-    printf '%b%s%b' "$WHITE" "$t_str" "$RESET"
+    printf '%b%s%b' "$FOREGROUND" "$t_str" "$RESET"
     return
   fi
-  if [[ "$night" -eq 1 ]] && [[ "$secs" -lt "$P_blue" ]]; then  # white -> blue (night pre-phase)
+  if [[ "$night" -eq 1 ]] && [[ "$secs" -lt "$P_blue" ]]; then  # foreground -> blue (night pre-phase)
     phase_start=$P0
     t=$(( (secs - phase_start) * 100 / (P_blue - P0) ))
-    r=$(( 255 + (50 - 255) * t / 100 ))
-    g=$(( 255 + (130 - 255) * t / 100 ))
-    b=255
+    blend "${foreground_rgb[@]}" "${blue_rgb[@]}" "$t"
     printf '\033[38;2;%d;%d;%dm%s\033[0m' "$r" "$g" "$b" "$t_str"
     return
   fi
-  # After the pre-phase, the green-fade starts from blue instead of white on night windows.
+  # After the pre-phase, the green-fade starts from blue instead of the foreground on night windows.
   if [[ "$night" -eq 1 ]]; then
-    start_r=50 start_g=130 start_b=255
+    start_rgb=("${blue_rgb[@]}")
     P0=$P_blue
   fi
   if [[ "$secs" -lt "$P1" ]]; then           # start_color -> green
     phase_start=$P0
     t=$(( (secs - phase_start) * 100 / (P1 - P0) ))
-    r=$(( start_r + (0 - start_r) * t / 100 ))
-    g=$(( start_g + (200 - start_g) * t / 100 ))
-    b=$(( start_b + (0 - start_b) * t / 100 ))
+    blend "${start_rgb[@]}" "${green_rgb[@]}" "$t"
   elif [[ "$secs" -lt "$P2" ]]; then         # green -> yellow
     phase_start=$P1
     t=$(( (secs - phase_start) * 100 / (P2 - P1) ))
-    r=$(( 255 * t / 100 ))
-    g=200
-    b=0
-  elif [[ "$secs" -lt "$P3" ]]; then         # yellow -> bright red + BOLD
+    blend "${green_rgb[@]}" "${yellow_rgb[@]}" "$t"
+  elif [[ "$secs" -lt "$P3" ]]; then         # yellow -> alarm red + BOLD
     phase_start=$P2
     t=$(( (secs - phase_start) * 100 / (P3 - P2) ))
-    r=255
-    g=$(( 200 - 200 * t / 100 ))
-    b=0
+    blend "${yellow_rgb[@]}" "${alarm_rgb[@]}" "$t"
     bold='\033[1m'
-  else                                     # bright red + BOLD + reverse toggle
-    r=255; g=0; b=0
+  else                                     # alarm red + BOLD + reverse toggle
+    set_color "${alarm_rgb[@]}"
     bold='\033[1m'
     [[ $((10#$s)) -lt 30 ]] && reverse='\033[7m'
   fi
@@ -256,7 +390,7 @@ fi
 
 # Pace of what's left: remaining_time / remaining_budget, as a color in r/g/b.
 # On schedule this is 1.0x, same as used/elapsed. An empty budget is T/0, and
-# the red tail's limit at that unbounded ratio is (255,0,0).
+# the red tail's limit at that unbounded ratio is the alarm red.
 # Args: $1 = used percent, $2 = resets (unix), $3 = window seconds.
 pace_gradient() {
   local pct=$1 resets=$2 window_secs=$3
@@ -265,7 +399,7 @@ pace_gradient() {
   [[ "$time_remaining" -gt "$window_secs" ]] && time_remaining=$window_secs
 
   if [[ "$pct" -ge 100 ]]; then
-    r=255 g=0 b=0
+    set_color "${alarm_rgb[@]}"
     return
   fi
 
@@ -278,7 +412,7 @@ pace_gradient() {
   local projected=$(( pct * window_secs / time_elapsed ))
   [[ "$projected" -gt 300 ]] && projected=300
 
-  tn_gradient "$projected" 75 100 125 80 50
+  severity_gradient "$projected" 75 100 125 80 50
 }
 
 format_rate() {
@@ -318,7 +452,7 @@ format_rate() {
     fi
     # Countdown color by how soon the reset is: blue just after one, then green,
     # yellow, and red as the next nears.
-    tn_gradient $(( time_elapsed * 100 / window_secs )) 55 80 95 80 20
+    severity_gradient $(( time_elapsed * 100 / window_secs )) 55 80 95 80 20
     local countdown_color
     printf -v countdown_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
     info="${info} (resets in ${countdown_color}${remaining}${RESET})"
@@ -440,12 +574,8 @@ cost_display="" cost_color=""
 if [[ "${rate_5h:-0}" -ge 100 ]]; then
   if [[ -n "$raw_cost" ]]; then
     session_cost=$(printf "%.2f" "$raw_cost")
-    # Asymptotic red from 100%-red base: (204,102,102) → (255,0,0)
-    t=$(( cost_cents * 100 / (cost_cents + 2000) ))
-    r=$(( 204 + (255 - 204) * t / 100 ))
-    g=$(( 102 - 102 * t / 100 ))
-    b=$(( 102 - 102 * t / 100 ))
-    cost_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
+    blend "${red_rgb[@]}" "${alarm_rgb[@]}" $(( cost_cents * 100 / (cost_cents + 2000) ))
+    printf -v cost_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
     cost_display="\$${session_cost}"
   fi
 fi
