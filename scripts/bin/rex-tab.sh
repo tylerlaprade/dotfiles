@@ -1,10 +1,11 @@
 #!/bin/bash
-# Usage: rex-tab <folder> <command line> [label]
-# Types <command line> into a new shell tab (a Rex window) of the one shared Rex
-# session labeled Claude, created when missing, and prints the id of the tab's
-# block, `block:...`. The tab is labeled <label>, or the folder's name, and
-# opens without becoming the active one. Rex's server has no window, so this
-# opens none, and neither a Screen Time lockout nor a locked screen holds it.
+# Usage: rex-tab <folder> <command line> [label] [session label]
+# Types <command line> into a new shell tab (a Rex window) of the Rex session
+# labeled <session label>, Claude by default, created when missing, and prints
+# the id of the tab's block, `block:...`. The tab is labeled <label>, or the
+# folder's name, and opens without becoming the active one. Rex's server has no
+# window, so this opens none, and neither a Screen Time lockout nor a locked
+# screen holds it.
 set -euo pipefail
 
 folder=${1:?folder}
@@ -16,14 +17,14 @@ label=${3:-${folder##*/}}
 while [[ "$label" == -* ]]; do label=${label#-}; done
 # Inside a Rex terminal, a block in any other session counts as not found.
 unset REX_SESSION
-shared=Claude
-session=$("$rex" ls --json | jq -r --arg label "$shared" \
+session_label=${4:-Claude}
+session=$("$rex" ls --json | jq -r --arg label "$session_label" \
   'first(.sessions[] | select(.label == $label) | .session_id) // empty')
 if [[ -n "$session" ]]; then
   created=$("$rex" window new -s "$session" ${label:+"$label"} -c "$folder" --focus=false --json)
   block=$(jq -er '.block_ids[0]' <<<"$created")
 else
-  created=$("$rex" new "$shared" ${label:+--window "$label"} -c "$folder" --json)
+  created=$("$rex" new "$session_label" ${label:+--window "$label"} -c "$folder" --json)
   block=$(jq -er '.initial_windows[0].block_ids[0]' <<<"$created")
 fi
 "$rex" send -b "$block" "$command_line"$'\n'

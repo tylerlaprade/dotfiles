@@ -39,7 +39,7 @@ class SpawnSessionTest(unittest.TestCase):
             (self.bin / name).symlink_to(REPOSITORY / f"scripts/bin/{name}.sh")
         self.install(
             self.bin / "osascript",
-            'case "$*" in *com.superlogical.rex*) cat "$CALLS.rex-app" 2>/dev/null; exit 0 ;; esac\n'
+            'if [ "$1" = -e ]; then cat "$CALLS.rex-app" 2>/dev/null; exit 0; fi\n'
             'cat > "$CALLS.script"\nprintf "%s\\n" "$@" > "$CALLS.osascript"\necho tab-7\n',
         )
         self.install(
@@ -255,6 +255,88 @@ class SpawnSessionTest(unittest.TestCase):
         self.assertFalse(any(call.startswith("|new ") for call in self.rex_calls()))
         self.assert_no_ghostty()
 
+    def test_a_named_rex_session_is_created_and_claude_never_sees_its_option(
+        self,
+    ) -> None:
+        self.install_rex(self.bin / "rex")
+        self.rex_sessions("Claude")
+        result = self.run_command(
+            "spawn-session",
+            str(self.folder),
+            str(self.brief),
+            "--name",
+            "Kid tabs",
+            "--rex-session",
+            "Bosses",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "block:1\n")
+        listed, new, *typed = self.recorded("rex").split("\n", 2)
+        self.assertEqual(listed, "|ls --json")
+        self.assertEqual(new, f"|new Bosses --window Kid tabs -c {self.folder} --json")
+        command, *arguments = shlex.split(typed[0].removeprefix("|send -b block:1 "))
+        self.assertEqual(command, "claude")
+        self.assert_brief_hook(arguments)
+        self.assert_no_ghostty()
+
+    def test_later_sessions_open_as_background_tabs_in_a_named_rex_session(
+        self,
+    ) -> None:
+        self.install_rex(self.bin / "rex")
+        self.rex_sessions("Claude", "Bosses")
+        result = self.run_command(
+            "spawn-session",
+            str(self.folder),
+            "--rex-session=Bosses",
+            "--name",
+            "Kid tabs",
+            "--resume",
+            "4f2a",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "block:2\n")
+        self.assertEqual(
+            self.rex_calls()[1:3],
+            [
+                f"|window new -s session:bosses Kid tabs -c {self.folder} --focus=false --json",
+                "|send -b block:2 claude --name Kid\\ tabs --resume 4f2a",
+            ],
+        )
+
+    def test_without_rex_a_named_rex_session_is_ignored(self) -> None:
+        options = ("--rex-session", "Bosses", "--name", "Kid tabs")
+        result = self.run_command("spawn-session", str(self.folder), *options)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "tab-7\n")
+        self.assertEqual(
+            self.recorded("osascript").splitlines()[2], "claude --name Kid\\ tabs"
+        )
+        self.lockout(LOCKED_OUT)
+        result = self.run_command("spawn-session", str(self.folder), *options)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "background 4f2a\n")
+        self.assertEqual(
+            self.recorded("claude").splitlines(), ["--bg", "--name", "Kid tabs"]
+        )
+
+    def test_a_rex_session_option_without_a_label_fails_before_anything_starts(
+        self,
+    ) -> None:
+        self.install_rex(self.bin / "rex")
+        for options in (
+            ("--rex-session",),
+            ("--rex-session=",),
+            ("--rex-session", "--name", "Kid tabs"),
+        ):
+            with self.subTest(options=options):
+                result = self.run_command(
+                    "spawn-session", str(self.folder), str(self.brief), *options
+                )
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("takes the label of a Rex session", result.stderr)
+                self.assertFalse(Path(f"{self.calls}.rex").exists())
+        self.assertEqual(list(self.root.glob("spawn-brief.*")), [])
+
     def test_rex_is_found_inside_its_app_when_it_is_not_on_path(self) -> None:
         app = self.root / "Any Name.app"
         self.install_rex(app / "Contents/Helpers/Any.rex/Contents/MacOS/rex")
@@ -341,6 +423,14 @@ class SpawnSessionTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(
             self.rex_calls()[1], f"|new Claude --window Tests -c {self.folder} --json"
+        )
+        result = self.run_command(
+            "rex-tab", str(self.folder), "make test", "", "Bosses"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        started = [call for call in self.rex_calls() if call.startswith("|new ")]
+        self.assertEqual(
+            started[-1], f"|new Bosses --window work -c {self.folder} --json"
         )
 
     def test_missing_folder_fails_before_anything_starts(self) -> None:

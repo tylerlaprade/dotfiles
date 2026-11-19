@@ -1,5 +1,5 @@
 #!/bin/bash
-# Usage: spawn-session <folder> [brief-file] [claude options...]
+# Usage: spawn-session <folder> [brief-file] [--rex-session <label>] [claude options...]
 # Starts a peer Claude session in <folder>, typed into a shell, and prints the id
 # of the terminal it runs in. Without a brief file (no second argument, or one
 # starting with "-"), the session starts idle, ready for a cross-session message.
@@ -9,7 +9,10 @@
 # Tyler's own words. Claude is the shell's own command there: run from a
 # wrapper, it would keep no transcript.
 # With Rex installed, the terminal is a new tab from rex-tab, labeled with the
-# session's --name or else its folder's name, and the id is its block.
+# session's --name or else its folder's name, and the id is its block. The tab
+# opens in the Rex session that --rex-session names, Claude by default, created
+# when missing. That option may come anywhere among Claude's options, and Claude
+# never sees it.
 # Otherwise it is a new tab from ghostty-tab, and the id is the tab's. While
 # Screen Time has Ghostty locked out, or that is not yet known, the session
 # starts with `claude --bg` instead, this prints "background <id>", and
@@ -25,6 +28,22 @@ if (( $# > 0 )) && [[ "$1" != -* ]]; then
   [[ -r "$brief" ]] || { echo "spawn-session: cannot read $brief" >&2; exit 1; }
 fi
 [[ -d "$folder" ]] || { echo "spawn-session: no folder $folder" >&2; exit 1; }
+
+rex_session=Claude
+claude_options=()
+while (( $# > 0 )); do
+  case $1 in
+    --rex-session) rex_session=${2:-}; shift "$(( $# > 1 ? 2 : 1 ))" ;;
+    --rex-session=*) rex_session=${1#--rex-session=}; shift ;;
+    *) claude_options+=("$1"); shift ;;
+  esac
+done
+if [[ -z "$rex_session" || "$rex_session" == -* ]]; then
+  echo "spawn-session: --rex-session takes the label of a Rex session" >&2
+  exit 1
+fi
+# Bash 3.2 calls an empty array unbound under set -u.
+set -- ${claude_options[@]+"${claude_options[@]}"}
 
 if [[ -n "$brief" ]]; then
   for option in "$@"; do
@@ -57,7 +76,7 @@ if rex-path >/dev/null 2>&1; then
       *) shift ;;
     esac
   done
-  exec rex-tab "$folder" "$command_line" "$label"
+  exec rex-tab "$folder" "$command_line" "$label" "$rex_session"
 fi
 
 guard="$HOME/.cargo/bin/session-guard"
