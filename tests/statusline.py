@@ -546,6 +546,36 @@ class StatuslineTest(unittest.TestCase):
         text = visible(self.render_without_five_hour_limit(at(15, 0), 30, timedelta(minutes=-5)))
         self.assertIn('Usage · 7d ▓▓▓░░░░░░░ 30%', text)
 
+    def render_weekly_limits(self, now: datetime, seven_day: int, fable: int, left: timedelta, fable_left: timedelta | None = None) -> str:
+        rates = self.rates(now, seven_day=seven_day, seven_day_reset=now + left)
+        del rates['five_hour']
+        usage = dict(USAGE_OK, five_hour=None, seven_day=seven_day, fable=fable, resets_7d=int((now + left).timestamp()),
+                     resets_fable=int((now + (fable_left or left)).timestamp()))
+        return self.render(self.payload(Session(rates=rates)), Fakes(now=now, usage=usage))[1]
+
+    def test_shared_weekly_reset_puts_one_countdown_next_to_usage(self) -> None:
+        now = at(15, 0)
+        line = self.render_weekly_limits(now, 35, 70, timedelta(days=3, hours=12))
+        self.assertEqual(visible(line), 'Usage (resets in 3d 12h) · 7d ▓▓▓▒░│░░░░ 35% · Fable ▓▓▓▓▓│▓░░░ 70%')
+        fable = re.search(r'Fable \x1b\[38;2;(\d+;\d+;\d+)m.*?\x1b\[38;2;(\d+;\d+;\d+)m70%', line)
+        if fable is None:
+            self.fail(line)
+        self.assertEqual(fable.group(1), fable.group(2), line)
+
+    def test_shared_countdown_color_follows_time_not_usage(self) -> None:
+        now = at(15, 0)
+        countdown = r'Usage\x1b\[0m \(resets in \x1b\[38;2;(\d+;\d+;\d+)m'
+        heavy = re.search(countdown, self.render_weekly_limits(now, 35, 90, timedelta(days=3, hours=12)))
+        light = re.search(countdown, self.render_weekly_limits(now, 5, 5, timedelta(days=3, hours=12)))
+        if heavy is None or light is None:
+            self.fail('no shared countdown')
+        self.assertEqual(heavy.group(1), light.group(1))
+
+    def test_different_weekly_resets_keep_their_own_countdowns(self) -> None:
+        now = at(15, 0)
+        line = self.render_weekly_limits(now, 55, 40, timedelta(days=2, hours=3), timedelta(days=5, hours=1))
+        self.assertEqual(visible(line), 'Usage · 7d ▓▓▓▓▓▒│░░░ 55% (resets in 2d 3h) · Fable ▓▓│▓░░░░░░ 40% (resets in 5d 1h)')
+
     def test_clock_and_resets_follow_the_local_time_zone(self) -> None:
         now = at(15, 0)
         lines = self.render(self.payload(Session(rates=self.rates(now))), Fakes(now=now, claude_environment={'TZ': 'Asia/Kathmandu'}))

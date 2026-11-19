@@ -421,11 +421,6 @@ format_rate() {
   local pct=$1 resets=$2 window_secs=$3 display_override=$4 display_color=$5
   [[ -z "$pct" ]] && return
 
-  local time_remaining=$(( resets - now ))
-  [[ "$time_remaining" -lt 0 ]] && time_remaining=0
-  local time_elapsed=$(( window_secs - time_remaining ))
-  [[ "$time_elapsed" -lt 60 ]] && time_elapsed=60
-
   local info
   if [[ -n "$display_override" ]]; then
     info="${display_color}${display_override}${RESET}"
@@ -440,27 +435,43 @@ format_rate() {
     info="${pct_color}${pct}${suffix}${RESET}"
   fi
 
-  if [[ "$time_remaining" -gt 0 ]]; then
-    local days=$(( time_remaining / 86400 ))
-    local hrs=$(( (time_remaining % 86400) / 3600 ))
-    local mins=$(( (time_remaining % 3600) / 60 ))
-    local remaining=""
-    if [[ "$days" -gt 0 ]]; then
-      remaining="${days}d ${hrs}h"
-    elif [[ "$hrs" -gt 0 ]]; then
-      remaining="${hrs}h ${mins}m"
-    else
-      remaining="${mins}m"
-    fi
-    # Countdown color by how soon the reset is: blue just after one, then green,
-    # yellow, and red as the next nears.
-    severity_gradient $(( time_elapsed * 100 / window_secs )) 55 80 95 80 20
-    local countdown_color
-    printf -v countdown_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
-    info="${info} (resets in ${countdown_color}${remaining}${RESET})"
-  fi
-
+  format_countdown "$resets" "$window_secs"
+  [[ -n "$countdown" ]] && info+=" $countdown"
   echo "$info"
+}
+
+# Sets countdown to "(resets in ...)" colored by how soon the reset is: blue just after
+# one, then green, yellow, and red as the next nears. Empty once the reset has passed.
+format_countdown() {
+  local window_secs=$2 time_remaining=$(( $1 - now )) time_elapsed remaining
+  countdown=''
+  [[ "$time_remaining" -gt 0 ]] || return 0
+  time_elapsed=$(( window_secs - time_remaining ))
+  [[ "$time_elapsed" -lt 60 ]] && time_elapsed=60
+  if [[ "$time_remaining" -ge 86400 ]]; then
+    remaining="$(( time_remaining / 86400 ))d $(( time_remaining % 86400 / 3600 ))h"
+  elif [[ "$time_remaining" -ge 3600 ]]; then
+    remaining="$(( time_remaining / 3600 ))h $(( time_remaining % 3600 / 60 ))m"
+  else
+    remaining="$(( time_remaining / 60 ))m"
+  fi
+  severity_gradient $(( time_elapsed * 100 / window_secs )) 55 80 95 80 20
+  printf -v countdown '(resets in \033[38;2;%d;%d;%dm%s%b)' "$r" "$g" "$b" "$remaining" "$RESET"
+}
+
+# Sets weekly_part to a label, a battery in the pace color with a mark where an even
+# burn would put the week by now, and the percent.
+weekly_battery() {
+  local label=$1 pct=$2 resets=$3 week_left=$(( $3 - now )) pace_cell=-1 percent
+  if [[ "$week_left" -gt 0 ]]; then
+    [[ "$week_left" -gt 604800 ]] && week_left=604800
+    pace_cell=$(( (604800 - week_left) * 10 / 604800 ))
+  fi
+  pace_gradient "$pct" "$resets" 604800
+  build_battery "$pct" "$pace_cell"
+  percent="${pct}%"
+  [[ "$pct" -ge 100 ]] && percent+="+"
+  weekly_part="$label ${battery}${RESET} ${battery_color}${percent}${RESET}"
 }
 
 if [[ -n "$HIDE_GIT_PROMPT" ]]; then
@@ -542,19 +553,14 @@ if [[ -n "$_usage" ]]; then
       fable_part="${DIM}Fable unavailable${RESET}"
     fi
   elif [[ -n "$rate_fable" ]]; then
-    # Same weekly reset as 7d: omit the duplicate countdown. Compare within the usage
+    # A Fable reset that matches the 7d one shares its countdown. Compare within the usage
     # payload, and allow a minute of slack: the API rounds the two windows
     # independently, so the same reset arrives as 14:59:59 and 15:00:00. A real
     # divergence would be hours, never seconds.
-    if [[ -n "$resets_fable" ]] && [[ -n "$usage_resets_7d" ]] \
-       && [[ "$(( resets_fable > usage_resets_7d ? resets_fable - usage_resets_7d : usage_resets_7d - resets_fable ))" -le 60 ]]; then
-      pace_gradient "$rate_fable" "$resets_fable" 604800
-      fable_color=$(printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b")
-      fable_part="Fable ${fable_color}${rate_fable}%${RESET}"
-    else
-      rate=$(format_rate "$rate_fable" "$resets_fable" 604800)
-      [[ -n "$rate" ]] && fable_part="Fable $rate"
-    fi
+    fable_shares_reset=false
+    [[ -n "$resets_fable" ]] && [[ -n "$usage_resets_7d" ]] \
+      && [[ "$(( resets_fable > usage_resets_7d ? resets_fable - usage_resets_7d : usage_resets_7d - resets_fable ))" -le 60 ]] \
+      && fable_shares_reset=true
   fi
 elif [[ -n "$_usage_cmd" ]]; then
   fable_part="${DIM}Fable unavailable${RESET}"
@@ -583,29 +589,40 @@ if [[ "${rate_5h:-0}" -ge 100 ]]; then
 fi
 rate=$(format_rate "$rate_5h" "$resets_5h" 18000 "$cost_display" "$cost_color" plus)
 [[ -n "$rate" ]] && rate_parts+=("5h $rate")
-# Without a five-hour entry the row has room for a weekly battery in the pace
-# color, with a mark where an even burn would put the week by now.
+usage_label="${DIM}Usage${RESET}"
+# Without a five-hour entry the row has room for weekly batteries, and a countdown both
+# weekly limits share moves next to the label.
 if [[ -n "$rate_7d" && -z "$rate_5h" ]]; then
-  week_left=$(( ${resets_7d:-0} - now ))
-  pace_cell=-1
-  if [[ "$week_left" -gt 0 ]]; then
-    [[ "$week_left" -gt 604800 ]] && week_left=604800
-    pace_cell=$(( (604800 - week_left) * 10 / 604800 ))
+  weekly_battery 7d "$rate_7d" "$resets_7d"
+  seven_day_part=$weekly_part
+  [[ -n "${fable_shares_reset:-}" ]] && weekly_battery Fable "$rate_fable" "$resets_fable" && fable_part=$weekly_part
+  format_countdown "$resets_7d" 604800
+  if [[ "${fable_shares_reset:-}" = true ]]; then
+    [[ -n "$countdown" ]] && usage_label+=" $countdown"
+  else
+    [[ -n "$countdown" ]] && seven_day_part+=" $countdown"
+    if [[ "${fable_shares_reset:-}" = false ]]; then
+      format_countdown "$resets_fable" 604800
+      [[ -n "$countdown" ]] && fable_part+=" $countdown"
+    fi
   fi
-  pace_gradient "$rate_7d" "$resets_7d" 604800
-  build_battery "$rate_7d" "$pace_cell"
-  week_percent="${rate_7d}%"
-  [[ "$rate_7d" -ge 100 ]] && week_percent+="+"
-  rate=$(format_rate "$rate_7d" "$resets_7d" 604800 "$week_percent" "$battery_color")
-  rate_parts+=("7d ${battery}${RESET} $rate")
+  rate_parts+=("$seven_day_part")
 else
   rate=$(format_rate "$rate_7d" "$resets_7d" 604800 "" "" plus)
   [[ -n "$rate" ]] && rate_parts+=("7d $rate")
+  if [[ "${fable_shares_reset:-}" = true ]]; then
+    pace_gradient "$rate_fable" "$resets_fable" 604800
+    printf -v fable_color '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
+    fable_part="Fable ${fable_color}${rate_fable}%${RESET}"
+  elif [[ "${fable_shares_reset:-}" = false ]]; then
+    rate=$(format_rate "$rate_fable" "$resets_fable" 604800)
+    [[ -n "$rate" ]] && fable_part="Fable $rate"
+  fi
 fi
 [[ -n "$fable_part" ]] && rate_parts+=("$fable_part")
 if (( ${#rate_parts[@]} )); then
   usage_line=$(join_parts "${rate_parts[@]}")
-  echo -e "${DIM}Usage${RESET} · $usage_line"
+  echo -e "${usage_label} · $usage_line"
 fi
 
 # Location: the git line inside a repo, the ~ path outside one
