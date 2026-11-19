@@ -28,6 +28,16 @@
 						"command": "tool_pid=\"$PPID\"; shell_pid=\"${SESSION_GUARD_SHELL_PID:-}\"; [ -n \"$shell_pid\" ] || shell_pid=\"$(ps -o ppid= -p \"$tool_pid\" | tr -d ' ')\"; if [ -n \"$shell_pid\" ]; then ${HOME}/.cargo/bin/session-guard register --tool codex --pid \"$tool_pid\" --shell-pid \"$shell_pid\"; else ${HOME}/.cargo/bin/session-guard register --tool codex --pid \"$tool_pid\"; fi"
 					}
 				]
+			},
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "/bin/sh -c 'rex __internal session-start --agent codex --feature-session-naming=false 2>/dev/null || true'",
+						"timeout": 5,
+						"statusMessage": "Loading Rex terminal context"
+					}
+				]
 			}
 		],
 		"Stop": [
