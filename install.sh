@@ -215,6 +215,7 @@ echo "  2. Kanata:           Allow ~/.local/bin/kanata in Input Monitoring and A
 echo "                      and the Karabiner driver in Login Items & Extensions → Driver Extensions"
 echo "  3. Kid trackpad lock: Allow python3 (/usr/bin/python3) in Accessibility"
 echo "  4. By hand:         Install Rex Beta from its invite, Avec, and Hex; the sync adds their login items"
+echo "  5. Ghostty:         Not installed, so Queenspawn's game theater pane will not open (brew install --cask ghostty)"
 echo ""
 if [[ $failed -ne 0 ]]; then
   echo "Some install steps failed."
