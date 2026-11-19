@@ -58,6 +58,7 @@ LSAPPINFO_SHIM = ('#!/bin/bash\n'
                   '&& printf \'"LSBundlePath"="%s"\\n\' "$FAKE_REX_APP"\n')
 type RGB = tuple[int, int, int]
 TOMORROW_BLUE: RGB = (129, 162, 190)
+TOMORROW_BACKGROUND: RGB = (40, 44, 52)
 WHITE: RGB = (255, 255, 255)
 RED: RGB = (255, 0, 0)
 REX_THEMES = 'Contents/Resources/SuperUI_SuperDesignTokens.bundle/Contents/Resources/themes.json'
@@ -515,6 +516,20 @@ class StatuslineTest(unittest.TestCase):
                 battery, percent, _ = weekly_colors(line)
                 self.assertEqual(battery, percent, line)
 
+    def test_pace_mark_sits_on_its_cell_shade(self) -> None:
+        now = at(15, 0)
+        cases = {'empty cell': (15, timedelta(days=3, hours=12), 25), 'filled cell': (62, timedelta(days=5), 75),
+                 'just reset at 7%': (7, timedelta(days=6, hours=22), 50)}
+        for name, (seven_day, left, percent) in cases.items():
+            with self.subTest(case=name):
+                line = self.render_without_five_hour_limit(now, seven_day, left)
+                battery = weekly_colors(line)[0]
+                match = re.search(r'\x1b\[48;2;(\d+);(\d+);(\d+)m\x1b\[1;38;2;255;255;255m│', line)
+                if match is None:
+                    self.fail(line)
+                expected = tuple(back + int((front - back) * percent / 100) for front, back in zip(battery, TOMORROW_BACKGROUND, strict=True))
+                self.assertEqual(tuple(int(value) for value in match.groups()), expected, line)
+
     def test_weekly_battery_and_percent_follow_pace(self) -> None:
         now = at(15, 0)
         ahead = weekly_colors(self.render_without_five_hour_limit(now, 45, timedelta(days=6, hours=6)))[0]
@@ -561,6 +576,10 @@ class StatuslineTest(unittest.TestCase):
         if fable is None:
             self.fail(line)
         self.assertEqual(fable.group(1), fable.group(2), line)
+
+    def test_spent_weekly_limits_mark_only_the_capped_figure_as_over(self) -> None:
+        line = self.render_weekly_limits(at(15, 0), 100, 100, timedelta(hours=1))
+        self.assertTrue(visible(line).endswith(' 100%+ · Fable ▓▓▓▓▓▓▓▓▓│ 100%'), visible(line))
 
     def test_shared_countdown_color_follows_time_not_usage(self) -> None:
         now = at(15, 0)
