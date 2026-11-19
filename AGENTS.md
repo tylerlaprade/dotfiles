@@ -56,3 +56,11 @@
   `/opt/homebrew/bin/python3 -m unittest tests/<name>.py`; `tests/threeway.py`
   imports the sync module as `scripts.sync.threeway`, which resolves only from
   there. The recall skill's tests run from its root with `PYTHONPATH=scripts`.
+- The Claude status line (`.claude/statusline.sh`) is done only after someone
+  has looked at its live render in Rex, captured with `rex capture
+  --format=html` from a real pane, in light and dark, at the size Tyler sees.
+  A mockup, a font preview or a passing test doesn't count: Rex draws ▓ ▒ ░ as
+  solid tints, which other fonts hide. On Nov 19 two status line changes
+  shipped with flaws the worker's own output showed, and Tyler found them:
+  "please don't ever let the status line session be sloppy without checking
+  its work again."
