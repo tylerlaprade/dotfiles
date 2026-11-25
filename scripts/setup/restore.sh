@@ -36,6 +36,24 @@ put_back() {
   fi
 }
 
+put_back_file() {
+  local name="$1" destination="$2"
+  echo "  ~/${destination#"$HOME"/}"
+  if [[ ! -f "$RESTORE_DIR/$name" ]]; then
+    echo "    (not in the backup, skipping)"
+    return
+  fi
+  cmp -s "$RESTORE_DIR/$name" "$destination" && return
+  if [[ -e "$destination" ]]; then
+    local kept
+    kept="$destination.pre-restore-$(date +%Y%m%d%H%M%S)"
+    mv "$destination" "$kept"
+    echo "    Kept the one already here as ${kept##*/}"
+  fi
+  mkdir -p "$(dirname "$destination")"
+  cp -a "$RESTORE_DIR/$name" "$destination"
+}
+
 echo ""
 echo "--- Restoring Fondly ---"
 put_back Keys "$HOME/Keys"
@@ -69,22 +87,9 @@ if [[ -d "$RESTORE_DIR/AWSVPNClient" ]]; then
   cp -a "$RESTORE_DIR/AWSVPNClient/"* "$HOME/.config/AWSVPNClient/"
 fi
 
-echo "  ~/.zshrc.local"
-if [[ -f "$RESTORE_DIR/zshrc.local" ]]; then
-  cp "$RESTORE_DIR/zshrc.local" "$HOME/.zshrc.local"
-fi
-
-echo "  ~/.config/gh/hosts.yml"
-if [[ -f "$RESTORE_DIR/gh/hosts.yml" ]]; then
-  mkdir -p "$HOME/.config/gh"
-  cp "$RESTORE_DIR/gh/hosts.yml" "$HOME/.config/gh/hosts.yml"
-fi
-
-echo "  Graphite user_config"
-if [[ -f "$RESTORE_DIR/graphite/user_config" ]]; then
-  mkdir -p "$HOME/.config/graphite"
-  cp "$RESTORE_DIR/graphite/user_config" "$HOME/.config/graphite/user_config"
-fi
+put_back_file zshrc.local "$HOME/.zshrc.local"
+put_back_file gh/hosts.yml "$HOME/.config/gh/hosts.yml"
+put_back_file graphite/user_config "$HOME/.config/graphite/user_config"
 
 echo "  Atlassian CLI config"
 if [[ -d "$RESTORE_DIR/acli" ]]; then
@@ -92,15 +97,15 @@ if [[ -d "$RESTORE_DIR/acli" ]]; then
   cp -a "$RESTORE_DIR/acli/"* "$HOME/.config/acli/"
 fi
 
-echo "  Sourcery auth"
-if [[ -f "$RESTORE_DIR/sourcery/auth.yaml" ]]; then
-  mkdir -p "$HOME/.config/sourcery"
-  cp "$RESTORE_DIR/sourcery/auth.yaml" "$HOME/.config/sourcery/auth.yaml"
-fi
+put_back_file sourcery/auth.yaml "$HOME/.config/sourcery/auth.yaml"
+put_back_file netrc "$HOME/.netrc"
+[[ -f "$RESTORE_DIR/netrc" ]] && chmod 600 "$HOME/.netrc"
+put_back_file zshenv.local "$HOME/.zshenv.local"
 
-echo "  ~/.netrc, ~/.zshenv.local"
-[[ -f "$RESTORE_DIR/netrc" ]] && cp "$RESTORE_DIR/netrc" "$HOME/.netrc" && chmod 600 "$HOME/.netrc"
-[[ -f "$RESTORE_DIR/zshenv.local" ]] && cp "$RESTORE_DIR/zshenv.local" "$HOME/.zshenv.local"
+old_home=""
+if [[ -f "$RESTORE_DIR/claude-memories/.home" ]]; then
+  old_home=$(<"$RESTORE_DIR/claude-memories/.home")
+fi
 
 # Claude memories
 # Project keys are derived from repo paths. If the home directory changed,
@@ -108,10 +113,7 @@ echo "  ~/.netrc, ~/.zshenv.local"
 echo ""
 echo "--- Restoring Claude memories ---"
 new_home_slug=$(echo "$HOME" | tr '/' '-')
-old_home_slug=""
-if [[ -f "$RESTORE_DIR/claude-memories/.home" ]]; then
-  old_home_slug=$(tr '/' '-' < "$RESTORE_DIR/claude-memories/.home")
-fi
+old_home_slug=$(echo "$old_home" | tr '/' '-')
 if [[ -n "$old_home_slug" && "$old_home_slug" != "$new_home_slug" ]]; then
   echo "  Remapping project keys: $old_home_slug -> $new_home_slug"
 fi
@@ -127,6 +129,21 @@ for projectdir in "$RESTORE_DIR/claude-memories"/*/; do
   mkdir -p "$dest"
   cp "$projectdir"*.md "$dest/"
   echo "  $project"
+done
+
+# Codex's settings name folders by their full path, so a new home directory
+# replaces the old one in them.
+echo ""
+echo "--- Restoring agent settings ---"
+old_folder="$old_home/"
+new_folder="$HOME/"
+for settings in .codex/config.toml .codex/keybindings.json .codex/rules/default.rules .grok/pager.toml; do
+  carried="$RESTORE_DIR/agent-settings/$settings"
+  if [[ -n "$old_home" && "$old_home" != "$HOME" && -f "$carried" ]] && grep -qF "$old_folder" "$carried"; then
+    contents=$(<"$carried")
+    printf '%s\n' "${contents//"$old_folder"/$new_folder}" >"$carried"
+  fi
+  put_back_file "agent-settings/$settings" "$HOME/$settings"
 done
 
 # Personal files

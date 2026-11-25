@@ -162,6 +162,12 @@ for memdir in "$HOME/.claude/projects/"*/memory; do
   fi
 done
 
+# Agent settings. Only the files dotfiles does not link: each CLI signs in fresh
+# on the new Mac, and its sessions, memories and caches stay with this one.
+for settings in .codex/config.toml .codex/keybindings.json .codex/rules/default.rules .grok/pager.toml; do
+  carry "$HOME/$settings" "agent-settings/$settings"
+done
+
 # Personal files
 carry "$HOME/Documents" Documents --exclude=/Zoom --exclude='/Screen Recording*'
 carry "$HOME/Desktop" Desktop --exclude=/machine-backup --exclude=/machine-backup.zip
