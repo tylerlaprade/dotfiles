@@ -37,7 +37,7 @@
   },
   "KeyRepeatDelay": {
     "type": "float",
-    "value": 0.25
+    "value": 0.5
   },
   "KeyRepeatEnabled": {
     "type": "int",
@@ -45,7 +45,7 @@
   },
   "KeyRepeatInterval": {
     "type": "float",
-    "value": 0.033333333
+    "value": 0.083333333
   },
   "ReduceMotionEnabled": {
     "type": "int",

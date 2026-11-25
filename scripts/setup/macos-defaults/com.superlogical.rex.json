@@ -23,6 +23,18 @@
     "type": "bool",
     "value": true
   },
+  "Workspace.appearance": {
+    "type": "string",
+    "value": "auto"
+  },
+  "Workspace.cursorShader": {
+    "type": "string",
+    "value": "rainbow"
+  },
+  "Workspace.cursorShadersEnabled": {
+    "type": "bool",
+    "value": true
+  },
   "Workspace.darkThemeID": {
     "type": "string",
     "value": "merino-dark"
@@ -31,25 +43,109 @@
     "type": "string",
     "value": "both"
   },
+  "Workspace.interfaceStyle": {
+    "type": "string",
+    "value": "system"
+  },
   "Workspace.lightThemeID": {
     "type": "string",
     "value": "merino-light"
+  },
+  "Workspace.paneDensity": {
+    "type": "string",
+    "value": "compact"
+  },
+  "Workspace.paneHeaderVisibility": {
+    "type": "string",
+    "value": "always"
+  },
+  "Workspace.shellIconTheme": {
+    "type": "string",
+    "value": "default"
+  },
+  "Workspace.showsPaneHeaders": {
+    "type": "bool",
+    "value": true
+  },
+  "Workspace.sidebarCollapsed": {
+    "type": "bool",
+    "value": false
+  },
+  "Workspace.sidebarPosition": {
+    "type": "string",
+    "value": "left"
+  },
+  "Workspace.sidebarShowsActivity": {
+    "type": "bool",
+    "value": false
+  },
+  "Workspace.tabIconColorMode": {
+    "type": "string",
+    "value": "always"
+  },
+  "Workspace.tabIconCount": {
+    "type": "int",
+    "value": 3
   },
   "Workspace.tabIconTintMode": {
     "type": "string",
     "value": "off"
   },
+  "Workspace.tabStyle": {
+    "type": "string",
+    "value": "vertical"
+  },
   "Workspace.terminalCopyOnSelect": {
     "type": "bool",
     "value": true
+  },
+  "Workspace.terminalCursorBlinkIntervalMilliseconds": {
+    "type": "int",
+    "value": 500
+  },
+  "Workspace.terminalCursorBlinkUsesCustomInterval": {
+    "type": "bool",
+    "value": false
+  },
+  "Workspace.terminalCursorStyleForced": {
+    "type": "bool",
+    "value": false
+  },
+  "Workspace.terminalCustomSchemeLinks": {
+    "type": "string",
+    "value": "open"
   },
   "Workspace.terminalFontPointSize": {
     "type": "float",
     "value": 18.0
   },
+  "Workspace.terminalImproveTextContrast": {
+    "type": "bool",
+    "value": false
+  },
+  "Workspace.terminalSelectionBackground": {
+    "type": "string",
+    "value": "theme"
+  },
+  "Workspace.terminalSelectionForeground": {
+    "type": "string",
+    "value": "theme"
+  },
+  "Workspace.terminalSmoothScrolling": {
+    "type": "bool",
+    "value": true
+  },
+  "Workspace.toolbarBehavior": {
+    "type": "string",
+    "value": "alwaysShow"
+  },
   "Workspace.usesStandardInactiveWindowPaneStyles": {
     "type": "bool",
     "value": true
+  },
+  "rex.agents.names-sessions": {
+    "type": "bool",
+    "value": false
   },
   "rex.client.remoteControl": {
     "type": "bool",

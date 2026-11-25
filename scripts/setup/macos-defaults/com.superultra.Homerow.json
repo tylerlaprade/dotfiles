@@ -11,11 +11,19 @@
     "type": "bool",
     "value": false
   },
+  "completedOnboarding": {
+    "type": "bool",
+    "value": true
+  },
   "enable-hyper-key": {
     "type": "bool",
     "value": false
   },
   "launch-at-login": {
+    "type": "bool",
+    "value": true
+  },
+  "shortcuts-migrated-v1": {
     "type": "bool",
     "value": true
   },
