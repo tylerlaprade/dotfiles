@@ -98,6 +98,7 @@
 - Never suggest a mail filter that archives or hides mail I don't want; name the sender's own off switch.
 - Sign up for services with the address in my git config. Use the alias tyler@tylerlaprade.com only where other people will see the address: store listings, policy pages, site contacts.
 - Before checkout in a Porkbun cart, find the current $1-off coupon and apply it.
+- Ship anything bought for me under my name, not Bidusha's, so the delivery notices come to me ("You should actually do that anytime you're buying anything for me," Nov 25).
 - Never use my private email or strings derived from it as test data. "Tyler" is
   fine as a sample name.
 - Do not override the repository's Git identity with `-c user.name` or
