@@ -1,25 +1,62 @@
 #!/bin/bash
+# Usage: pre-wipe.sh [user@new-mac]
+# Carries this Mac's files to another Mac: straight over Remote Login when given
+# the new Mac, otherwise in an encrypted archive. restore.sh puts them back.
 set -e
 
+new_mac="${1:-}"
 BACKUP_DIR="$HOME/Desktop/machine-backup"
 ARCHIVE="$HOME/Desktop/machine-backup.zip"
 
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
+RSYNC=/opt/homebrew/bin/rsync
+rsync_options=(-aX --no-D --mkpath)
+destination="$BACKUP_DIR"
+
+carry() {
+  local source="$1" name="$2"
+  shift 2
+  echo "  ~/${source#"$HOME"/}"
+  if [[ -d "$source" ]]; then
+    "$RSYNC" "${rsync_options[@]}" "$@" "$source/" "$destination/$name/"
+  elif [[ -e "$source" ]]; then
+    "$RSYNC" "${rsync_options[@]}" "$@" "$source" "$destination/$name"
+  else
+    echo "    (not found, skipping)"
+  fi
+}
+
 echo "=== Pre-Wipe Backup ==="
+
+if [[ -n "$new_mac" ]]; then
+  echo ""
+  echo "--- Connecting to $new_mac ---"
+  ssh_sockets=$(mktemp -d /tmp/pre-wipe.XXXXXX)
+  ssh_command=(ssh -o ControlMaster=auto -o "ControlPath=$ssh_sockets/%C" -o ControlPersist=yes)
+  trap '"${ssh_command[@]}" -O exit "$new_mac" 2>/dev/null || true; rm -rf "$ssh_sockets"' EXIT
+  if ! "${ssh_command[@]}" "$new_mac" "test -x $RSYNC && mkdir -p machine-backup && chmod 700 machine-backup"; then
+    echo "  ✗ Cannot copy to $new_mac. On that Mac, turn on Remote Login in System Settings >"
+    echo "    General > Sharing, and run bootstrap.sh, which installs $RSYNC."
+    exit 1
+  fi
+  rsync_options+=(-e "${ssh_command[*]}" --rsync-path="$RSYNC")
+  destination="$new_mac:machine-backup"
+fi
 
 # Sync dotfiles and push
 echo ""
 echo "--- Syncing dotfiles ---"
 cd "$DOTFILES"
-if ! git diff --quiet || ! git diff --cached --quiet; then
-  echo "  ✗ Dotfiles repo has uncommitted changes. Commit or stash first."
-  exit 1
+dotfiles_status=$(git status --porcelain)
+if [[ -n "$dotfiles_status" ]]; then
+  echo "  ⚠ Dotfiles repo has uncommitted changes, so it is not synced or pushed."
+else
+  "$DOTFILES/scripts/sync/sync-dotfiles.sh"
+  git add -A
+  git diff --cached --quiet || git commit -m "Pre-wipe sync"
+  git push
 fi
-"$DOTFILES/scripts/sync/sync-dotfiles.sh"
-git add -A
-git diff --cached --quiet || git commit -m "Pre-wipe sync"
-git push
 
 # Check for uncommitted/unpushed work in ~/Code
 echo ""
@@ -74,7 +111,7 @@ if [[ "$sync_ok" -eq 0 ]]; then
 fi
 echo ""
 echo "  Write down your Brave sync code (Brave > Settings > Sync)."
-echo "  You'll need it after Brave is installed on the new machine."
+echo "  You'll need it if the new machine gets Brave, or if you wipe this one."
 read -p "  Ready to continue? [y/N] " -r
 [[ "$REPLY" =~ ^[Yy]$ ]] || exit 1
 
@@ -83,44 +120,29 @@ if [[ -d "$BACKUP_DIR" ]]; then
   chmod -RN "$BACKUP_DIR" 2>/dev/null; rm -rf "$BACKUP_DIR"
 fi
 mkdir -p "$BACKUP_DIR"
+chmod 700 "$BACKUP_DIR"
 
 echo ""
 echo "--- Copying files ---"
 
+# Fondly
+carry "$HOME/Keys" Keys
+carry "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" "Provisioning Profiles"
+carry "$HOME/Pictures/Fondly" Fondly
+
 # Secrets
-echo "  ~/.ssh/"
-cp -a "$HOME/.ssh" "$BACKUP_DIR/ssh"
-
-echo "  ~/.gnupg/"
-cp -a "$HOME/.gnupg" "$BACKUP_DIR/gnupg"
-
-echo "  ~/.aws/"
-cp -a "$HOME/.aws" "$BACKUP_DIR/aws"
-
-echo "  ~/.config/AWSVPNClient/"
-cp -a "$HOME/.config/AWSVPNClient" "$BACKUP_DIR/AWSVPNClient" 2>/dev/null || echo "    (not found, skipping)"
-
-echo "  ~/.zshrc.local"
-cp "$HOME/.zshrc.local" "$BACKUP_DIR/zshrc.local"
-
-echo "  ~/.config/gh/hosts.yml"
-mkdir -p "$BACKUP_DIR/gh"
-cp "$HOME/.config/gh/hosts.yml" "$BACKUP_DIR/gh/hosts.yml" 2>/dev/null || echo "    (not found, skipping)"
-
-echo "  ~/.config/graphite/user_config"
-mkdir -p "$BACKUP_DIR/graphite"
-cp "$HOME/.config/graphite/user_config" "$BACKUP_DIR/graphite/user_config" 2>/dev/null || echo "    (not found, skipping)"
-
-echo "  ~/.config/acli/"
-cp -a "$HOME/.config/acli" "$BACKUP_DIR/acli" 2>/dev/null || echo "    (not found, skipping)"
-
-echo "  ~/.config/sourcery/"
-mkdir -p "$BACKUP_DIR/sourcery"
-cp "$HOME/.config/sourcery/auth.yaml" "$BACKUP_DIR/sourcery/auth.yaml" 2>/dev/null || echo "    (not found, skipping)"
-
-echo "  ~/.netrc, ~/.zshenv.local"
-cp "$HOME/.netrc" "$BACKUP_DIR/netrc" 2>/dev/null || echo "    (~/.netrc not found, skipping)"
-cp "$HOME/.zshenv.local" "$BACKUP_DIR/zshenv.local" 2>/dev/null || echo "    (~/.zshenv.local not found, skipping)"
+carry "$HOME/.ssh" ssh
+# A lock file names the Mac that made it, so on another Mac GPG waits on it forever.
+carry "$HOME/.gnupg" gnupg --exclude='*.lock' --exclude='.#lk*'
+carry "$HOME/.aws" aws
+carry "$HOME/.config/AWSVPNClient" AWSVPNClient
+carry "$HOME/.zshrc.local" zshrc.local
+carry "$HOME/.config/gh/hosts.yml" gh/hosts.yml
+carry "$HOME/.config/graphite/user_config" graphite/user_config
+carry "$HOME/.config/acli" acli
+carry "$HOME/.config/sourcery/auth.yaml" sourcery/auth.yaml
+carry "$HOME/.netrc" netrc
+carry "$HOME/.zshenv.local" zshenv.local
 
 echo ""
 echo "  Code-signing identities live only in the keychain. In Xcode: Settings >"
@@ -130,47 +152,38 @@ read -p "  Exported (or skipping)? [y/N] " -r
 [[ "$REPLY" =~ ^[Yy]$ ]] || exit 1
 
 # Claude memories
-echo "  Claude memory files"
 mkdir -p "$BACKUP_DIR/claude-memories"
 echo "$HOME" > "$BACKUP_DIR/claude-memories/.home"
 for memdir in "$HOME/.claude/projects/"*/memory; do
-  [[ -d "$memdir" ]] || continue
-  project=$(basename "$(dirname "$memdir")")
   # Only copy if there are actual files
   if ls "$memdir"/*.md &>/dev/null; then
-    mkdir -p "$BACKUP_DIR/claude-memories/$project"
-    cp "$memdir"/*.md "$BACKUP_DIR/claude-memories/$project/"
+    project=$(basename "$(dirname "$memdir")")
+    carry "$memdir" "claude-memories/$project" --include='*.md' --exclude='*'
   fi
 done
 
 # Personal files
-echo "  ~/Documents/ (excluding Zoom, screen recordings)"
-mkdir -p "$BACKUP_DIR/Documents"
-for item in "$HOME/Documents/"*; do
-  name=$(basename "$item")
-  [[ "$name" == "Zoom" ]] && continue
-  [[ "$name" == Screen\ Recording* ]] && continue
-  cp -a "$item" "$BACKUP_DIR/Documents/$name"
-done
-
-echo "  ~/Desktop/ (excluding this backup)"
-mkdir -p "$BACKUP_DIR/Desktop"
-for item in "$HOME/Desktop/"*; do
-  name=$(basename "$item")
-  [[ "$name" == "machine-backup" || "$name" == "machine-backup.zip" ]] && continue
-  cp -a "$item" "$BACKUP_DIR/Desktop/$name"
-done
+carry "$HOME/Documents" Documents --exclude=/Zoom --exclude='/Screen Recording*'
+carry "$HOME/Desktop" Desktop --exclude=/machine-backup --exclude=/machine-backup.zip
 
 # History files
-echo "  Shell/REPL histories"
-mkdir -p "$BACKUP_DIR/histories"
 for f in .zsh_history .psql_history .python_history .node_repl_history; do
-  [[ -f "$HOME/$f" ]] && cp "$HOME/$f" "$BACKUP_DIR/histories/$f"
+  carry "$HOME/$f" "histories/$f"
 done
 
 # Fonts
-echo "  ~/Library/Fonts/"
-cp -a "$HOME/Library/Fonts" "$BACKUP_DIR/Fonts"
+carry "$HOME/Library/Fonts" Fonts
+
+if [[ -n "$new_mac" ]]; then
+  "$RSYNC" "${rsync_options[@]}" "$BACKUP_DIR/" "$destination/"
+  rm -rf "$BACKUP_DIR"
+  echo ""
+  echo "=== Copy complete ==="
+  echo "Remaining steps:"
+  echo "  1. Push all repos with unpushed work"
+  echo "  2. On the new Mac, run restore.sh; it finds the copy in ~/machine-backup"
+  exit 0
+fi
 
 # Create encrypted zip
 echo ""

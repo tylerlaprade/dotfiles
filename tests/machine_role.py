@@ -135,7 +135,7 @@ class RoleTableTest(unittest.TestCase):
         self.assertEqual(len(names), len(set(names)))
 
     def test_the_installer_handles_each_role(self) -> None:
-        for script in ("install.sh",):
+        for script in ("install.sh", "scripts/setup/restore.sh"):
             with self.subTest(script):
                 case = re.search(r'^case "\$role" in\n(?P<arms>.*?)^esac$', (REPOSITORY / script).read_text(), re.DOTALL | re.MULTILINE)
                 if case is None:

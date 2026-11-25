@@ -1,21 +1,46 @@
 #!/bin/bash
 set -e
 
-ARCHIVE="${1:-$HOME/Desktop/machine-backup.zip}"
-RESTORE_DIR="$HOME/Desktop/machine-backup"
+DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+role=$("$DOTFILES/scripts/bin/machine-role.sh")
 
-if [[ ! -f "$ARCHIVE" ]]; then
-  echo "Usage: restore.sh [path-to-machine-backup.zip]"
-  echo "Default: ~/Desktop/machine-backup.zip"
-  exit 1
-fi
+backup="${1:-}"
+for default in "$HOME/machine-backup" "$HOME/Desktop/machine-backup.zip"; do
+  [[ -z "$backup" && -e "$default" ]] && backup="$default"
+done
 
 echo "=== Restore from backup ==="
 
-# Unzip
-echo "Decrypting archive..."
-cd "$(dirname "$ARCHIVE")"
-unzip -o "$ARCHIVE"
+if [[ -d "$backup" ]]; then
+  RESTORE_DIR="$(cd "$backup" && pwd)"
+elif [[ -f "$backup" ]]; then
+  echo "Decrypting archive..."
+  archive_dir="$(cd "$(dirname "$backup")" && pwd)"
+  unzip -o "$backup" -d "$archive_dir"
+  RESTORE_DIR="$archive_dir/machine-backup"
+else
+  echo "Usage: restore.sh [path to the machine-backup folder or machine-backup.zip]"
+  echo "Default: ~/machine-backup, where pre-wipe.sh copies over the network, then ~/Desktop/machine-backup.zip"
+  exit 1
+fi
+echo "Restoring from $RESTORE_DIR"
+
+put_back() {
+  local name="$1" destination="$2"
+  echo "  ~/${destination#"$HOME"/}/"
+  if [[ -d "$RESTORE_DIR/$name" ]]; then
+    mkdir -p "$destination"
+    cp -a "$RESTORE_DIR/$name/." "$destination/"
+  else
+    echo "    (not in the backup, skipping)"
+  fi
+}
+
+echo ""
+echo "--- Restoring Fondly ---"
+put_back Keys "$HOME/Keys"
+put_back "Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+put_back Fondly "$HOME/Pictures/Fondly"
 
 # Secrets
 echo ""
@@ -36,9 +61,7 @@ chmod -R u+w "$HOME/.gnupg" 2>/dev/null || true
 cp -a "$RESTORE_DIR/gnupg/"* "$HOME/.gnupg/"
 chmod 700 "$HOME/.gnupg"
 
-echo "  ~/.aws/"
-mkdir -p "$HOME/.aws"
-cp -a "$RESTORE_DIR/aws/"* "$HOME/.aws/"
+put_back aws "$HOME/.aws"
 
 echo "  ~/.config/AWSVPNClient/"
 if [[ -d "$RESTORE_DIR/AWSVPNClient" ]]; then
@@ -47,7 +70,9 @@ if [[ -d "$RESTORE_DIR/AWSVPNClient" ]]; then
 fi
 
 echo "  ~/.zshrc.local"
-cp "$RESTORE_DIR/zshrc.local" "$HOME/.zshrc.local"
+if [[ -f "$RESTORE_DIR/zshrc.local" ]]; then
+  cp "$RESTORE_DIR/zshrc.local" "$HOME/.zshrc.local"
+fi
 
 echo "  ~/.config/gh/hosts.yml"
 if [[ -f "$RESTORE_DIR/gh/hosts.yml" ]]; then
@@ -134,26 +159,42 @@ cp -R "$RESTORE_DIR/Fonts/"* "$HOME/Library/Fonts/"
 fonts=("$RESTORE_DIR/Fonts/"*)
 echo "  ${#fonts[@]} fonts restored"
 
+# Code signing
+if [[ -f "$RESTORE_DIR/xcode.developerprofile" ]]; then
+  echo ""
+  echo "--- Code signing ---"
+  echo "  Import the Apple ID and signing identities into Xcode: double-click"
+  echo "  $RESTORE_DIR/xcode.developerprofile"
+fi
+
 # Cleanup
 echo ""
-read -p "Remove backup directory? (archive kept) [y/N] " -r
+read -p "Remove $RESTORE_DIR, signing file included? [y/N] " -r
 [[ "$REPLY" =~ ^[Yy]$ ]] && { chmod -RN "$RESTORE_DIR" 2>/dev/null; rm -rf "$RESTORE_DIR"; }
 
 echo ""
 echo "=== Restore complete ==="
 echo ""
+steps=(
+  "Run: $DOTFILES/scripts/setup/apply-macos-defaults.py"
+  "/etc/hosts entries are applied by install.sh from scripts/setup/hosts"
+)
+case "$role" in
+  agent)
+    steps+=("Fondly: install Xcode as its DISTRIBUTION.md says, then run Distribution/check-testflight-signing.sh there")
+    ;;
+  personal)
+    steps+=(
+      "Verify Brave Sync pulled everything down"
+      "Grant Input Monitoring and Accessibility for $HOME/.local/bin/kanata (do NOT install Karabiner-Elements: kanata-setup installs only the Karabiner driver release that Kanata supports)"
+      "Re-add login items if needed: Discord, Google Calendar (do NOT add Monologue: it opens itself at login, so a login item here makes it open twice)"
+      "Reinstall Google Calendar PWA in Brave (three dots > Install page as app): https://calendar.google.com/calendar/r"
+    )
+    ;;
+  *)
+    echo "restore.sh has no steps for the role $role." >&2
+    exit 1
+    ;;
+esac
 echo "Remaining manual steps:"
-echo "  1. Verify Brave Sync pulled everything down"
-echo "  2. Run: $HOME/Code/dotfiles/scripts/setup/apply-macos-defaults.py"
-echo "  3. Grant accessibility permissions for Kanata"
-echo "  4. Grant Input Monitoring + Accessibility for /Users/\$USER/.local/bin/kanata"
-echo "  5. /etc/hosts entries are applied by install.sh from scripts/setup/hosts"
-echo "  6. Re-add login items if needed: Discord, Granola, Graphite, Google Calendar, Slack"
-echo "     (Do NOT install Karabiner-Elements — kanata-setup installs only the"
-echo "      Karabiner driver release that Kanata supports)"
-echo "     (Do NOT add Monologue — it opens itself at login, so a login item"
-echo "      here makes it open twice)"
-echo "  7. Reinstall Google Calendar PWA in Brave (three dots > Install page as app):"
-echo "     https://calendar.google.com/calendar/r"
-echo "  8. Code signing: double-click $RESTORE_DIR/xcode.developerprofile to import"
-echo "     the Apple ID and signing identities into Xcode (kept in the archive)"
+printf '  - %s\n' "${steps[@]}"

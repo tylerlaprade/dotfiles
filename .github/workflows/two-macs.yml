@@ -1,0 +1,34 @@
+name: Two Macs
+
+on:
+  push:
+    paths:
+      - 'Brewfile*'
+      - 'LaunchAgents/**'
+      - 'install.sh'
+      - 'scripts/bin/machine-role.sh'
+      - 'scripts/setup/*'
+      - 'scripts/sync/**'
+      - 'tests/machine_role.py'
+      - 'tests/mac_to_mac.py'
+      - 'tests/settings_owner.py'
+      - 'tests/threeway.py'
+      - '.github/workflows/two-macs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+          check-latest: true
+      - name: Install rsync, which pre-wipe.sh runs from Homebrew
+        run: brew install rsync
+      - name: Test roles, the settings syncs, and the Mac-to-Mac copy
+        run: python3 -m unittest tests/machine_role.py tests/settings_owner.py tests/threeway.py tests/mac_to_mac.py

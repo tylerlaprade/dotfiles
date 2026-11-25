@@ -58,6 +58,10 @@
   writes those files, so the two working copies cannot drift or conflict. A
   setting changed on the agent Mac stays changed there and goes nowhere else;
   change a shared setting on the personal Mac.
+- `scripts/setup/pre-wipe.sh` carries a Mac's keys, memories and personal files
+  to another Mac: `pre-wipe.sh user@new-mac` copies over Remote Login, and with
+  no argument it makes an encrypted archive. `restore.sh` puts either back on
+  the new Mac.
 - Python here runs on Homebrew's `/opt/homebrew/bin/python3`, named in each
   shebang and shell caller, and the checkers target its version. The
   exceptions are `sync-macos-defaults.py`, `sync-browser-local-state.py`,

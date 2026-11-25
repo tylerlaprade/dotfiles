@@ -14,7 +14,7 @@ section() { echo -e "\n${CYAN}--- $1 ---${RESET}"; }
 warn()    { echo -e "  ${YELLOW}⚠${RESET} $1"; }
 dim()     { echo -e "  ${DIM}$1${RESET}"; }
 
-section "$HOME/Pictures, $HOME/Movies, $HOME/Music (not backed up)"
+section "$HOME/Pictures, $HOME/Movies, $HOME/Music (not backed up, except Pictures/Fondly)"
 for dir in Pictures Movies Music; do
   if [[ -d "$HOME/$dir" ]]; then
     count=$(find "$HOME/$dir" -maxdepth 1 -not -name "$dir" -not -name '.*' 2>/dev/null | wc -l | tr -d ' ') || true
