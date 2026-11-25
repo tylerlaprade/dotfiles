@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Codex's remote access from the phone works only while the ChatGPT app runs,
+  and the app offers launch at login only on Windows. This job opens it at login
+  on the agent Mac alone: login-items.json is shared, and the laptop keeps
+  ChatGPT out of Open at Login.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.tylerlaprade.open-chatgpt</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/bin/open</string>
+		<string>-g</string>
+		<string>/Applications/ChatGPT.app</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>/tmp/open-chatgpt.log</string>
+	<key>StandardErrorPath</key>
+	<string>/tmp/open-chatgpt.log</string>
+</dict>
+</plist>

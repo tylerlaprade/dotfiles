@@ -3,12 +3,13 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from typing import final, override
+from typing import cast, final, override
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 PROFILES = "Library/Developer/Xcode/UserData/Provisioning Profiles"
@@ -32,6 +33,24 @@ CARRIED = {
     "Documents/letter.txt": "letter",
     "Desktop/note.txt": "note",
     "Library/Fonts/Font.ttf": "font",
+}
+CLAUDE_CONFIG_CHOICES: dict[str, object] = {
+    "respectGitignore": False,
+    "claudeInChromeDefaultEnabled": True,
+    "externalEditorContext": True,
+}
+OLD_CLAUDE_ACCOUNT: dict[str, object] = {
+    "oauthAccount": {"emailAddress": "old-account@example.com"},
+    "userID": "old-user-id",
+    "machineID": "old-machine-id",
+    "projects": {"/Users/old/Code/app": {"hasTrustDialogAccepted": True}},
+}
+NEW_CLAUDE_CONFIG: dict[str, object] = {
+    "oauthAccount": {"emailAddress": "new-account@example.com"},
+    "userID": "new-user-id",
+    "machineID": "new-machine-id",
+    "respectGitignore": True,
+    "theme": "light",
 }
 LEFT_BEHIND = (
     ".gnupg/public-keys.d/pubring.db.lock",
@@ -161,6 +180,64 @@ class MacToMacTest(unittest.TestCase):
             for path in (self.new / ".codex").glob("config.toml.pre-restore-*")
         ]
         self.assertEqual(kept, ["signed in here"])
+
+    def claude_config(self, home: Path) -> dict[str, object]:
+        return cast(
+            "dict[str, object]", json.loads((home / ".claude.json").read_text())
+        )
+
+    def write_claude_config(self, home: Path, config: dict[str, object]) -> None:
+        self.write(home / ".claude.json", json.dumps(config, indent=2))
+
+    def test_claude_config_choices_join_the_new_macs_own_file(self) -> None:
+        self.write_claude_config(
+            self.old, {**OLD_CLAUDE_ACCOUNT, **CLAUDE_CONFIG_CHOICES}
+        )
+        self.write_claude_config(self.new, NEW_CLAUDE_CONFIG)
+        copied = self.run_script(self.old, "pre-wipe.sh", "tyler@new", answers="yy")
+        self.assertEqual(copied.returncode, 0, copied.stdout + copied.stderr)
+        carried = {
+            path.name: path.read_bytes()
+            for path in (self.new / "machine-backup").rglob("*")
+            if path.is_file()
+        }
+        restored = self.run_script(self.new, "restore.sh", answers="y")
+        self.assertEqual(restored.returncode, 0, restored.stdout + restored.stderr)
+        self.assertEqual(
+            self.claude_config(self.new),
+            {**NEW_CLAUDE_CONFIG, **CLAUDE_CONFIG_CHOICES},
+        )
+        self.assertEqual(
+            json.loads(carried["claude-config-choices.json"]), CLAUDE_CONFIG_CHOICES
+        )
+        for secret in ("old-account@example.com", "old-user-id", "old-machine-id"):
+            with self.subTest(secret):
+                self.assertNotIn(secret, copied.stdout + copied.stderr)
+                self.assertNotIn(secret, restored.stdout + restored.stderr)
+                for name, body in carried.items():
+                    self.assertNotIn(secret.encode(), body, name)
+
+    def test_claude_config_choices_start_a_new_macs_file(self) -> None:
+        self.write_claude_config(
+            self.old, {**OLD_CLAUDE_ACCOUNT, **CLAUDE_CONFIG_CHOICES}
+        )
+        self.copy()
+        result = self.run_script(self.new, "restore.sh", answers="y")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.claude_config(self.new), CLAUDE_CONFIG_CHOICES)
+
+    def test_a_claude_config_choice_never_made_is_not_carried(self) -> None:
+        self.write_claude_config(
+            self.old, {**OLD_CLAUDE_ACCOUNT, "respectGitignore": False}
+        )
+        self.write_claude_config(self.new, NEW_CLAUDE_CONFIG)
+        self.copy()
+        result = self.run_script(self.new, "restore.sh", answers="y")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(
+            self.claude_config(self.new),
+            {**NEW_CLAUDE_CONFIG, "respectGitignore": False},
+        )
 
     def test_codex_trusts_the_same_folders_in_the_new_home(self) -> None:
         self.write(self.old / ".codex/config.toml", self.trust_app_folder(self.old))

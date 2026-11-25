@@ -189,6 +189,7 @@ case "$role" in
       "Xcode:              Install the version in Fondly's DISTRIBUTION.md, open it once, then run xcodebuild -downloadPlatform iOS"
       "By hand:            Install Rex Beta from its invite, agy, and coderabbit; the sync adds Rex's login item"
       "Chrome:             Install the Claude and ChatGPT extensions"
+      "ChatGPT:            Sign in, then pair the phone for Codex in Settings > Connections > Control this Mac or PC, and keep the Mac awake there"
       "Ghostty:            Not installed, so Queenspawn's game theater pane will not open (brew install --cask ghostty)"
     )
     ;;

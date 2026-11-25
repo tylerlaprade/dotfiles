@@ -146,6 +146,23 @@ for settings in .codex/config.toml .codex/keybindings.json .codex/rules/default.
   put_back_file "agent-settings/$settings" "$HOME/$settings"
 done
 
+# ~/.claude.json also holds this Mac's own sign-in and IDs, so the carried
+# /config choices join it instead of replacing it. Claude Code fills in a file
+# that holds only them.
+echo "  ~/.claude.json: /config choices"
+config_choices="$RESTORE_DIR/agent-settings/claude-config-choices.json"
+if [[ -f "$config_choices" ]]; then
+  claude_config="$HOME/.claude.json"
+  current_config='{}'
+  [[ -f "$claude_config" ]] && current_config=$(<"$claude_config")
+  merged_config=$(jq --slurpfile choices "$config_choices" '. + $choices[0]' <<<"$current_config")
+  staged_config=$(mktemp "$claude_config.XXXXXX")
+  printf '%s\n' "$merged_config" >"$staged_config"
+  mv "$staged_config" "$claude_config"
+else
+  echo "    (not in the backup, skipping)"
+fi
+
 # Personal files
 echo ""
 echo "--- Restoring personal files ---"

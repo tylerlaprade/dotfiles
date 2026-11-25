@@ -168,6 +168,17 @@ for settings in .codex/config.toml .codex/keybindings.json .codex/rules/default.
   carry "$HOME/$settings" "agent-settings/$settings"
 done
 
+# Claude Code keeps these /config choices only in ~/.claude.json, beside the
+# account and machine IDs that stay with this Mac.
+echo "  ~/.claude.json: respectGitignore, claudeInChromeDefaultEnabled, externalEditorContext"
+if [[ -f "$HOME/.claude.json" ]]; then
+  mkdir -p "$BACKUP_DIR/agent-settings"
+  jq 'with_entries(select(.key | IN("respectGitignore", "claudeInChromeDefaultEnabled", "externalEditorContext")))' \
+    "$HOME/.claude.json" >"$BACKUP_DIR/agent-settings/claude-config-choices.json"
+else
+  echo "    (not found, skipping)"
+fi
+
 # Personal files
 carry "$HOME/Documents" Documents --exclude=/Zoom --exclude='/Screen Recording*'
 carry "$HOME/Desktop" Desktop --exclude=/machine-backup --exclude=/machine-backup.zip

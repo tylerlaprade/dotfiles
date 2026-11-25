@@ -62,7 +62,10 @@
   personal files to another Mac: `pre-wipe.sh user@new-mac` copies over Remote
   Login, and with no argument it makes an encrypted archive. `restore.sh` puts
   either back on the new Mac, and moves a different settings file already there
-  to `<name>.pre-restore-<time>`.
+  to `<name>.pre-restore-<time>`. `pre-wipe.sh` takes only three `/config`
+  choices from `~/.claude.json` (`respectGitignore`,
+  `claudeInChromeDefaultEnabled`, `externalEditorContext`), and `restore.sh`
+  merges them into the new Mac's `~/.claude.json`, keeping its sign-in and IDs.
 - Python here runs on Homebrew's `/opt/homebrew/bin/python3`, named in each
   shebang and shell caller, and the checkers target its version. The
   exceptions are `sync-macos-defaults.py`, `sync-browser-local-state.py`,
