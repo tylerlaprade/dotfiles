@@ -8,7 +8,8 @@ profile. Brave Sync only moves profile data and sync-macos-defaults.py only
 moves `defaults` domains, so a change made in the settings UI stayed on one
 machine. This script tracks a whitelist of `Local State` paths in one JSON file
 per browser under scripts/setup/browser-local-state/, merged per key the same
-way as sync-macos-defaults.py (see threeway.py).
+way as sync-macos-defaults.py (see threeway.py), and only the Mac that owns the
+settings writes those files.
 
 A running browser holds `Local State` in memory and rewrites the whole file
 from memory, so an edit made while it runs is lost. Repo values are applied
@@ -127,6 +128,8 @@ def apply_entries(browser: str, config: Browser, updates: threeway.JSONObject) -
     return True
 
 
+OWNS_SETTINGS = threeway.owns_settings()
+
 for browser, config in BROWSERS.items():
     tree = threeway.read_json_object(config.local_state)
     repo_entries = threeway.read_json_object(repo_path(browser))
@@ -145,9 +148,12 @@ for browser, config in BROWSERS.items():
         updates, _ = threeway.changes(local_entries, merged)
         if updates and not apply_entries(browser, config, updates):
             continue
+        if not OWNS_SETTINGS:
+            threeway.save_base(base_name, repo_entries)
+            continue
         if merged != repo_entries:
             write_repo(browser, merged)
         threeway.save_base(base_name, merged)
-    elif local_entries:
+    elif local_entries and OWNS_SETTINGS:
         write_repo(browser, local_entries)
         threeway.save_base(base_name, local_entries)

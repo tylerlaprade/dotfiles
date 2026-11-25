@@ -53,6 +53,11 @@
   write to the live machine is logged in `~/Library/Logs/dotfiles-sync.log`.
   `sync-macos-defaults.py --dry-run` previews; `--adopt` forces every repo
   value over the live machine, and nothing runs it automatically.
+- Only the personal Mac writes its live macOS defaults, login items and browser
+  settings into the repo. The agent Mac takes the repo's changes and never
+  writes those files, so the two working copies cannot drift or conflict. A
+  setting changed on the agent Mac stays changed there and goes nowhere else;
+  change a shared setting on the personal Mac.
 - Python here runs on Homebrew's `/opt/homebrew/bin/python3`, named in each
   shebang and shell caller, and the checkers target its version. The
   exceptions are `sync-macos-defaults.py`, `sync-browser-local-state.py`,

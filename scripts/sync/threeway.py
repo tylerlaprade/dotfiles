@@ -10,6 +10,11 @@ merge() with no base returns the live side. That is not a fresh machine:
 callers use merge_unbased(), which adopts a repo that already has content
 and does not export the live machine over it. An empty repo still takes the
 live side, so the first export from the original machine works.
+
+The personal Mac owns the shared settings: its changes go to the repo. The agent
+Mac follows: it takes the repo's changes and never writes the repo, so two
+working copies cannot drift or conflict. Its base is the repo as it last saw it,
+so a setting changed on the agent Mac stays as changed there.
 """
 
 # Python 3.9 syntax on purpose: the syncs that need macOS Automation and App Data grants
@@ -17,6 +22,7 @@ live side, so the first export from the original machine works.
 from __future__ import annotations
 
 import json
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar, Union
@@ -34,6 +40,7 @@ parse_json: Callable[[str], JSONValue] = json.loads
 
 BASE_DIR = Path("~/.local/state/dotfiles-sync").expanduser()
 LOG_PATH = Path("~/Library/Logs/dotfiles-sync.log").expanduser()
+MACHINE_ROLE = Path(__file__).resolve().parents[1] / "bin" / "machine-role.sh"
 
 
 def read_json_object(path: Path) -> JSONObject | None:
@@ -69,6 +76,15 @@ def save_base(name: str, value: Mapping[str, object]) -> None:
     path = base_path(name)
     path.parent.mkdir(parents=True, exist_ok=True)
     write_json(path, value, sort_keys=True)
+
+
+def owns_settings() -> bool:
+    role = subprocess.run([str(MACHINE_ROLE)], stdout=subprocess.PIPE, text=True, check=True).stdout.strip()
+    if role == "personal":
+        return True
+    if role == "agent":
+        return False
+    raise ValueError(f"unexpected role: {role!r}")
 
 
 def same(first: Mapping[str, Value], second: Mapping[str, Value], key: str) -> bool:

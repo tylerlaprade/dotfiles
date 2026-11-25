@@ -6,7 +6,8 @@
 
 Each tracked domain gets its own JSON file under scripts/setup/macos-defaults/.
 Direction is decided per key by a three-way merge against the state recorded
-at the last run (see threeway.py). A domain written as host:<name> in the
+at the last run (see threeway.py). Only the Mac that owns the settings writes
+the repo files; any other follows them. A domain written as host:<name> in the
 config is per-host (defaults -currentHost).
 
 Called by sync-dotfiles.sh (LaunchAgent: at login and daily).
@@ -120,6 +121,9 @@ if not CONF_PATH.exists():
     sys.exit(0)
 
 DOMAIN_DIR.mkdir(parents=True, exist_ok=True)
+
+OWNS_SETTINGS = threeway.owns_settings()
+WRITES_REPO = OWNS_SETTINGS and not options.dry_run
 
 
 # ---------------------------------------------------------------------------
@@ -393,10 +397,11 @@ def export_scalar(key: str, val: float | str, existing: Entries) -> Entry:
 def export_container(domain: str, key: str, val: list[PlistValue] | dict[str, PlistValue]) -> Entry:
     if has_bytes(val):
         plist_dir = SETUP_DIR / "macos-plists"
-        plist_dir.mkdir(parents=True, exist_ok=True)
         plist_name = f"{domain_file_name(domain)}.{key}.plist"
-        with (plist_dir / plist_name).open("wb") as pf:
-            plistlib.dump({key: val}, pf, fmt=plistlib.FMT_XML)
+        if WRITES_REPO:
+            plist_dir.mkdir(parents=True, exist_ok=True)
+            with (plist_dir / plist_name).open("wb") as pf:
+                plistlib.dump({key: val}, pf, fmt=plistlib.FMT_XML)
         return {"type": "plist-file", "file": f"macos-plists/{plist_name}"}
     normalized = normalize_plist_value(val)
     if not isinstance(normalized, (list, dict)):
@@ -552,7 +557,7 @@ for domain in sorted(domains_to_export):
 
     if repo_entries is None:
         # New domain, no repo file yet
-        if not options.dry_run and local_entries is not None:
+        if WRITES_REPO and local_entries is not None:
             write_domain_file(domain, local_entries)
             threeway.save_base(base_name(domain), local_entries)
         continue
@@ -569,6 +574,9 @@ for domain in sorted(domains_to_export):
     updates, _ = threeway.changes(local_entries, merged)
     write_to_system(domain, updates)
     if options.dry_run:
+        continue
+    if not OWNS_SETTINGS:
+        threeway.save_base(base_name(domain), repo_entries)
         continue
     if updates:
         # Re-export to capture what the system actually accepted
@@ -732,6 +740,13 @@ def apply_login_items(local_map: dict[str, str], merged: dict[str, str]) -> dict
     return landed
 
 
+def followed_base(repo_map: dict[str, str], merged: dict[str, str], landed: dict[str, str]) -> dict[str, str]:
+    """The repo's items, less a failed add and plus a failed removal, so the next run retries both."""
+    base = {path: name for path, name in repo_map.items() if path not in merged or path in landed}
+    base.update({path: name for path, name in landed.items() if path not in merged})
+    return base
+
+
 def sync_login_items() -> None:
     local_map = read_live_login_items()
     if local_map is None:
@@ -752,6 +767,9 @@ def sync_login_items() -> None:
 
     landed = apply_login_items(local_map, merged)
 
+    if not OWNS_SETTINGS:
+        threeway.save_base(LOGIN_ITEMS_BASE, followed_base(repo_map, merged, landed))
+        return
     if merged != repo_map:
         write_login_items_file(merged)
     threeway.save_base(LOGIN_ITEMS_BASE, landed)
