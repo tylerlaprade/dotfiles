@@ -18,8 +18,9 @@ problems = { shortenToSingleLine = false }
 nodePath = ""
 
 [language-server.flint]
-command = "fnm"
-args = ["exec", "--using=default", "--", "npx", "flint", "lsp"]
+command = "sh"
+args = ["-c", "exec node ~/Code/flint/packages/lsp/dist/bin/index.mjs"]
+required-root-patterns = ["flint.config.*"]
 
 [language-server.basedpyright]
 command = "basedpyright-langserver"
