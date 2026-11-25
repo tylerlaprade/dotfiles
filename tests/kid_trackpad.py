@@ -28,7 +28,7 @@ from scripts.kid_trackpad import (
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 KANATA_DAEMON = REPOSITORY / "LaunchDaemons/com.tylerlaprade.kanata.plist"
-KID_AGENT = REPOSITORY / "LaunchAgents/com.tylerlaprade.kid-trackpad.plist"
+KID_AGENT = REPOSITORY / "LaunchAgents/personal/com.tylerlaprade.kid-trackpad.plist"
 DEFAULTS = REPOSITORY / "scripts/setup/macos-defaults"
 KEY_DOWN = 10
 KEY_UP = 11

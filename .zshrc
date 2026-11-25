@@ -194,16 +194,18 @@ source ~/Code/dotfiles/scripts/bin/resume.sh
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
 source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
-_gt_yargs_completions()
-{
-  local reply
-  local si=$IFS
-  IFS=$'
+if (( $+commands[gt] )); then
+  _gt_yargs_completions()
+  {
+    local reply
+    local si=$IFS
+    IFS=$'
 ' reply=($(COMP_CWORD="$((CURRENT-1))" COMP_LINE="$BUFFER" COMP_POINT="$CURSOR" gt --get-yargs-completions "${words[@]}"))
-  IFS=$si
-  _describe 'values' reply
-}
-compdef _gt_yargs_completions gt
+    IFS=$si
+    _describe 'values' reply
+  }
+  compdef _gt_yargs_completions gt
+fi
 
 if [[ $ZSH_EVAL_CONTEXT == file && -o login && -o interactive &&
       -z $ZSH_EXECUTION_STRING && $TERM_PROGRAM == ghostty ]] &&

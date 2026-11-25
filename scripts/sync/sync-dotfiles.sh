@@ -9,6 +9,8 @@ done
 DOTFILES="$(cd "$(dirname "$_source")/../.." && pwd)"
 export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
+ROLE=$("$DOTFILES/scripts/bin/machine-role.sh") || exit 1
+
 # Paths handled by dedicated sync scripts below. link_tree skips these so
 # it doesn't symlink-then-clobber (which accumulated `.pre-dotfiles-*`
 # backups on every invocation). Populated by dedicated_sync().
@@ -219,9 +221,9 @@ for app_dir in "$HOME/Library/Application Support"/*/; do
   done
 done
 
-# LaunchAgents
+# LaunchAgents: the shared jobs, then the ones only this Mac's role runs
 mkdir -p "$HOME/Library/LaunchAgents"
-for plist in "$DOTFILES"/LaunchAgents/*.plist; do
+for plist in "$DOTFILES"/LaunchAgents/*.plist "$DOTFILES/LaunchAgents/$ROLE"/*.plist; do
   [[ -f "$plist" ]] || continue
   link "$plist" "$HOME/Library/LaunchAgents/$(basename "$plist")"
 done
@@ -253,7 +255,7 @@ find "$HOME" "$HOME/Library/LaunchAgents" "$HOME/Library/KeyBindings" -maxdepth 
 gt_prefs="$DOTFILES/.config/graphite/preferences.json"
 gt_config="$HOME/.config/graphite/user_config"
 
-if [[ -f "$gt_prefs" ]]; then
+if [[ -f "$gt_prefs" ]] && command -v gt >/dev/null 2>&1; then
   "$DOTFILES/scripts/sync/sync-graphite.py" "$gt_prefs" "$gt_config"
 fi
 # Tool upgrades — at most once a week, even when login-triggered runs stack up.

@@ -1,4 +1,12 @@
 - This repo is the global config for this machine, not just a project. `.agents/AGENTS.md` is symlinked into Claude (as `~/.claude/CLAUDE.md`), Codex, Gemini, and Grok. Never add a `CLAUDE.md` or `.claude/CLAUDE.md` to this repo: Claude Code then reads it instead of this file. Put rules that must reach every agent in `.agents/AGENTS.md`; keep this file for facts about the machine and this repo's workflow.
+- Two Macs use this repo: Tyler's laptop, whose role is `personal`, and an agent
+  host, whose role is `agent`. `scripts/setup/machines.conf` gives each Mac's
+  HostName its role, and `machine-role` prints this Mac's. Both Macs install
+  `Brewfile` and run the jobs in `LaunchAgents/`; each role adds
+  `Brewfile.<role>` and `LaunchAgents/<role>/`, and steps only one role needs
+  go in the `case` in `install.sh`. On a Mac the table does not list,
+  `install.sh` and the daily sync stop and print the line to add. Removing a
+  line from a Brewfile uninstalls nothing.
 - Most config files in `~/.config/` are symlinked from this repo, but some (like `helix/languages.toml`) are separate copies with a split/merge workflow (e.g. to keep secrets out of the repo). Before editing a config, check with `readlink` whether the live file is a symlink or a copy. If it's a copy, edit the live file at `~/.config/` directly, then sync the change back here.
 - For Claude Code flags, model settings, or hook behavior, check current official
   docs and the installed bundle under `~/.local/share/claude/versions/` before
@@ -19,13 +27,13 @@
   holds one on purpose, for `kid_trackpad.py`; if it disappears, ask again with
   that reason. Never ask for `/bin/bash`, and never run a probe that makes macOS
   prompt for a shell or interpreter: a grant to one covers every script it runs.
-- `kanata-setup` (`scripts/bin/kanata-setup.sh`, also run by `install.sh`)
-  installs Homebrew's Kanata with the Karabiner driver package that Kanata
-  release supports, read from the socket the binary expects (v6.2.0 before
-  Kanata 1.13, v8.0.0 after), and removes Karabiner-Elements, whose newer
-  driver and keyboard grabs broke Kanata. `~/.local/bin/kanata` is signed with
-  the Developer ID as `com.tylerlaprade.kanata`, so its Input Monitoring and
-  Accessibility grants survive upgrades.
+- `kanata-setup` (`scripts/bin/kanata-setup.sh`, also run by `install.sh` on
+  the personal Mac) installs Homebrew's Kanata with the Karabiner driver
+  package that Kanata release supports, read from the socket the binary expects
+  (v6.2.0 before Kanata 1.13, v8.0.0 after), and removes Karabiner-Elements,
+  whose newer driver and keyboard grabs broke Kanata. `~/.local/bin/kanata` is
+  signed with the Developer ID as `com.tylerlaprade.kanata`, so its Input
+  Monitoring and Accessibility grants survive upgrades.
 - Dock autohide stays on. `com.zeitalabs.jottleai` is Monologue and remains
   excluded from synced defaults because it stores account data.
 - GPG uses Homebrew's `pinentry-mac` and macOS Keychain for its passphrase.
@@ -34,7 +42,7 @@
 - The daily sync only links config and merges defaults. It does not install
   tools. `install.sh` is the one installer. On an existing Mac it installs
   only what is missing: `brew bundle --no-upgrade`, the three-way defaults
-  sync (live settings win), and `kanata-setup`.
+  sync (live settings win), and, on the personal Mac, `kanata-setup`.
   Before asking Tyler to run it, read what it will do and prefer the one
   step that needs his password. Monologue is the Homebrew cask.
 - The bidirectional syncs (macOS defaults, browser Local State, Graphite,

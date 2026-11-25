@@ -1,0 +1,4 @@
+brew "caddy"
+brew "cargo-nextest"
+brew "hk"
+brew "pkl"

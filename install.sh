@@ -33,6 +33,16 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# A hostname that flips breaks GPG's stale-lock reclamation (a dead-process lock
+# is only auto-broken when its recorded hostname matches the current one).
+if ! scutil --get HostName &>/dev/null; then
+  local_host_name=$(scutil --get LocalHostName)
+  sudo scutil --set HostName "$local_host_name"
+fi
+
+role=$("$DOTFILES/scripts/bin/machine-role.sh")
+echo "Setting up this Mac for the $role role."
+
 if ! command -v brew >/dev/null 2>&1; then
   echo "Installing Homebrew..."
   homebrew_installer=$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)
@@ -47,13 +57,6 @@ export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.cargo/bin:/opt/homebrew/bin:
 for app in GarageBand iMovie Keynote Numbers Pages; do
   [[ -d "/Applications/$app.app" ]] && sudo rm -rf "/Applications/$app.app"
 done
-
-# A hostname that flips breaks GPG's stale-lock reclamation (a dead-process lock
-# is only auto-broken when its recorded hostname matches the current one).
-if ! scutil --get HostName &>/dev/null; then
-  local_host_name=$(scutil --get LocalHostName)
-  sudo scutil --set HostName "$local_host_name"
-fi
 
 "$DOTFILES/scripts/sync/apply-brewfile.sh" || failed=1
 
@@ -77,14 +80,9 @@ if command -v rustup >/dev/null 2>&1; then
 fi
 
 binstall_crates=(
-  apple-codesign
-  bacon
   cargo-insta
   cargo-update
-  cargo-workspaces
-  codebook-lsp
   commit-fix
-  genemichaels
 )
 if command -v cargo >/dev/null 2>&1; then
   installed_crates=$(cargo install --list 2>/dev/null | awk '{print $1}')
@@ -108,10 +106,6 @@ if command -v cargo >/dev/null 2>&1; then
     else
       failed=1
     fi
-  fi
-  if ! grep -qxF lint-staged-rs <<<"$installed_crates"; then
-    echo "Installing lint-staged-rs..."
-    cargo install --git https://github.com/tylerlaprade/lint-staged-rs || failed=1
   fi
 fi
 
@@ -166,18 +160,8 @@ if ! command -v codex >/dev/null 2>&1; then
 fi
 
 if ! gh auth status >/dev/null 2>&1; then
-  echo "GitHub CLI auth required for app downloads..."
+  echo "GitHub CLI auth required..."
   gh auth login
-fi
-
-if [[ ! -d /Applications/Graphite.app ]] && gh auth status >/dev/null 2>&1; then
-  echo "Installing Graphite..."
-  if gh release download --repo withgraphite/graphite-desktop --pattern '*darwin-arm64*' -D /tmp --clobber; then
-    unzip -qo /tmp/Graphite-darwin-arm64-*.zip -d /Applications/
-    rm -f /tmp/Graphite-darwin-arm64-*.zip
-  else
-    failed=1
-  fi
 fi
 
 while IFS= read -r entry || [[ -n "$entry" ]]; do
@@ -199,7 +183,28 @@ echo ""
 echo "Applying macOS defaults..."
 "$DOTFILES/scripts/setup/apply-macos-defaults.py"
 
-"$DOTFILES/scripts/bin/kanata-setup.sh" || failed=1
+case "$role" in
+  agent)
+    next_steps=(
+      "Xcode:              Install the version in Fondly's DISTRIBUTION.md, open it once, then run xcodebuild -downloadPlatform iOS"
+      "By hand:            Install Rex Beta from its invite, agy, and coderabbit; the sync adds Rex's login item"
+      "Chrome:             Install the Claude and ChatGPT extensions"
+      "Ghostty:            Not installed, so Queenspawn's game theater pane will not open (brew install --cask ghostty)"
+    )
+    ;;
+  personal)
+    "$DOTFILES/scripts/bin/kanata-setup.sh" || failed=1
+    next_steps=(
+      "Kanata:             Allow ~/.local/bin/kanata in Input Monitoring and Accessibility, and the Karabiner driver in Login Items & Extensions → Driver Extensions"
+      "Kid trackpad lock:  Allow python3 (/usr/bin/python3) in Accessibility"
+      "By hand:            Install Rex Beta from its invite, Avec, and Hex; the sync adds their login items"
+    )
+    ;;
+  *)
+    echo "install.sh has no steps for the role $role." >&2
+    exit 1
+    ;;
+esac
 /opt/homebrew/bin/python3 "$DOTFILES/scripts/resume_schedule.py" install || failed=1
 
 launch_domain="gui/$(id -u)"
@@ -210,12 +215,7 @@ done
 
 echo ""
 echo "=== Next steps ==="
-echo "  1. Sourcery auth:    sourcery login"
-echo "  2. Kanata:           Allow ~/.local/bin/kanata in Input Monitoring and Accessibility,"
-echo "                      and the Karabiner driver in Login Items & Extensions → Driver Extensions"
-echo "  3. Kid trackpad lock: Allow python3 (/usr/bin/python3) in Accessibility"
-echo "  4. By hand:         Install Rex Beta from its invite, Avec, and Hex; the sync adds their login items"
-echo "  5. Ghostty:         Not installed, so Queenspawn's game theater pane will not open (brew install --cask ghostty)"
+printf '  - %s\n' "Sourcery auth:      sourcery login" "${next_steps[@]}"
 echo ""
 if [[ $failed -ne 0 ]]; then
   echo "Some install steps failed."

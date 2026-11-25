@@ -7,7 +7,7 @@ on:
       - 'tests/kid_trackpad.py'
       - 'install.sh'
       - 'LaunchDaemons/com.tylerlaprade.kanata.plist'
-      - 'LaunchAgents/com.tylerlaprade.kid-trackpad.plist'
+      - 'LaunchAgents/personal/com.tylerlaprade.kid-trackpad.plist'
       - 'ruff.toml'
       - 'pyrightconfig.json'
       - '.config/kanata/kanata.kbd'
@@ -46,4 +46,4 @@ jobs:
           python3 -m ruff format --check scripts/kid_trackpad.py tests/kid_trackpad.py
           basedpyright scripts/kid_trackpad.py tests/kid_trackpad.py
           bash -n install.sh
-          plutil -lint LaunchDaemons/com.tylerlaprade.kanata.plist LaunchAgents/com.tylerlaprade.kid-trackpad.plist
+          plutil -lint LaunchDaemons/com.tylerlaprade.kanata.plist LaunchAgents/personal/com.tylerlaprade.kid-trackpad.plist
