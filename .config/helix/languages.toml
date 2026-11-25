@@ -8,6 +8,7 @@ args = ["lsp-proxy"]
 [language-server.vscode-eslint-language-server]
 command = "vscode-eslint-language-server"
 args = ["--stdio"]
+required-root-patterns = ["eslint.config.*", ".eslintrc*"]
 
 [language-server.vscode-eslint-language-server.config]
 validate = "on"
