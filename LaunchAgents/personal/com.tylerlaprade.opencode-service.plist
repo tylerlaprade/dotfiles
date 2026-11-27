@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Keeps OpenCode's background service up for Hex's dictation rewrite, which
+  only talks to an already running service. `opencode service stop`, and an
+  OpenCode upgrade, delete service.json, so launchd runs `service start` again
+  whenever that file is missing; RunAtLoad covers a reboot, whose stale
+  service.json would otherwise hide the stopped server. PathState takes no
+  `~` or `$HOME`, hence the absolute path. The PATH is the server's, and must
+  reach ~/.local/bin/claude for the Claude Agent provider.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.tylerlaprade.opencode-service</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/sh</string>
+		<string>-c</string>
+		<string>PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/bin:/bin" exec "$HOME/.opencode/bin/opencode" service start</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<dict>
+		<key>PathState</key>
+		<dict>
+			<key>/Users/tyler/.local/state/opencode/service.json</key>
+			<false/>
+		</dict>
+	</dict>
+	<key>ThrottleInterval</key>
+	<integer>30</integer>
+	<key>StandardOutPath</key>
+	<string>/tmp/opencode-service.log</string>
+	<key>StandardErrorPath</key>
+	<string>/tmp/opencode-service.log</string>
+</dict>
+</plist>
