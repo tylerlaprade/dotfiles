@@ -8,6 +8,13 @@
   service.json would otherwise hide the stopped server. PathState takes no
   `~` or `$HOME`, hence the absolute path. The PATH is the server's, and must
   reach ~/.local/bin/claude for the Claude Agent provider.
+
+  Hex's requests land on the home folder's location, which OpenCode loads on
+  its first request and answers "Model not found" for Claude Agent until that
+  plugin registers about a second later, so the job loads it right after the
+  start. Hex's one-shot requests never count as activity, so the live
+  ~/.config/opencode/opencode.jsonc (not synced: the agent Mac runs no such
+  service) sets experimental.location_idle_timeout to false to keep it loaded.
 -->
 <plist version="1.0">
 <dict>
@@ -17,7 +24,7 @@
 	<array>
 		<string>/bin/sh</string>
 		<string>-c</string>
-		<string>PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/bin:/bin" exec "$HOME/.opencode/bin/opencode" service start</string>
+		<string>PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/bin:/bin"; cd "$HOME" &amp;&amp; "$HOME/.opencode/bin/opencode" service start &amp;&amp; exec "$HOME/.opencode/bin/opencode" api GET /api/model &gt;/dev/null</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
